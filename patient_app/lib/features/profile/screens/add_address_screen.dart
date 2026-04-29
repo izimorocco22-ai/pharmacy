@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/input_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../services/address_service.dart';
-import 'simple_location_picker.dart';
+import 'map_picker_screen.dart';
 
 class AddAddressScreen extends StatefulWidget {
   final Map<String, dynamic>? address;
@@ -20,9 +19,6 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _labelController;
   late TextEditingController _addressController;
-  late TextEditingController _cityController;
-  late TextEditingController _zipCodeController;
-  late TextEditingController _stateController;
   bool _isDefault = false;
   bool _isLoading = false;
   bool _isFetchingLocation = false;
@@ -34,9 +30,6 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     super.initState();
     _labelController = TextEditingController(text: widget.address?['label'] ?? '');
     _addressController = TextEditingController(text: widget.address?['address'] ?? '');
-    _cityController = TextEditingController(text: widget.address?['city'] ?? '');
-    _zipCodeController = TextEditingController(text: widget.address?['zipCode'] ?? '');
-    _stateController = TextEditingController(text: widget.address?['state'] ?? '');
     _isDefault = widget.address?['isDefault'] ?? false;
     _latitude = widget.address?['latitude'];
     _longitude = widget.address?['longitude'];
@@ -46,9 +39,6 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
   void dispose() {
     _labelController.dispose();
     _addressController.dispose();
-    _cityController.dispose();
-    _zipCodeController.dispose();
-    _stateController.dispose();
     super.dispose();
   }
 
@@ -56,7 +46,6 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     setState(() => _isFetchingLocation = true);
 
     try {
-      // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
@@ -68,7 +57,6 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
         return;
       }
 
-      // Check location permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -86,56 +74,46 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Location permissions are permanently denied'),
-            ),
+            const SnackBar(content: Text('Location permissions are permanently denied')),
           );
         }
         setState(() => _isFetchingLocation = false);
         return;
       }
 
-      // Get current position
-      Position position = await Geolocator.getCurrentPosition(
+      // Open map picker centered on current GPS position
+      final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      _latitude = position.latitude;
-      _longitude = position.longitude;
+      setState(() => _isFetchingLocation = false);
 
-      // Get address from coordinates
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
+      if (!mounted) return;
+
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapPickerScreen(
+            initialLatitude: position.latitude,
+            initialLongitude: position.longitude,
+          ),
+        ),
       );
 
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks[0];
-        
+      if (result != null && mounted) {
         setState(() {
-          _addressController.text = '${place.street ?? ''}, ${place.subLocality ?? ''}';
-          _cityController.text = place.locality ?? '';
-          _stateController.text = place.administrativeArea ?? '';
-          _zipCodeController.text = place.postalCode ?? '';
+          _latitude = result['latitude'];
+          _longitude = result['longitude'];
+          _addressController.text = result['address'] ?? '';
         });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Location fetched! Please verify and complete the address'),
-              backgroundColor: AppTheme.success,
-            ),
-          );
-        }
       }
     } catch (e) {
+      setState(() => _isFetchingLocation = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error fetching location: ${e.toString()}')),
+          SnackBar(content: Text('Error: ${e.toString()}')),
         );
       }
-    } finally {
-      setState(() => _isFetchingLocation = false);
     }
   }
 
@@ -143,7 +121,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SimpleLocationPicker(
+        builder: (context) => MapPickerScreen(
           initialLatitude: _latitude,
           initialLongitude: _longitude,
         ),
@@ -154,45 +132,18 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
       setState(() {
         _latitude = result['latitude'];
         _longitude = result['longitude'];
+        _addressController.text = result['address'] ?? '';
       });
-
-      // Get detailed address from coordinates
-      try {
-        List<Placemark> placemarks = await placemarkFromCoordinates(
-          _latitude!,
-          _longitude!,
-        );
-
-        if (placemarks.isNotEmpty) {
-          Placemark place = placemarks[0];
-          setState(() {
-            _addressController.text = '${place.street ?? ''}, ${place.subLocality ?? ''}';
-            _cityController.text = place.locality ?? '';
-            _stateController.text = place.administrativeArea ?? '';
-            _zipCodeController.text = place.postalCode ?? '';
-          });
-        }
-      } catch (e) {
-        // Ignore error, user can fill manually
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Location selected! Please verify address details'),
-          backgroundColor: AppTheme.success,
-        ),
-      );
     }
   }
 
   Future<void> _saveAddress() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Check if location was fetched
     if (_latitude == null || _longitude == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fetch your location first using GPS'),
+          content: Text('Please pick your location on the map first'),
           backgroundColor: AppTheme.error,
         ),
       );
@@ -204,28 +155,26 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     try {
       final isEditing = widget.address != null;
       final AddressResult result;
-      
+
       if (isEditing) {
-        // Update existing address
         result = await AddressService.updateAddress(
           id: widget.address!['_id'],
           label: _labelController.text.trim(),
           address: _addressController.text.trim(),
-          city: _cityController.text.trim(),
-          state: _stateController.text.trim(),
-          zipCode: _zipCodeController.text.trim(),
+          city: '',
+          state: '',
+          zipCode: '',
           latitude: _latitude!,
           longitude: _longitude!,
           isDefault: _isDefault,
         );
       } else {
-        // Add new address
         result = await AddressService.addAddress(
           label: _labelController.text.trim(),
           address: _addressController.text.trim(),
-          city: _cityController.text.trim(),
-          state: _stateController.text.trim(),
-          zipCode: _zipCodeController.text.trim(),
+          city: '',
+          state: '',
+          zipCode: '',
           latitude: _latitude!,
           longitude: _longitude!,
           isDefault: _isDefault,
@@ -280,7 +229,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // GPS Location Button
+              // Location picker card
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacing16),
                 decoration: BoxDecoration(
@@ -302,7 +251,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _latitude != null ? 'Location Fetched' : 'Fetch Your Location',
+                                _latitude != null ? 'Location Selected' : 'Select Location',
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                       color: _latitude != null ? AppTheme.success : AppTheme.primary,
                                       fontWeight: FontWeight.bold,
@@ -311,8 +260,8 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                               const SizedBox(height: AppTheme.spacing4),
                               Text(
                                 _latitude != null
-                                    ? 'GPS coordinates captured. Please verify address details below.'
-                                    : 'Required: Use GPS to get your current location',
+                                    ? 'Tap below to adjust on map'
+                                    : 'Use GPS or pick on map',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ],
@@ -320,54 +269,42 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                         ),
                       ],
                     ),
-                    if (_latitude == null) ...[
-                      const SizedBox(height: AppTheme.spacing12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _isFetchingLocation ? null : _getCurrentLocation,
-                              icon: _isFetchingLocation
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Icon(Icons.my_location),
-                              label: Text(_isFetchingLocation ? 'Fetching...' : 'Use GPS'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.white,
-                              ),
+                    const SizedBox(height: AppTheme.spacing12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _isFetchingLocation ? null : _getCurrentLocation,
+                            icon: _isFetchingLocation
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.my_location),
+                            label: Text(_isFetchingLocation ? 'Loading...' : 'Use GPS'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
                             ),
                           ),
-                          const SizedBox(width: AppTheme.spacing12),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: _openMapPicker,
-                              icon: const Icon(Icons.map),
-                              label: const Text('Pick on Map'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppTheme.primary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ] else ...[
-                      const SizedBox(height: AppTheme.spacing12),
-                      OutlinedButton.icon(
-                        onPressed: _openMapPicker,
-                        icon: const Icon(Icons.edit_location),
-                        label: const Text('Adjust Location on Map'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.primary,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: AppTheme.spacing12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _openMapPicker,
+                            icon: const Icon(Icons.map),
+                            label: const Text('Pick on Map'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -391,42 +328,12 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
               const SizedBox(height: AppTheme.spacing16),
               InputField(
                 controller: _addressController,
-                label: 'Street Address *',
+                label: 'Address',
                 prefixIcon: const Icon(Icons.home),
                 maxLines: 2,
+                enabled: false,
                 validator: (value) {
                   if (value?.isEmpty ?? true) return 'Address is required';
-                  return null;
-                },
-              ),
-              const SizedBox(height: AppTheme.spacing16),
-              InputField(
-                controller: _cityController,
-                label: 'City *',
-                prefixIcon: const Icon(Icons.location_city),
-                validator: (value) {
-                  if (value?.isEmpty ?? true) return 'City is required';
-                  return null;
-                },
-              ),
-              const SizedBox(height: AppTheme.spacing16),
-              InputField(
-                controller: _stateController,
-                label: 'State *',
-                prefixIcon: const Icon(Icons.map),
-                validator: (value) {
-                  if (value?.isEmpty ?? true) return 'State is required';
-                  return null;
-                },
-              ),
-              const SizedBox(height: AppTheme.spacing16),
-              InputField(
-                controller: _zipCodeController,
-                label: 'ZIP Code *',
-                prefixIcon: const Icon(Icons.pin_drop),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value?.isEmpty ?? true) return 'ZIP code is required';
                   return null;
                 },
               ),
@@ -446,15 +353,6 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                 isLoading: _isLoading,
               ),
               const SizedBox(height: AppTheme.spacing16),
-              Center(
-                child: Text(
-                  '* All fields are mandatory',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                        fontStyle: FontStyle.italic,
-                      ),
-                ),
-              ),
             ],
           ),
         ),
