@@ -20,9 +20,11 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
   final List<TextEditingController> _nameControllers = [];
   final List<TextEditingController> _qtyControllers = [];
   final List<TextEditingController> _priceControllers = [];
+  final TextEditingController _directTotalController = TextEditingController();
 
   bool _isEdit = false;
   bool _isLoading = false;
+  bool _isDirectMode = false;
 
   @override
   void initState() {
@@ -35,6 +37,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
     for (final c in _nameControllers) c.dispose();
     for (final c in _qtyControllers) c.dispose();
     for (final c in _priceControllers) c.dispose();
+    _directTotalController.dispose();
     super.dispose();
   }
 
@@ -112,20 +115,40 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
   double get _total => _subtotal;
 
   Future<void> _submit() async {
-    if (_items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add at least one item')),
-      );
-      return;
-    }
+    List<Map<String, dynamic>> itemsToSend;
 
-    for (int i = 0; i < _items.length; i++) {
-      if (_items[i]['medicineName'].toString().trim().isEmpty) {
+    if (_isDirectMode) {
+      final total = double.tryParse(_directTotalController.text.trim());
+      if (total == null || total <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Enter medicine name for item ${i + 1}')),
+          const SnackBar(content: Text('Please enter a valid total amount')),
         );
         return;
       }
+      itemsToSend = [
+        {
+          'medicineName': 'Total',
+          'quantity': 1,
+          'unitPrice': total,
+          'totalPrice': total,
+        }
+      ];
+    } else {
+      if (_items.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please add at least one item')),
+        );
+        return;
+      }
+      for (int i = 0; i < _items.length; i++) {
+        if (_items[i]['medicineName'].toString().trim().isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Enter medicine name for item ${i + 1}')),
+          );
+          return;
+        }
+      }
+      itemsToSend = List<Map<String, dynamic>>.from(_items);
     }
 
     setState(() => _isLoading = true);
@@ -137,7 +160,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
 
     final success = await context.read<PrescriptionProvider>().sendQuote(
           prescriptionId: prescriptionId,
-          items: List<Map<String, dynamic>>.from(_items),
+          items: itemsToSend,
           deliveryFee: 0,
         );
 
@@ -193,28 +216,94 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
                 ),
               ),
 
-            Text('Medicines', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: AppTheme.spacing16),
-
-            ..._items.asMap().entries.map((entry) =>
-                _buildItemCard(entry.key)),
-
-            const SizedBox(height: AppTheme.spacing12),
-            OutlinedButton.icon(
-              onPressed: _addItem,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Medicine'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primary,
-                side: const BorderSide(color: AppTheme.primary),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 12),
+            // Mode toggle
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _isDirectMode = false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: !_isDirectMode ? AppTheme.primary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.list_alt,
+                                size: 16,
+                                color: !_isDirectMode ? Colors.white : AppTheme.textSecondary),
+                            const SizedBox(width: 6),
+                            Text('Itemized',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: !_isDirectMode ? Colors.white : AppTheme.textSecondary)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _isDirectMode = true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _isDirectMode ? AppTheme.primary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.attach_money,
+                                size: 16,
+                                color: _isDirectMode ? Colors.white : AppTheme.textSecondary),
+                            const SizedBox(width: 6),
+                            Text('Direct Total',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: _isDirectMode ? Colors.white : AppTheme.textSecondary)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(height: AppTheme.spacing20),
 
-            const SizedBox(height: AppTheme.spacing24),
+            if (_isDirectMode) ..._buildDirectTotalSection()
+            else ...[
+              Text('Medicines', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: AppTheme.spacing16),
 
-            _buildSummary(),
+              ..._items.asMap().entries.map((entry) =>
+                  _buildItemCard(entry.key)),
+
+              const SizedBox(height: AppTheme.spacing12),
+              OutlinedButton.icon(
+                onPressed: _addItem,
+                icon: const Icon(Icons.add),
+                label: const Text('Add Medicine'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primary,
+                  side: const BorderSide(color: AppTheme.primary),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
+                ),
+              ),
+
+              const SizedBox(height: AppTheme.spacing24),
+
+              _buildSummary(),
+            ],
             const SizedBox(height: AppTheme.spacing24),
 
             PrimaryButton(
@@ -228,6 +317,63 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildDirectTotalSection() {
+    return [
+      AppCard(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.spacing16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.receipt_long, color: AppTheme.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Text('Enter Total Amount',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: AppTheme.spacing12),
+              const Text(
+                'Enter the total price for all medicines in this order.',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: AppTheme.spacing16),
+              InputField(
+                controller: _directTotalController,
+                label: 'Total Amount (MAD)',
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => setState(() {}),
+              ),
+              if ((_directTotalController.text.trim().isNotEmpty) &&
+                  (double.tryParse(_directTotalController.text.trim()) ?? 0) > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Total',
+                          style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        '${double.parse(_directTotalController.text.trim()).toStringAsFixed(2)} MAD',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(color: AppTheme.primary),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ];
   }
 
   Widget _buildItemCard(int index) {

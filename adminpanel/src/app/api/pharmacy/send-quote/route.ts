@@ -59,7 +59,12 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { prescriptionId, items } = body;
+    const { prescriptionId, items: rawItems, directTotal } = body;
+
+    // Support direct total mode: pharmacy sends a single total amount
+    const items = directTotal != null
+      ? [{ medicineName: 'Total', quantity: 1, unitPrice: Number(directTotal), totalPrice: Number(directTotal) }]
+      : rawItems;
 
     if (!prescriptionId || !items || items.length === 0) {
       return errorResponse('Prescription ID and items are required');
