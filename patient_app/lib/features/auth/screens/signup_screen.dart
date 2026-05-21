@@ -37,10 +37,14 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Send OTP to email
+      // Send OTP to phone instead of email
       final response = await ApiService.post(
         '/auth/send-otp',
-        {'email': _emailController.text.trim(), 'role': 'patient'},
+        {
+          'phone': _phoneController.text.trim(),
+          'email': _emailController.text.trim(),
+          'role': 'patient'
+        },
         includeAuth: false,
       );
 
@@ -54,6 +58,7 @@ class _SignupScreenState extends State<SignupScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => OTPVerificationScreen(
+              phone: _phoneController.text.trim(),
               email: _emailController.text.trim(),
               signupData: {
                 'fullName': _fullNameController.text.trim(),
@@ -141,13 +146,19 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: AppTheme.spacing16),
                 InputField(
                   label: 'Phone',
-                  hint: '+212 600 000 000',
+                  hint: '+212 or +33 followed by number',
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   prefixIcon: const Icon(Icons.phone_outlined),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your phone number';
+                    }
+                    if (!value.startsWith('+')) {
+                      return 'Include country code (e.g. +212 or +33)';
+                    }
+                    if (!value.startsWith('+212') && !value.startsWith('+33')) {
+                      return 'Only France (+33) and Morocco (+212) are supported';
                     }
                     return null;
                   },

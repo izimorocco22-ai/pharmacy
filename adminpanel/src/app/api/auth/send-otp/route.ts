@@ -6,19 +6,24 @@ import Rider from '@/models/Rider';
 import { successResponse, errorResponse } from '@/lib/response';
 import { generateOTP, storeOTP } from '@/lib/otp-store';
 import { sendOTPEmail } from '@/lib/email';
+import { sendOTPSMS } from '@/lib/sms';
 
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const { email, role } = await request.json();
+    const { email, phone, role } = await request.json();
 
-    if (!email) {
-      return errorResponse('Email is required');
+    if (!email && !phone) {
+      return errorResponse('Email or Phone is required');
     }
 
-    // Check if user already exists with same email AND role
-    const existingUser = await User.findOne({ email, ...(role ? { role } : {}) });
+    const identifier = phone || email;
+
+    // Check if user already exists with same identifier AND role
+    const query = phone ? { phone } : { email };
+    const existingUser = await User.findOne({ ...query, ...(role ? { role } : {}) });
+    
     if (existingUser) {
       // Allow re-registration if previously rejected
       let isRejected = false;
@@ -38,28 +43,36 @@ export async function POST(request: NextRequest) {
         }
       }
       if (!isRejected) {
-        return errorResponse('User already exists with this email');
+        return errorResponse(`User already exists with this ${phone ? 'phone' : 'email'}`);
       }
     }
 
     // Generate and store OTP
     const otp = generateOTP();
-    await storeOTP(email, otp, 10);
+    await storeOTP(identifier, otp, 10);
 
-    // Send OTP via email
-    const emailSent = await sendOTPEmail(email, otp);
+    let sent = false;
+    let method = '';
 
-    if (!emailSent) {
-      console.log(`\n🔐 OTP for ${email}: ${otp} (Email failed, showing in console)\n`);
+    if (phone) {
+      sent = await sendOTPSMS(phone, otp);
+      method = 'phone';
+    } else {
+      sent = await sendOTPEmail(email, otp);
+      method = 'email';
+    }
+
+    if (!sent) {
+      console.log(`\n🔐 OTP for ${identifier}: ${otp} (${method} failed, showing in console)\n`);
     }
 
     return successResponse(
       { 
         message: 'OTP sent successfully',
-        // Only include OTP in response if email failed (for development)
-        ...(emailSent ? {} : { otp })
+        // Only include OTP in response if sending failed (for development)
+        ...(sent ? {} : { otp })
       },
-      'OTP sent to your email'
+      `OTP sent to your ${method}`
     );
   } catch (error: any) {
     console.error('Send OTP error:', error);

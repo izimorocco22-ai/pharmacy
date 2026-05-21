@@ -6,11 +6,13 @@ import '../../../services/api_service.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String email;
+  final String phone;
   final Map<String, dynamic> signupData;
 
   const OTPVerificationScreen({
     super.key,
     required this.email,
+    required this.phone,
     required this.signupData,
   });
 
@@ -60,7 +62,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       final response = await ApiService.post(
         '/auth/verify-otp',
         {
-          'email': widget.email,
+          'phone': widget.phone,
           'otp': _otpController.text,
         },
         includeAuth: false,
@@ -105,7 +107,11 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     try {
       final response = await ApiService.post(
         '/auth/send-otp',
-        {'email': widget.email},
+        {
+          'phone': widget.phone,
+          'email': widget.email,
+          'role': 'patient'
+        },
         includeAuth: false,
       );
 
@@ -138,7 +144,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verify Email'),
+        title: const Text('Verify Phone'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacing24),
@@ -146,13 +152,13 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Icon(
-              Icons.email_outlined,
+              Icons.phone_android_outlined,
               size: 80,
               color: AppTheme.primary,
             ),
             const SizedBox(height: AppTheme.spacing24),
             Text(
-              'Verify Your Email',
+              'Verify Your Phone Number',
               style: Theme.of(context).textTheme.headlineMedium,
               textAlign: TextAlign.center,
             ),
@@ -163,7 +169,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
               textAlign: TextAlign.center,
             ),
             Text(
-              widget.email,
+              widget.phone,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: AppTheme.primary,
                   ),

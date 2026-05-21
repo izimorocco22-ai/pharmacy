@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       phone,
       password: hashedPassword,
       role,
-      isVerified: false,
+      isVerified: true, // Set to true as registration happens after OTP verification
     });
 
     // Create role-specific profile
