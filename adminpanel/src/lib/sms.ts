@@ -27,11 +27,6 @@ export async function sendOTPSMS(phone: string, otp: string): Promise<boolean> {
     }
 
     if (!client) {
-      // Development bypass: If no Twilio credentials, log to console and return true
-      if (process.env.NODE_ENV === 'development' || !process.env.TWILIO_ACCOUNT_SID) {
-        console.log(`\n📱 [SMS BYPASS] To: ${formattedPhone}, Code: ${otp}\n`);
-        return true; 
-      }
       console.error('❌ Twilio client not initialized');
       return false;
     }

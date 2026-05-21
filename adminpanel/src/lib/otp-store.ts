@@ -17,12 +17,6 @@ export async function storeOTP(identifier: string, otp: string, expiryMinutes: n
 }
 
 export async function verifyOTP(identifier: string, otp: string, deleteAfterVerify: boolean = true): Promise<{ valid: boolean; message: string }> {
-  // Development bypass with fixed code
-  if ((process.env.NODE_ENV === 'development' || !process.env.TWILIO_ACCOUNT_SID) && otp === '123456') {
-    console.log(`[OTP] 🔓 Bypassing verification for ${identifier} with test code 123456`);
-    return { valid: true, message: 'OTP verified successfully (Bypass)' };
-  }
-
   await connectDB();
   const stored = await OtpModel.findOne({ identifier });
 
