@@ -13,13 +13,13 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -27,9 +27,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
+    final String phone = _phoneController.text.trim();
+
     final res = await ApiService.post(
       '/auth/patient/forgot-password',
-      {'email': _emailController.text.trim()},
+      {'phone': phone},
       includeAuth: false,
     );
 
@@ -40,7 +42,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => ResetPasswordScreen(email: _emailController.text.trim()),
+          builder: (_) => ResetPasswordScreen(
+            email: '',
+            phone: phone,
+          ),
         ),
       );
     } else {
@@ -69,20 +74,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   textAlign: TextAlign.center),
               const SizedBox(height: AppTheme.spacing8),
               Text(
-                'Enter your account email and we\'ll send you a verification code.',
+                'Enter your phone number and we\'ll send you a verification code.',
                 style: Theme.of(context).textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppTheme.spacing32),
               InputField(
-                controller: _emailController,
-                label: 'Email',
-                hint: 'Enter your email',
-                prefixIcon: const Icon(Icons.email_outlined),
-                keyboardType: TextInputType.emailAddress,
+                controller: _phoneController,
+                label: 'Phone Number',
+                hint: '+212 or +33 followed by number',
+                prefixIcon: const Icon(Icons.phone_outlined),
+                keyboardType: TextInputType.phone,
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Please enter your email';
-                  if (!v.contains('@')) return 'Enter a valid email';
+                  if (v == null || v.isEmpty) return 'Please enter your phone number';
+                  if (!v.startsWith('+')) return 'Include country code (e.g. +212)';
                   return null;
                 },
               ),

@@ -4,31 +4,39 @@ import User from '@/models/User';
 import { successResponse, errorResponse } from '@/lib/response';
 import { generateOTP, storeOTP } from '@/lib/otp-store';
 import { sendOTPEmail } from '@/lib/email';
+import { sendOTPSMS } from '@/lib/sms';
 
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const { email } = await request.json();
-    if (!email) return errorResponse('Email is required');
+    const { phone } = await request.json();
+    if (!phone) return errorResponse('Phone number is required');
 
     // Check user exists with pharmacy role specifically
-    const user = await User.findOne({ email, role: 'pharmacy' });
+    const user = await User.findOne({ phone, role: 'pharmacy' });
+    
     if (!user) {
-      return errorResponse('No pharmacy account found with this email');
+      return errorResponse('No pharmacy account found with this phone number');
     }
 
+    const identifier = phone;
     const otp = generateOTP();
-    await storeOTP(email, otp, 10);
+    const useTwilioVerify = !!process.env.TWILIO_VERIFY_SERVICE_SID;
 
-    const emailSent = await sendOTPEmail(email, otp);
-    if (!emailSent) {
-      console.log(`\n🔐 Reset OTP for ${email}: ${otp}\n`);
+    if (!useTwilioVerify) {
+      await storeOTP(identifier, otp, 10);
+    }
+
+    const sent = await sendOTPSMS(phone, otp);
+
+    if (!sent) {
+      console.log(`\n🔐 Reset OTP for ${identifier}: ${otp}\n`);
     }
 
     return successResponse(
-      { ...(emailSent ? {} : { otp }) },
-      'OTP sent to your email'
+      { ...(sent ? {} : { otp }) },
+      'OTP sent to your phone'
     );
   } catch (error: any) {
     console.error('Forgot password error:', error);

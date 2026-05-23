@@ -7,7 +7,8 @@ import '../../../services/api_service.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String email;
-  const ResetPasswordScreen({super.key, required this.email});
+  final String phone;
+  const ResetPasswordScreen({super.key, this.email = '', required this.phone});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -56,7 +57,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     setState(() => _isLoading = true);
     final res = await ApiService.post(
       '/auth/patient/forgot-password',
-      {'email': widget.email},
+      {'phone': widget.phone},
       includeAuth: false,
     );
     setState(() => _isLoading = false);
@@ -64,7 +65,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _startTimer();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('OTP resent to your email')),
+          const SnackBar(content: Text('OTP resent to your phone')),
         );
       }
     } else {
@@ -78,7 +79,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     final res = await ApiService.post(
       '/auth/verify-otp',
-      {'email': widget.email, 'otp': _otpController.text.trim()},
+      {
+        'phone': widget.phone,
+        'otp': _otpController.text.trim(),
+      },
       includeAuth: false,
     );
 
@@ -99,7 +103,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final res = await ApiService.post(
       '/auth/patient/reset-password',
       {
-        'email': widget.email,
+        'phone': widget.phone,
         'otp': _otpController.text.trim(),
         'newPassword': _newPasswordController.text,
       },
@@ -137,7 +141,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: AppTheme.spacing32),
-          const Icon(Icons.mark_email_read_outlined, size: 80, color: AppTheme.primary),
+          const Icon(
+            Icons.phone_android_outlined,
+            size: 80,
+            color: AppTheme.primary,
+          ),
           const SizedBox(height: AppTheme.spacing24),
           Text('Enter Verification Code',
               style: Theme.of(context).textTheme.headlineMedium,
@@ -147,7 +155,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center),
           const SizedBox(height: 4),
-          Text(widget.email,
+          Text(widget.phone,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium

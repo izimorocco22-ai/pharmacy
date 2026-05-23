@@ -4,26 +4,35 @@ import User from '@/models/User';
 import { successResponse, errorResponse } from '@/lib/response';
 import { verifyOTP } from '@/lib/otp-store';
 import { hashPassword } from '@/lib/auth';
+import { verifyOTPSMS } from '@/lib/sms';
 
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const { email, otp, newPassword } = await request.json();
-    if (!email || !otp || !newPassword) {
-      return errorResponse('Email, OTP and new password are required');
+    const { phone, otp, newPassword } = await request.json();
+    if (!phone || !otp || !newPassword) {
+      return errorResponse('Phone number, OTP and new password are required');
     }
 
     if (newPassword.length < 6) {
       return errorResponse('Password must be at least 6 characters');
     }
 
-    const result = await verifyOTP(email, otp);
-    if (!result.valid) return errorResponse(result.message);
+    const identifier = phone;
+    const useTwilioVerify = !!process.env.TWILIO_VERIFY_SERVICE_SID;
+
+    if (useTwilioVerify) {
+      const isValid = await verifyOTPSMS(phone, otp);
+      if (!isValid) return errorResponse('Invalid or expired OTP');
+    } else {
+      const result = await verifyOTP(identifier, otp);
+      if (!result.valid) return errorResponse(result.message);
+    }
 
     // Only update the user with pharmacy role — never touch other roles
-    const user = await User.findOne({ email, role: 'pharmacy' });
-    if (!user) return errorResponse('No pharmacy account found with this email');
+    const user = await User.findOne({ phone, role: 'pharmacy' });
+    if (!user) return errorResponse('No pharmacy account found with this phone number');
 
     user.password = await hashPassword(newPassword);
     await user.save();
