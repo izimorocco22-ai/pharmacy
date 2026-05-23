@@ -91,7 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final response = await ApiService.post(
         '/auth/send-otp',
-        {'email': _emailController.text.trim(), 'role': 'pharmacy'},
+        {'phone': _phoneController.text.trim(), 'role': 'pharmacy'},
         includeAuth: false,
       );
 
@@ -105,6 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           MaterialPageRoute(
             builder: (_) => OTPVerificationScreen(
               email: _emailController.text.trim(),
+              phone: _phoneController.text.trim(),
               registrationData: {
                 'fullName': _nameController.text.trim(),
                 'email': _emailController.text.trim(),
