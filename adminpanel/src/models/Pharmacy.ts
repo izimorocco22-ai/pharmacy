@@ -91,7 +91,6 @@ const PharmacySchema = new Schema<IPharmacy>(
 );
 
 PharmacySchema.index({ location: '2dsphere' });
-PharmacySchema.index({ userId: 1 });
 PharmacySchema.index({ isOpen: 1 });
 
 export default mongoose.models.Pharmacy || mongoose.model<IPharmacy>('Pharmacy', PharmacySchema);

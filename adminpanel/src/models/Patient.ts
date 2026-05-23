@@ -51,7 +51,6 @@ const PatientSchema = new Schema<IPatient>(
   }
 );
 
-PatientSchema.index({ userId: 1 });
 PatientSchema.index({ 'addresses.location': '2dsphere' });
 
 export default mongoose.models.Patient || mongoose.model<IPatient>('Patient', PatientSchema);
