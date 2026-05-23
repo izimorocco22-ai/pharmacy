@@ -66,7 +66,7 @@ const UserSchema = new Schema<IUser>(
 );
 
 UserSchema.index({ email: 1, role: 1 }, { unique: true });
-UserSchema.index({ phone: 1 }, { unique: true });
+UserSchema.index({ phone: 1, role: 1 }, { unique: true });
 UserSchema.index({ role: 1 });
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

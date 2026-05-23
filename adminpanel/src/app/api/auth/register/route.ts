@@ -47,10 +47,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check phone uniqueness across all roles (exclude same email+role re-registration)
-    const existingPhone = await User.findOne({ phone, $or: [{ email: { $ne: email } }, { role: { $ne: role } }] });
+    // Check phone uniqueness within the same role
+    const existingPhone = await User.findOne({ phone, role });
     if (existingPhone) {
-      return errorResponse('Account already exists with this phone number');
+      // Allow re-registration if pharmacy/rider was rejected (already handled above for email, but let's be safe)
+      let isRejected = false;
+      if (role === 'pharmacy') {
+        const existingPharmacy = await Pharmacy.findOne({ userId: existingPhone._id });
+        isRejected = existingPharmacy?.approvalStatus === 'rejected';
+      } else if (role === 'rider') {
+        const existingRider = await Rider.findOne({ userId: existingPhone._id });
+        isRejected = existingRider?.approvalStatus === 'rejected';
+      }
+
+      if (!isRejected) {
+        return errorResponse('Account already exists with this phone number');
+      }
     }
 
     // Hash password
