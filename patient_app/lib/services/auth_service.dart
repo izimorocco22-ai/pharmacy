@@ -5,6 +5,40 @@ import '../models/user_model.dart';
 import 'api_service.dart';
 
 class AuthService {
+  static Future<AuthResult> sendOtp(String phone) async {
+    try {
+      final response = await ApiService.post(
+        '/auth/patient-send-otp',
+        {'phone': phone},
+        includeAuth: false,
+      );
+      return AuthResult(success: response.success, message: response.message);
+    } catch (e) {
+      return AuthResult(success: false, message: 'Failed to send OTP');
+    }
+  }
+
+  static Future<AuthResult> loginWithOtp(String phone, String otp) async {
+    try {
+      final response = await ApiService.post(
+        '/auth/patient-login',
+        {'phone': phone, 'otp': otp},
+        includeAuth: false,
+      );
+
+      if (response.success) {
+        final token = response.data['token'];
+        final user = User.fromJson(response.data['user']);
+        await _saveAuthData(token, user);
+        return AuthResult(success: true, user: user);
+      } else {
+        return AuthResult(success: false, message: response.message);
+      }
+    } catch (e) {
+      return AuthResult(success: false, message: 'Login failed');
+    }
+  }
+
   static Future<AuthResult> login(String email, String password) async {
     try {
       final response = await ApiService.post(
