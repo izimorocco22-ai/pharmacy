@@ -10,11 +10,13 @@ import 'pending_approval_screen.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String email;
+  final String phone;
   final Map<String, dynamic> registrationData;
 
   const OTPVerificationScreen({
     super.key,
     required this.email,
+    required this.phone,
     required this.registrationData,
   });
 
@@ -62,7 +64,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     try {
       final verifyRes = await ApiService.post(
         '/auth/verify-otp',
-        {'email': widget.email, 'otp': _otpController.text.trim()},
+        {'phone': widget.phone, 'otp': _otpController.text.trim()},
         includeAuth: false,
       );
       if (!verifyRes.success) {
@@ -158,14 +160,14 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     setState(() => _isLoading = true);
     final res = await ApiService.post(
       '/auth/send-otp',
-      {'email': widget.email, 'role': 'rider'},
+      {'phone': widget.phone, 'role': 'rider'},
       includeAuth: false,
     );
     setState(() => _isLoading = false);
     if (res.success) {
       _startTimer();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP resent to your email')),
+        const SnackBar(content: Text('OTP resent to your phone')),
       );
     } else {
       _showError(res.message);
@@ -181,16 +183,16 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify Email')),
+      appBar: AppBar(title: const Text('Verify Phone')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacing24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: AppTheme.spacing32),
-            const Icon(Icons.mark_email_read_outlined, size: 80, color: AppTheme.primary),
+            const Icon(Icons.phone_android_outlined, size: 80, color: AppTheme.primary),
             const SizedBox(height: AppTheme.spacing24),
-            Text('Verify Your Email',
+            Text('Verify Your Phone',
                 style: Theme.of(context).textTheme.headlineMedium,
                 textAlign: TextAlign.center),
             const SizedBox(height: AppTheme.spacing8),
@@ -198,7 +200,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                 style: Theme.of(context).textTheme.bodyMedium,
                 textAlign: TextAlign.center),
             const SizedBox(height: 4),
-            Text(widget.email,
+            Text(widget.phone,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.primary),
                 textAlign: TextAlign.center),
             const SizedBox(height: AppTheme.spacing32),

@@ -134,7 +134,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Send OTP first
       final otpRes = await ApiService.post(
         '/auth/send-otp',
-        {'email': _emailController.text.trim(), 'role': 'rider'},
+        {'phone': _phoneController.text.trim(), 'role': 'rider'},
         includeAuth: false,
       );
 
@@ -163,6 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         MaterialPageRoute(
           builder: (_) => OTPVerificationScreen(
             email: _emailController.text.trim(),
+            phone: _phoneController.text.trim(),
             registrationData: {
               'fullName': _nameController.text.trim(),
               'email': _emailController.text.trim(),
@@ -211,6 +212,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               InputField(
                 controller: _nameController,
                 label: 'Full Name',
+                hint: 'Enter your full name',
                 prefixIcon: const Icon(Icons.person),
                 validator: (v) => v!.isEmpty ? 'Required' : null,
               ),
@@ -218,6 +220,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               InputField(
                 controller: _emailController,
                 label: 'Email',
+                hint: 'Enter your email address',
                 prefixIcon: const Icon(Icons.email),
                 keyboardType: TextInputType.emailAddress,
                 validator: (v) => v!.isEmpty ? 'Required' : null,
@@ -226,6 +229,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               InputField(
                 controller: _phoneController,
                 label: 'Phone Number',
+                hint: 'Enter your phone number',
                 prefixIcon: const Icon(Icons.phone),
                 keyboardType: TextInputType.phone,
                 validator: (v) => v!.isEmpty ? 'Required' : null,
@@ -234,6 +238,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               InputField(
                 controller: _passwordController,
                 label: 'Password',
+                hint: 'Enter your password',
                 prefixIcon: const Icon(Icons.lock),
                 isPassword: true,
                 validator: (v) => v!.length < 6 ? 'Min 6 characters' : null,
@@ -248,6 +253,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               InputField(
                 controller: _licenseController,
                 label: 'Licence Number',
+                hint: 'Enter your driving licence number',
                 prefixIcon: const Icon(Icons.badge),
                 validator: (v) => v!.isEmpty ? 'Required' : null,
               ),
