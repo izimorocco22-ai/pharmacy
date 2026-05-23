@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { successResponse, errorResponse } from '@/lib/response';
 import { verifyOTP } from '@/lib/otp-store';
+import { verifyOTPSMS } from '@/lib/sms';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +12,19 @@ export async function POST(request: NextRequest) {
     }
 
     const identifier = phone || email;
-    const result = await verifyOTP(identifier, otp, false);
+    let result: { valid: boolean; message: string };
+
+    const useTwilioVerify = !!phone && !!process.env.TWILIO_VERIFY_SERVICE_SID;
+
+    if (useTwilioVerify) {
+      const isValid = await verifyOTPSMS(phone, otp);
+      result = {
+        valid: isValid,
+        message: isValid ? 'OTP verified successfully' : 'Invalid or expired OTP'
+      };
+    } else {
+      result = await verifyOTP(identifier, otp, false);
+    }
 
     if (!result.valid) {
       return errorResponse(result.message);

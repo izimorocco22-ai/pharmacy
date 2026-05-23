@@ -3,6 +3,7 @@ import twilio from 'twilio';
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
+const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
 const mainAccountSid = process.env.TWILIO_MAIN_ACCOUNT_SID; // Required if using API Key (SK...)
 
 // Initialize Twilio client lazily to avoid build-time errors
@@ -56,6 +57,22 @@ export async function sendOTPSMS(phone: string, otp: string): Promise<boolean> {
       return false;
     }
 
+    // If Verify Service SID is provided, use the Verify API
+    if (verifyServiceSid) {
+      const verification = await twilioClient.verify.v2.services(verifyServiceSid)
+        .verifications
+        .create({ to: formattedPhone, channel: 'sms' });
+      
+      console.log(`✅ Twilio Verify OTP sent to ${formattedPhone}, SID: ${verification.sid}`);
+      return true;
+    }
+
+    // Fallback to standard SMS if no Verify Service SID
+    if (!twilioNumber) {
+      console.error('❌ TWILIO_PHONE_NUMBER is required for standard SMS fallback');
+      return false;
+    }
+
     const message = await twilioClient.messages.create({
       body: `Your OrdoGo verification code is: ${otp}. Valid for 10 minutes.`,
       from: twilioNumber,
@@ -66,6 +83,42 @@ export async function sendOTPSMS(phone: string, otp: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('❌ Failed to send OTP SMS:', error);
+    return false;
+  }
+}
+
+export async function verifyOTPSMS(phone: string, otp: string): Promise<boolean> {
+  try {
+    const twilioClient = getTwilioClient();
+    if (!twilioClient || !verifyServiceSid) {
+      console.error('❌ Twilio client or Verify Service SID not available');
+      return false;
+    }
+
+    // Ensure phone number is in E.164 format
+    let formattedPhone = phone.trim();
+    if (!formattedPhone.startsWith('+')) {
+      if (formattedPhone.startsWith('0') && formattedPhone.length === 10) {
+        formattedPhone = '+212' + formattedPhone.substring(1);
+      } else {
+        formattedPhone = '+' + formattedPhone;
+      }
+    }
+
+    const verificationCheck = await twilioClient.verify.v2.services(verifyServiceSid)
+      .verificationChecks
+      .create({ to: formattedPhone, code: otp });
+
+    const isApproved = verificationCheck.status === 'approved';
+    if (isApproved) {
+      console.log(`✅ OTP verified for ${formattedPhone}`);
+    } else {
+      console.log(`❌ OTP verification failed for ${formattedPhone}: ${verificationCheck.status}`);
+    }
+    
+    return isApproved;
+  } catch (error) {
+    console.error('❌ Failed to verify OTP SMS:', error);
     return false;
   }
 }

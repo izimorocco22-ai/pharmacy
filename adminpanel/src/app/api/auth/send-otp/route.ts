@@ -47,14 +47,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate and store OTP
+    // Generate and store OTP (only for email if using Twilio Verify)
     const otp = generateOTP();
-    await storeOTP(identifier, otp, 10);
+    const isPhone = !!phone;
+    const useTwilioVerify = isPhone && process.env.TWILIO_VERIFY_SERVICE_SID;
+
+    if (!useTwilioVerify) {
+      await storeOTP(identifier, otp, 10);
+    }
 
     let sent = false;
     let method = '';
 
-    if (phone) {
+    if (isPhone) {
       sent = await sendOTPSMS(phone, otp);
       method = 'phone';
     } else {
