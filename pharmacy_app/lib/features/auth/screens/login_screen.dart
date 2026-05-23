@@ -4,11 +4,9 @@ import '../../../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/input_field.dart';
-import '../../../services/api_service.dart';
 import 'register_screen.dart';
 import 'pending_approval_screen.dart';
 import 'rejected_screen.dart';
-import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,27 +17,60 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _otpController = TextEditingController();
+  bool _otpSent = false;
+  bool _sendingOtp = false;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _phoneController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _handleSendOtp() async {
+    if (_phoneController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your phone number')),
+      );
+      return;
+    }
+
+    setState(() => _sendingOtp = true);
+
+    final success = await context.read<AuthProvider>().sendOtp(_phoneController.text.trim());
+
+    setState(() => _sendingOtp = false);
+
+    if (!mounted) return;
+
+    if (success) {
+      setState(() => _otpSent = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('OTP sent successfully')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.read<AuthProvider>().error ?? 'Failed to send OTP'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await context.read<AuthProvider>().login(
-          _emailController.text.trim(),
-          _passwordController.text,
+    final result = await context.read<AuthProvider>().loginWithOtp(
+          _phoneController.text.trim(),
+          _otpController.text.trim(),
         );
 
     if (!mounted) return;
 
-    if (!success) {
+    if (result == null || !result.success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(context.read<AuthProvider>().error ?? 'Login failed'),
@@ -49,47 +80,23 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final user = context.read<AuthProvider>().user;
+    // Route based on approval status
+    final status = result.approvalStatus ?? 'pending';
+    final note = result.adminNote ?? '';
 
-    // For pharmacy accounts check approval status before going home
-    if (user?.role == 'pharmacy') {
-      try {
-        final res = await ApiService.get('/pharmacy/approval-status');
-        if (!mounted) return;
-
-        if (res.success) {
-          final status = res.data?['approvalStatus'];
-          final note = res.data?['adminNote'] ?? '';
-
-          if (status == 'approved') {
-            Navigator.pushReplacementNamed(context, '/home');
-          } else if (status == 'rejected') {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => RejectedScreen(adminNote: note)),
-            );
-          } else {
-            // pending
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const PendingApprovalScreen()),
-            );
-          }
-          return;
-        }
-      } catch (_) {}
-
-      // fallback — show pending if status check fails
+    if (status == 'approved') {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else if (status == 'rejected') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => RejectedScreen(adminNote: note)),
+      );
+    } else {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const PendingApprovalScreen()),
       );
-      return;
     }
-
-    Navigator.pushReplacementNamed(context, '/home');
   }
 
   @override
@@ -105,8 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: AppTheme.spacing48),
                 Center(
-                  child: Image.asset('assets/images/logo.png',
-                      width: 120, height: 80),
+                  child: Image.asset('assets/images/logo.png', width: 120, height: 80),
                 ),
                 const SizedBox(height: AppTheme.spacing16),
                 Text(
@@ -119,43 +125,80 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: AppTheme.spacing48),
-                InputField(
-                  controller: _emailController,
-                  label: 'Email',
-                  hint: 'Enter your email',
-                  prefixIcon: Icons.email,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Please enter your email' : null,
+                // Phone + Send OTP button
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: InputField(
+                        controller: _phoneController,
+                        label: 'Phone Number',
+                        hint: 'Enter your phone number',
+                        prefixIcon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                        validator: (value) => value == null || value.trim().isEmpty
+                            ? 'Please enter your phone number'
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacing8),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 28),
+                      child: SizedBox(
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _sendingOtp ? null : _handleSendOtp,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                            ),
+                          ),
+                          child: _sendingOtp
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : Text(
+                                  _otpSent ? 'Resend' : 'Send OTP',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: AppTheme.spacing16),
+                // OTP field
                 InputField(
-                  controller: _passwordController,
-                  label: 'Password',
-                  hint: 'Enter your password',
-                  prefixIcon: Icons.lock,
-                  isPassword: true,
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Please enter your password' : null,
+                  controller: _otpController,
+                  label: 'Enter OTP',
+                  hint: 'Enter the OTP sent to your phone',
+                  prefixIcon: Icons.lock_outlined,
+                  keyboardType: TextInputType.number,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Please enter the OTP'
+                      : null,
                 ),
                 const SizedBox(height: AppTheme.spacing32),
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, _) => PrimaryButton(
                     text: 'Login',
-                    onPressed: authProvider.isLoading ? null : _login,
+                    onPressed: authProvider.isLoading ? null : _handleLogin,
                     isLoading: authProvider.isLoading,
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacing16),
-                Center(
-                  child: TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-                    ),
-                    child: const Text('Forgot Password?'),
-                  ),
-                ),
                 Center(
                   child: TextButton(
                     onPressed: () => Navigator.push(
