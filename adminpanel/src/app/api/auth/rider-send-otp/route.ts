@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
     const otp = generateOTP();
     const useTwilioVerify = !!process.env.TWILIO_VERIFY_SERVICE_SID;
 
-    await storeOTP(phone, otp, 10);
+    if (!useTwilioVerify) {
+      await storeOTP(phone, otp, 10);
+    }
 
     const sent = await sendOTPSMS(phone, otp);
 
