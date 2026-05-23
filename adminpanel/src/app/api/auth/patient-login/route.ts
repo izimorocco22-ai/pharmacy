@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     if (useTwilioVerify) {
       isValid = await verifyOTPSMS(phone, otp);
     } else {
-      const result = await verifyOTP(phone, otp, false);
+      const result = await verifyOTP(phone, otp, true);
       isValid = result.valid;
     }
 

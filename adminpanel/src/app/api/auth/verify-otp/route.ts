@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         message: isValid ? 'OTP verified successfully' : 'Invalid or expired OTP'
       };
     } else {
-      result = await verifyOTP(identifier, otp, false);
+      result = await verifyOTP(identifier, otp, true);
     }
 
     if (!result.valid) {
