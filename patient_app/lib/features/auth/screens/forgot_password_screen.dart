@@ -82,7 +82,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               InputField(
                 controller: _phoneController,
                 label: 'Phone Number',
-                hint: '+212 or +33 followed by number',
+                hint: 'Include country code (e.g. +212)',
                 prefixIcon: const Icon(Icons.phone_outlined),
                 keyboardType: TextInputType.phone,
                 validator: (v) {

@@ -133,12 +133,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: InputField(
                         controller: _phoneController,
                         label: 'Phone Number',
-                        hint: 'Enter your phone number',
+                        hint: 'e.g. +212600000000',
                         prefixIcon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
-                        validator: (value) => value == null || value.trim().isEmpty
-                            ? 'Please enter your phone number'
-                            : null,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your phone number';
+                          }
+                          if (!value.startsWith('+')) {
+                            return 'Include country code (e.g. +212)';
+                          }
+                          return null;
+                        },
                       ),
                     ),
                     const SizedBox(width: AppTheme.spacing8),

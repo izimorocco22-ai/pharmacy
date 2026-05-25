@@ -108,11 +108,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         keyboardType: TextInputType.phone,
                         decoration: const InputDecoration(
                           labelText: 'Phone Number',
+                          hintText: 'e.g. +212600000000',
                           prefixIcon: Icon(Icons.phone_outlined),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter your phone number';
+                          }
+                          if (!value.startsWith('+')) {
+                            return 'Include country code (e.g. +212)';
                           }
                           return null;
                         },

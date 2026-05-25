@@ -146,7 +146,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: AppTheme.spacing16),
                 InputField(
                   label: 'Phone',
-                  hint: '+212 or +33 followed by number',
+                  hint: 'Include country code (e.g. +212)',
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   prefixIcon: const Icon(Icons.phone_outlined),
@@ -155,10 +155,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       return 'Please enter your phone number';
                     }
                     if (!value.startsWith('+')) {
-                      return 'Include country code (e.g. +212 or +33)';
-                    }
-                    if (!value.startsWith('+212') && !value.startsWith('+33')) {
-                      return 'Only France (+33) and Morocco (+212) are supported';
+                      return 'Include country code (e.g. +212)';
                     }
                     return null;
                   },

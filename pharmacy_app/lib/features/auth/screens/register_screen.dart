@@ -178,9 +178,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               InputField(
                 controller: _phoneController,
                 label: 'Phone Number',
+                hint: 'e.g. +212600000000',
                 prefixIcon: Icons.phone,
                 keyboardType: TextInputType.phone,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  if (!v.startsWith('+')) return 'Include country code (e.g. +212)';
+                  return null;
+                },
               ),
               const SizedBox(height: AppTheme.spacing12),
               InputField(

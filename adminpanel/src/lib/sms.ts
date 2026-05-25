@@ -43,13 +43,8 @@ export async function sendOTPSMS(phone: string, otp: string): Promise<boolean> {
     // Ensure phone number is in E.164 format
     let formattedPhone = phone.trim();
     if (!formattedPhone.startsWith('+')) {
-      // Default to Morocco if it starts with 0 and has 10 digits
-      if (formattedPhone.startsWith('0') && formattedPhone.length === 10) {
-        formattedPhone = '+212' + formattedPhone.substring(1);
-      } else {
-        // Just add + if missing, but it might still fail if no country code
-        formattedPhone = '+' + formattedPhone;
-      }
+      // Just add + if missing
+      formattedPhone = '+' + formattedPhone;
     }
 
     if (!twilioClient) {
@@ -98,11 +93,7 @@ export async function verifyOTPSMS(phone: string, otp: string): Promise<boolean>
     // Ensure phone number is in E.164 format
     let formattedPhone = phone.trim();
     if (!formattedPhone.startsWith('+')) {
-      if (formattedPhone.startsWith('0') && formattedPhone.length === 10) {
-        formattedPhone = '+212' + formattedPhone.substring(1);
-      } else {
-        formattedPhone = '+' + formattedPhone;
-      }
+      formattedPhone = '+' + formattedPhone;
     }
 
     const verificationCheck = await twilioClient.verify.v2.services(verifyServiceSid)

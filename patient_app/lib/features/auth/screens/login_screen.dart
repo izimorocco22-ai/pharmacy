@@ -116,13 +116,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     Expanded(
                       child: InputField(
                         label: 'Phone Number',
-                        hint: 'Enter your phone number',
+                        hint: 'e.g. +212600000000',
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         prefixIcon: const Icon(Icons.phone_outlined),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter your phone number';
+                          }
+                          if (!value.startsWith('+')) {
+                            return 'Include country code (e.g. +212)';
                           }
                           return null;
                         },
