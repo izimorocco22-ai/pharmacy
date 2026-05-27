@@ -22,6 +22,12 @@ export async function POST(request: NextRequest) {
       return errorResponse('All fields are required');
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return errorResponse('Please enter a valid email address');
+    }
+
     // Check if user exists with same email AND same role
     const existingUser = await User.findOne({ email, role });
     if (existingUser) {
@@ -47,10 +53,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check phone uniqueness within the same role
+    // Check phone uniqueness within the same role only
     const existingPhone = await User.findOne({ phone, role });
     if (existingPhone) {
-      // Allow re-registration if pharmacy/rider was rejected (already handled above for email, but let's be safe)
       let isRejected = false;
       if (role === 'pharmacy') {
         const existingPharmacy = await Pharmacy.findOne({ userId: existingPhone._id });

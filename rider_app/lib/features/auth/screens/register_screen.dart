@@ -222,7 +222,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 hint: 'Enter your email address',
                 prefixIcon: const Icon(Icons.email),
                 keyboardType: TextInputType.emailAddress,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  if (!v.contains('@') || !v.contains('.')) return 'Enter a valid email';
+                  return null;
+                },
               ),
               const SizedBox(height: AppTheme.spacing12),
               InputField(

@@ -171,7 +171,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 label: 'Email',
                 prefixIcon: Icons.email,
                 keyboardType: TextInputType.emailAddress,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  if (!v.contains('@') || !v.contains('.')) return 'Enter a valid email';
+                  return null;
+                },
               ),
               const SizedBox(height: AppTheme.spacing12),
               InputField(
