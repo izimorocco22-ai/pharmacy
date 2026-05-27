@@ -48,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'MediExpress',
+              'OrdoGo Medicine app',
               style: Theme.of(context).textTheme.displayMedium?.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                   ),

@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => OrderProvider()),
       ],
       child: MaterialApp(
-        title: 'OrdoGo',
+        title: 'OrdoGo Medicine app',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         initialRoute: '/',

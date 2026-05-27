@@ -63,7 +63,7 @@ class HomeTab extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MediExpress'),
+        title: const Text('OrdoGo Medicine app'),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),

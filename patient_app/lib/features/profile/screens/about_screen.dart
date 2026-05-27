@@ -31,7 +31,7 @@ class AboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppTheme.spacing16),
                 Text(
-                  'MediExpress',
+                  'OrdoGo Medicine app',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppTheme.primary,
@@ -55,14 +55,14 @@ class AboutScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'About MediExpress',
+                    'About OrdoGo Medicine app',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                   ),
                   const SizedBox(height: AppTheme.spacing12),
                   Text(
-                    'MediExpress is your trusted partner for prescription medicine delivery. We connect patients with verified pharmacies and ensure fast, reliable delivery of medications right to your doorstep.',
+                    'OrdoGo Medicine app is your trusted partner for prescription medicine delivery. We connect patients with verified pharmacies and ensure fast, reliable delivery of medications right to your doorstep.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppTheme.textSecondary,
                           height: 1.5,
@@ -116,7 +116,7 @@ class AboutScreen extends StatelessWidget {
           const SizedBox(height: AppTheme.spacing24),
           Center(
             child: Text(
-              '© 2024 MediExpress. All rights reserved.',
+              '© 2024 OrdoGo Medicine app. All rights reserved.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppTheme.textSecondary,
                   ),

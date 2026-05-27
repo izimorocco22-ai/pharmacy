@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DeliveryProvider()),
       ],
       child: MaterialApp(
-        title: 'OrdoGo Rider',
+        title: 'Ordo Rider',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         initialRoute: '/',

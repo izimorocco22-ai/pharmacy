@@ -82,7 +82,7 @@ class _SplashScreenState extends State<SplashScreen> {
             Image.asset('assets/images/logo.png', width: 120, height: 120),
             const SizedBox(height: AppTheme.spacing16),
             Text(
-              'OrdoGo',
+              'Ordo Pharmacy Store',
               style: Theme.of(context).textTheme.displayLarge?.copyWith(
                     color: Colors.white,
                   ),
