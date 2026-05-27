@@ -9,13 +9,11 @@ import '../../../services/api_service.dart';
 import 'pending_approval_screen.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
-  final String email;
   final String phone;
   final Map<String, dynamic> registrationData;
 
   const OTPVerificationScreen({
     super.key,
-    required this.email,
     required this.phone,
     required this.registrationData,
   });

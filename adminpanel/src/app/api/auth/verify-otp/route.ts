@@ -5,16 +5,14 @@ import { verifyOTPSMS } from '@/lib/sms';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, phone, otp } = await request.json();
+    const { phone, otp } = await request.json();
 
-    if ((!email && !phone) || !otp) {
-      return errorResponse('Email/Phone and OTP are required');
+    if (!phone || !otp) {
+      return errorResponse('Phone and OTP are required');
     }
 
-    const identifier = phone || email;
+    const useTwilioVerify = !!process.env.TWILIO_VERIFY_SERVICE_SID;
     let result: { valid: boolean; message: string };
-
-    const useTwilioVerify = !!phone && !!process.env.TWILIO_VERIFY_SERVICE_SID;
 
     if (useTwilioVerify) {
       const isValid = await verifyOTPSMS(phone, otp);
@@ -23,17 +21,14 @@ export async function POST(request: NextRequest) {
         message: isValid ? 'OTP verified successfully' : 'Invalid or expired OTP'
       };
     } else {
-      result = await verifyOTP(identifier, otp, true);
+      result = await verifyOTP(phone, otp, true);
     }
 
     if (!result.valid) {
       return errorResponse(result.message);
     }
 
-    return successResponse(
-      { verified: true },
-      result.message
-    );
+    return successResponse({ verified: true }, result.message);
   } catch (error: any) {
     console.error('Verify OTP error:', error);
     return errorResponse('Failed to verify OTP', 500);

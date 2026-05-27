@@ -42,8 +42,7 @@ class _SignupScreenState extends State<SignupScreen> {
         '/auth/send-otp',
         {
           'phone': _phoneController.text.trim(),
-          'email': _emailController.text.trim(),
-          'role': 'patient'
+          'role': 'patient',
         },
         includeAuth: false,
       );
@@ -59,7 +58,6 @@ class _SignupScreenState extends State<SignupScreen> {
           MaterialPageRoute(
             builder: (context) => OTPVerificationScreen(
               phone: _phoneController.text.trim(),
-              email: _emailController.text.trim(),
               signupData: {
                 'fullName': _fullNameController.text.trim(),
                 'email': _emailController.text.trim(),

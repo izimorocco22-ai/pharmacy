@@ -5,13 +5,11 @@ import '../../../core/widgets/input_field.dart';
 import '../../../services/api_service.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
-  final String email;
   final String phone;
   final Map<String, dynamic> signupData;
 
   const OTPVerificationScreen({
     super.key,
-    required this.email,
     required this.phone,
     required this.signupData,
   });
@@ -109,8 +107,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
         '/auth/send-otp',
         {
           'phone': widget.phone,
-          'email': widget.email,
-          'role': 'patient'
+          'role': 'patient',
         },
         includeAuth: false,
       );

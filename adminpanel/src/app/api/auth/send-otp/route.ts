@@ -5,27 +5,21 @@ import Pharmacy from '@/models/Pharmacy';
 import Rider from '@/models/Rider';
 import { successResponse, errorResponse } from '@/lib/response';
 import { generateOTP, storeOTP } from '@/lib/otp-store';
-import { sendOTPEmail } from '@/lib/email';
 import { sendOTPSMS } from '@/lib/sms';
 
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const { email, phone, role } = await request.json();
+    const { phone, role } = await request.json();
 
-    if (!email && !phone) {
-      return errorResponse('Email or Phone is required');
+    if (!phone) {
+      return errorResponse('Phone number is required');
     }
 
-    const identifier = phone || email;
+    const existingUser = await User.findOne({ phone, ...(role ? { role } : {}) });
 
-    // Check if user already exists with same identifier AND role
-    const query = phone ? { phone } : { email };
-    const existingUser = await User.findOne({ ...query, ...(role ? { role } : {}) });
-    
     if (existingUser) {
-      // Allow re-registration if previously rejected
       let isRejected = false;
       if (role === 'pharmacy') {
         const pharmacy = await Pharmacy.findOne({ userId: existingUser._id });
@@ -43,41 +37,26 @@ export async function POST(request: NextRequest) {
         }
       }
       if (!isRejected) {
-        return errorResponse(`User already exists with this ${phone ? 'phone' : 'email'}`);
+        return errorResponse('User already exists with this phone number');
       }
     }
 
-    // Generate and store OTP (only for email if using Twilio Verify)
     const otp = generateOTP();
-    const isPhone = !!phone;
-    const useTwilioVerify = isPhone && process.env.TWILIO_VERIFY_SERVICE_SID;
+    const useTwilioVerify = !!process.env.TWILIO_VERIFY_SERVICE_SID;
 
     if (!useTwilioVerify) {
-      await storeOTP(identifier, otp, 10);
+      await storeOTP(phone, otp, 10);
     }
 
-    let sent = false;
-    let method = '';
-
-    if (isPhone) {
-      sent = await sendOTPSMS(phone, otp);
-      method = 'phone';
-    } else {
-      sent = await sendOTPEmail(email, otp);
-      method = 'email';
-    }
+    const sent = await sendOTPSMS(phone, otp);
 
     if (!sent) {
-      console.log(`\n🔐 OTP for ${identifier}: ${otp} (${method} failed, showing in console)\n`);
+      console.log(`\n🔐 OTP for ${phone}: ${otp} (SMS failed, showing in console)\n`);
     }
 
     return successResponse(
-      { 
-        message: 'OTP sent successfully',
-        // Only include OTP in response if sending failed (for development)
-        ...(sent ? {} : { otp })
-      },
-      `OTP sent to your ${method}`
+      { ...(sent ? {} : { otp }) },
+      'OTP sent to your phone'
     );
   } catch (error: any) {
     console.error('Send OTP error:', error);
