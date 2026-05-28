@@ -3,7 +3,6 @@ import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { successResponse, errorResponse } from '@/lib/response';
 import { generateOTP, storeOTP } from '@/lib/otp-store';
-import { sendOTPEmail } from '@/lib/email';
 import { sendOTPSMS } from '@/lib/sms';
 
 export async function POST(request: NextRequest) {
