@@ -37,6 +37,10 @@ async function connectDB() {
         await m.connection.collection('users').dropIndex('email_1');
         console.log('Dropped old email_1 index');
       } catch (_) {}
+      try {
+        await m.connection.collection('users').dropIndex('phone_1');
+        console.log('Dropped old phone_1 index');
+      } catch (_) {}
       // Drop old non-sparse 2dsphere indexes
       try {
         await m.connection.collection('prescriptions').dropIndex('deliveryAddress.location_2dsphere');
