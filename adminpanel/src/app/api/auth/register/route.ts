@@ -15,42 +15,11 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { fullName, email, phone, password, role, ...roleData } = body;
+    const { fullName, phone, password, role, ...roleData } = body;
 
     // Validate required fields
-    if (!fullName || !email || !phone || !password || !role) {
+    if (!fullName || !phone || !password || !role) {
       return errorResponse('All fields are required');
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return errorResponse('Please enter a valid email address');
-    }
-
-    // Check if user exists with same email AND same role
-    const existingUser = await User.findOne({ email, role });
-    if (existingUser) {
-      // Allow re-registration if pharmacy was rejected
-      if (role === 'pharmacy') {
-        const existingPharmacy = await Pharmacy.findOne({ userId: existingUser._id });
-        if (existingPharmacy?.approvalStatus === 'rejected') {
-          await Pharmacy.deleteOne({ userId: existingUser._id });
-          await User.deleteOne({ _id: existingUser._id });
-        } else {
-          return errorResponse('Account already exists with this email');
-        }
-      } else if (role === 'rider') {
-        const existingRider = await Rider.findOne({ userId: existingUser._id });
-        if (existingRider?.approvalStatus === 'rejected') {
-          await Rider.deleteOne({ userId: existingUser._id });
-          await User.deleteOne({ _id: existingUser._id });
-        } else {
-          return errorResponse('Account already exists with this email');
-        }
-      } else {
-        return errorResponse('Account already exists with this email');
-      }
     }
 
     // Check phone uniqueness within the same role only
@@ -76,11 +45,10 @@ export async function POST(request: NextRequest) {
     // Create user
     const user = await User.create({
       fullName,
-      email,
       phone,
       password: hashedPassword,
       role,
-      isVerified: true, // Set to true as registration happens after OTP verification
+      isVerified: true,
     });
 
     // Create role-specific profile
@@ -124,7 +92,6 @@ export async function POST(request: NextRequest) {
         user: {
           id: user._id,
           fullName: user.fullName,
-          email: user.email,
           phone: user.phone,
           role: user.role,
           isVerified: user.isVerified,
@@ -137,9 +104,7 @@ export async function POST(request: NextRequest) {
     console.error('Registration error:', error);
     // MongoDB duplicate key error
     if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern || {})[0];
-      if (field === 'phone') return errorResponse('Account already exists with this phone number');
-      return errorResponse('Account already exists with this email');
+      return errorResponse('Account already exists with this phone number');
     }
     return errorResponse('Registration failed', 500);
   }

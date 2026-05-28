@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUser extends Document {
   fullName: string;
-  email: string;
+  email?: string;
   phone: string;
   password: string;
   role: 'patient' | 'pharmacy' | 'rider' | 'admin';
@@ -24,7 +24,7 @@ const UserSchema = new Schema<IUser>(
     },
     email: {
       type: String,
-      required: true,
+      required: false,
       lowercase: true,
       trim: true,
     },
@@ -65,7 +65,6 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-UserSchema.index({ email: 1, role: 1 }, { unique: true });
 UserSchema.index({ phone: 1, role: 1 }, { unique: true });
 UserSchema.index({ role: 1 });
 

@@ -20,7 +20,6 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _pharmacyNameController = TextEditingController();
@@ -38,7 +37,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final d = widget.prefillData;
     if (d != null) {
       _nameController.text = d['fullName'] ?? '';
-      _emailController.text = d['email'] ?? '';
       _phoneController.text = d['phone'] ?? '';
       _pharmacyNameController.text = d['pharmacyName'] ?? '';
       _licenseController.text = d['licenseNumber'] ?? '';
@@ -54,7 +52,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
     _pharmacyNameController.dispose();
@@ -107,7 +104,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               phone: _phoneController.text.trim(),
               registrationData: {
                 'fullName': _nameController.text.trim(),
-                'email': _emailController.text.trim(),
                 'phone': _phoneController.text.trim(),
                 'password': _passwordController.text,
                 'role': 'pharmacy',
@@ -164,18 +160,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 label: 'Full Name',
                 prefixIcon: Icons.person,
                 validator: (v) => v!.isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: AppTheme.spacing12),
-              InputField(
-                controller: _emailController,
-                label: 'Email',
-                prefixIcon: Icons.email,
-                keyboardType: TextInputType.emailAddress,
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Required';
-                  if (!v.contains('@') || !v.contains('.')) return 'Enter a valid email';
-                  return null;
-                },
               ),
               const SizedBox(height: AppTheme.spacing12),
               InputField(

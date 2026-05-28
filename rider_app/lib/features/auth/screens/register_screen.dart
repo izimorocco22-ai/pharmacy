@@ -23,7 +23,6 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _licenseController = TextEditingController();
@@ -38,7 +37,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final p = widget.prefill;
     if (p != null) {
       _nameController.text = p['fullName'] ?? '';
-      _emailController.text = p['email'] ?? '';
       _phoneController.text = p['phone'] ?? '';
       _licenseController.text = p['licenseNumber'] ?? '';
       if (p['vehicleType'] != null) _vehicleType = p['vehicleType'];
@@ -48,7 +46,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
     _licenseController.dispose();
@@ -165,7 +162,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             phone: _phoneController.text.trim(),
             registrationData: {
               'fullName': _nameController.text.trim(),
-              'email': _emailController.text.trim(),
               'phone': _phoneController.text.trim(),
               'password': _passwordController.text,
               'role': 'rider',
@@ -214,19 +210,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 hint: 'Enter your full name',
                 prefixIcon: const Icon(Icons.person),
                 validator: (v) => v!.isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: AppTheme.spacing12),
-              InputField(
-                controller: _emailController,
-                label: 'Email',
-                hint: 'Enter your email address',
-                prefixIcon: const Icon(Icons.email),
-                keyboardType: TextInputType.emailAddress,
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Required';
-                  if (!v.contains('@') || !v.contains('.')) return 'Enter a valid email';
-                  return null;
-                },
               ),
               const SizedBox(height: AppTheme.spacing12),
               InputField(
