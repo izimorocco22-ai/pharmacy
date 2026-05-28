@@ -42,22 +42,15 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(AppTheme.spacing24),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Image.asset(
-                'assets/images/logo.png',
-                width: 80,
-                height: 80,
-              ),
+            Image.asset(
+              'assets/images/logo.png',
+              width: 160,
+              height: 160,
             ),
             const SizedBox(height: AppTheme.spacing32),
             Text(
               'OrdoGo Medicine app',
-              style: Theme.of(context).textTheme.displayMedium?.copyWith(
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: AppTheme.primary,
                     fontWeight: FontWeight.bold,
                   ),
