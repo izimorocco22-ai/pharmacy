@@ -13,7 +13,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   bool _isLoading = true;
   List<dynamic> _orders = [];
   String? _error;
-  final Set<String> _expandedIds = {};
+
 
   @override
   void initState() {
@@ -91,20 +91,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final color = _statusColor(status);
     final orderId = order['id']?.toString() ?? order['_id']?.toString() ?? '$status$status';
     final items = (order['items'] as List?) ?? [];
-    final isExpanded = _expandedIds.contains(orderId);
-
     // Show only the pharmacy's quote subtotal (medicines only, no tax/delivery)
     final subtotal = (order['subtotal'] ?? 0).toDouble();
 
     return Card(
       child: InkWell(
-        onTap: () => setState(() {
-          if (isExpanded) {
-            _expandedIds.remove(orderId);
-          } else {
-            _expandedIds.add(orderId);
-          }
-        }),
+        onTap: () => Navigator.pushNamed(
+          context,
+          '/order-detail',
+          arguments: order,
+        ),
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         child: Padding(
           padding: const EdgeInsets.all(AppTheme.spacing16),
@@ -152,61 +148,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             ?.copyWith(color: AppTheme.primary),
                       ),
                       const SizedBox(width: AppTheme.spacing8),
-                      AnimatedRotation(
-                        turns: isExpanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: const Icon(Icons.keyboard_arrow_down,
-                            size: 20, color: AppTheme.textSecondary),
-                      ),
+                      const Icon(Icons.chevron_right,
+                          size: 20, color: AppTheme.textSecondary),
                     ],
                   ),
                 ],
               ),
-              // Expandable medicines list
-              AnimatedCrossFade(
-                firstChild: const SizedBox.shrink(),
-                secondChild: items.isEmpty
-                    ? const SizedBox.shrink()
-                    : Column(
-                        children: [
-                          const Divider(height: 20),
-                          ...items.map((item) => Padding(
-                                padding: const EdgeInsets.only(bottom: AppTheme.spacing8),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primary.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                                      ),
-                                      child: const Icon(Icons.medication,
-                                          size: 14, color: AppTheme.primary),
-                                    ),
-                                    const SizedBox(width: AppTheme.spacing8),
-                                    Expanded(
-                                      child: Text(
-                                        item['medicineName'] ?? 'Unknown',
-                                        style: Theme.of(context).textTheme.bodyMedium,
-                                      ),
-                                    ),
-                                    Text(
-                                      'x${item['quantity'] ?? 1}',
-                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                            color: AppTheme.textSecondary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              )),
-                        ],
-                      ),
-                crossFadeState: isExpanded
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 200),
-              ),
+
             ],
           ),
         ),

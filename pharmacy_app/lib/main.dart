@@ -13,6 +13,7 @@ import 'features/auth/screens/rejected_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/requests/screens/prescription_detail_screen.dart';
 import 'features/requests/screens/quote_builder_screen.dart';
+import 'features/orders/order_detail_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,6 +61,11 @@ class MyApp extends StatelessWidget {
           if (settings.name == '/quote-builder') {
             return MaterialPageRoute(
               builder: (_) => QuoteBuilderScreen(prescription: settings.arguments),
+            );
+          }
+          if (settings.name == '/order-detail') {
+            return MaterialPageRoute(
+              builder: (_) => OrderDetailScreen(order: settings.arguments),
             );
           }
           return null;

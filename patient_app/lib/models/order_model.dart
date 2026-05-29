@@ -52,12 +52,25 @@ class Order {
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
+    // prescription data can be at top level OR nested under 'prescription'
+    final prescriptionObj = json['prescription'] is Map
+        ? Map<String, dynamic>.from(json['prescription'] as Map)
+        : null;
+
+    final prescriptionImage = json['prescriptionImage']?.toString().isNotEmpty == true
+        ? json['prescriptionImage'].toString()
+        : prescriptionObj?['imageUrl']?.toString();
+
+    final medicinesRaw = (json['medicines'] as List?)?.isNotEmpty == true
+        ? json['medicines'] as List
+        : (prescriptionObj?['medicines'] as List?);
+
     return Order(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       orderNumber: json['orderNumber'] ?? '',
-      pharmacyName: json['pharmacyName'],
+      pharmacyName: json['pharmacyName'] ?? (json['pharmacy'] is Map ? json['pharmacy']['name'] : null),
       pharmacyPhone: json['pharmacyPhone'],
-      pharmacyAddress: json['pharmacyAddress'],
+      pharmacyAddress: json['pharmacyAddress'] ?? (json['pharmacy'] is Map ? json['pharmacy']['address'] : null),
       riderName: json['riderName'],
       totalAmount: (json['totalAmount'] ?? 0).toDouble(),
       subtotal: (json['subtotal'] ?? 0).toDouble(),
@@ -84,10 +97,12 @@ class Order {
       quoteId: json['quoteId']?.toString(),
       deliveryAddress: json['deliveryAddress'] is Map
           ? Map<String, dynamic>.from(json['deliveryAddress'])
-          : null,
-      prescriptionImage: json['prescriptionImage'],
+          : (json['deliveryAddress'] is String && (json['deliveryAddress'] as String).isNotEmpty
+              ? {'address': json['deliveryAddress']}
+              : null),
+      prescriptionImage: prescriptionImage,
       isPendingQuote: json['_isPendingQuote'] == true,
-      medicines: (json['medicines'] as List?)
+      medicines: medicinesRaw
           ?.map((m) => Map<String, dynamic>.from(m as Map))
           .toList() ?? [],
     );

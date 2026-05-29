@@ -86,11 +86,13 @@ export async function GET(request: NextRequest) {
           }
         } catch (_) {}
 
-        // Get prescription image
+        // Get prescription image and medicines
         let prescriptionImage = null;
+        let medicines: any[] = [];
         try {
-          const presc = await Prescription.findById(q.prescriptionId).select('imageUrl').lean() as any;
+          const presc = await Prescription.findById(q.prescriptionId).select('imageUrl medicines').lean() as any;
           prescriptionImage = presc?.imageUrl || null;
+          medicines = presc?.medicines || [];
         } catch (_) {}
 
         return {
@@ -99,6 +101,7 @@ export async function GET(request: NextRequest) {
           quoteId: q._id?.toString(),
           prescriptionId: q.prescriptionId?.toString(),
           prescriptionImage,
+          medicines,
           pharmacyName,
           pharmacyPhone,
           pharmacyAddress,

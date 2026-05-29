@@ -120,7 +120,9 @@ export async function GET(
       // Addresses
       deliveryAddress: order.deliveryAddress?.address || prescription?.deliveryAddress?.address || '',
       pharmacyAddress: order.pharmacyAddress?.address || '',
-      // Prescription
+      // Prescription — also exposed at top level for Flutter app
+      prescriptionImage: prescription?.imageUrl || '',
+      medicines: prescription?.medicines || [],
       prescription: prescription ? {
         imageUrl: prescription.imageUrl || '',
         medicines: prescription.medicines || [],

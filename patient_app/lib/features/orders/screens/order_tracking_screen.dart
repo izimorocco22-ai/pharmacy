@@ -129,7 +129,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   if (order.prescriptionImage != null && order.prescriptionImage!.isNotEmpty) ...[
                     _buildPrescriptionImage(order.prescriptionImage!),
                     const SizedBox(height: AppTheme.spacing16),
-                  ] else if (order.medicines.isNotEmpty) ...[
+                  ],
+                  if (order.medicines.isNotEmpty) ...[
                     _buildMedicinesList(order.medicines),
                     const SizedBox(height: AppTheme.spacing16),
                   ],
@@ -566,32 +567,47 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Requested Medicines',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                const Icon(Icons.medication, color: AppTheme.primary, size: 20),
+                const SizedBox(width: 8),
+                Text('Requested Medicines',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
             const SizedBox(height: AppTheme.spacing12),
-            ...medicines.map((m) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppTheme.spacing8),
+            ...medicines.map((m) => Container(
+                  margin: const EdgeInsets.only(bottom: AppTheme.spacing8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacing12, vertical: AppTheme.spacing12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                    border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
+                  ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           color: AppTheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                          shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.medication, size: 16, color: AppTheme.primary),
+                        child: const Icon(Icons.medication_outlined,
+                            size: 16, color: AppTheme.primary),
                       ),
                       const SizedBox(width: AppTheme.spacing12),
                       Expanded(
                         child: Text(
                           m['name']?.toString() ?? '',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w500, fontSize: 14),
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withValues(alpha: 0.08),
+                          color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         ),
                         child: Text(
