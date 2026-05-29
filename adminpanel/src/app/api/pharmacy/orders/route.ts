@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const orders = await Order.find({ pharmacyId: pharmacy._id })
       .sort({ createdAt: -1 })
       .limit(50)
+      .populate({ path: 'prescriptionId', select: 'imageUrl medicines' })
       .lean();
 
     const formatted = orders.map((o: any) => ({
@@ -27,11 +28,14 @@ export async function GET(request: NextRequest) {
       orderNumber: o.orderNumber,
       status: o.status,
       subtotal: o.subtotal,
+      deliveryFee: o.deliveryFee,
       totalAmount: o.totalAmount,
       paymentMethod: o.paymentMethod,
       paymentStatus: o.paymentStatus,
       items: o.items,
       createdAt: o.createdAt,
+      prescriptionImage: o.prescriptionId?.imageUrl || '',
+      medicines: o.prescriptionId?.medicines || [],
     }));
 
     return successResponse({ orders: formatted });
