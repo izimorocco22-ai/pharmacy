@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/input_field.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../services/api_service.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
@@ -81,16 +83,12 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
 
   Future<void> _completeRegistration() async {
     try {
-      final response = await ApiService.post(
-        '/auth/register',
-        widget.signupData,
-        includeAuth: false,
-      );
+      final success = await context.read<AuthProvider>().register(widget.signupData);
 
-      if (response.success && mounted) {
+      if (success && mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-      } else {
-        _showError(response.message);
+      } else if (mounted) {
+        _showError(context.read<AuthProvider>().error ?? 'Registration failed');
       }
     } catch (e) {
       _showError('Registration failed');

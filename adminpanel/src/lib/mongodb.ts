@@ -38,6 +38,10 @@ async function connectDB() {
         console.log('Dropped old email_1 index');
       } catch (_) {}
       try {
+        await m.connection.collection('users').dropIndex('email_1_role_1');
+        console.log('Dropped old email_1_role_1 index');
+      } catch (_) {}
+      try {
         await m.connection.collection('users').dropIndex('phone_1');
         console.log('Dropped old phone_1 index');
       } catch (_) {}
