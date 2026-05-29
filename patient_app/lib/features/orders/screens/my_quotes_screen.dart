@@ -88,21 +88,71 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
   Future<void> _confirmQuote(dynamic quote) async {
     final totalAmount = (quote['totalAmount'] as num?)?.toDouble() ?? 0;
 
-    final confirm = await showDialog<bool>(
+    final method = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Confirm Order'),
+        titlePadding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Confirm Order'),
+            IconButton(
+              icon: const Icon(Icons.close, size: 20),
+              onPressed: () => Navigator.pop(_, null),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
         content: Text('Confirm this order for ${totalAmount.toStringAsFixed(2)} MAD?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Back')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Pay Now')),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(_, 'cash'),
+                  child: const Text('COD'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(_, 'online'),
+                  child: const Text('Pay Now'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
-    if (confirm != true || !mounted) return;
 
-    // Fetch Razorpay key
+    if (method == null || !mounted) return;
+
+    if (method == 'cash') {
+      _showLoading('Confirming order...');
+      try {
+        final res = await context.read<OrderProvider>().confirmQuote(
+          quoteId: quote['id'].toString(),
+          paymentMethod: 'cash',
+        );
+        if (mounted) Navigator.pop(context);
+        if (mounted) {
+          if (res) {
+            _showSuccess('Order confirmed! Cash on delivery 🎉');
+            _fetchQuotes();
+          } else {
+            _showError('Failed to confirm order');
+          }
+        }
+      } catch (_) {
+        if (mounted) Navigator.pop(context);
+      }
+      return;
+    }
+
+    // Pay Online — Razorpay flow
     final keyResponse = await ApiService.get('/settings/razorpay');
     final razorpayKeyId = keyResponse.success ? (keyResponse.data['keyId'] ?? '') : '';
 
@@ -130,6 +180,53 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
       _pendingQuote = null;
       if (mounted) _showError('Could not open payment: $e');
     }
+  }
+
+  Widget _paymentOption({
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: AppTheme.primary, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  Text(subtitle,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios,
+                size: 13, color: AppTheme.textSecondary),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── Cancel flow (same as order_tracking_screen) ───────────────────────────
