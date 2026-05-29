@@ -13,8 +13,7 @@ class OrderDetailScreen extends StatelessWidget {
     final prescriptionImage = order['prescriptionImage'] as String?;
     final medicines = (order['medicines'] as List?) ?? [];
     final subtotal = (order['subtotal'] ?? 0).toDouble();
-    final deliveryFee = (order['deliveryFee'] ?? 0).toDouble();
-    final totalAmount = (order['totalAmount'] ?? 0).toDouble();
+    final paymentMethod = order['paymentMethod']?.toString();
     final createdAt = order['createdAt'] != null
         ? DateTime.tryParse(order['createdAt'].toString())?.toLocal()
         : null;
@@ -83,6 +82,20 @@ class OrderDetailScreen extends StatelessWidget {
                           ),
                         ],
                       ),
+                    if (paymentMethod != null && paymentMethod.isNotEmpty) ...[
+                      const SizedBox(height: AppTheme.spacing8),
+                      Row(
+                        children: [
+                          const Icon(Icons.payment,
+                              size: 16, color: AppTheme.textSecondary),
+                          const SizedBox(width: AppTheme.spacing8),
+                          Text(
+                            paymentMethod == 'cash' ? 'Cash on Delivery' : 'Online Payment',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -275,31 +288,8 @@ class OrderDetailScreen extends StatelessWidget {
                             ),
                           )),
                       const Divider(height: AppTheme.spacing24),
-                      _summaryRow(context, 'Subtotal',
+                      _summaryRow(context, 'Total',
                           '${subtotal.toStringAsFixed(2)} MAD'),
-                      if (deliveryFee > 0)
-                        _summaryRow(context, 'Delivery Fee',
-                            '${deliveryFee.toStringAsFixed(2)} MAD'),
-                      const SizedBox(height: AppTheme.spacing8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Total',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold)),
-                          Text(
-                            '${totalAmount.toStringAsFixed(2)} MAD',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                    color: AppTheme.primary,
-                                    fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
