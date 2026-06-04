@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     // Fetch unassigned confirmed/ready orders created in last 24 hours
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const orders = await Order.find({
-      status: { $in: ['confirmed', 'ready'] },
+      status: { $in: ['confirmed', 'preparing', 'ready'] },
       riderId: { $in: [null, undefined] },
       createdAt: { $gte: since },
     })
