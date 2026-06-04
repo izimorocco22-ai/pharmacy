@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../core/theme/app_theme.dart';
@@ -354,31 +355,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             Text('${l10n.translate('confirm_order_desc')} ${order.totalAmount.toStringAsFixed(2)} MAD?'),
             if (paymentMethod != null) ...[
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.payment, color: AppTheme.primary, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(paymentMethod['name']?.toString() ?? '',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                          Text(paymentMethod['details']?.toString() ?? '',
-                              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _PaymentMethodCard(paymentMethod: paymentMethod),
             ],
           ],
         ),
@@ -992,6 +969,78 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final ampm = date.hour >= 12 ? 'PM' : 'AM';
     final min = date.minute.toString().padLeft(2, '0');
     return '${date.day} ${months[date.month - 1]} ${date.year}, $hour:$min $ampm';
+  }
+}
+
+class _PaymentMethodCard extends StatefulWidget {
+  final Map<String, dynamic> paymentMethod;
+
+  const _PaymentMethodCard({required this.paymentMethod});
+
+  @override
+  State<_PaymentMethodCard> createState() => _PaymentMethodCardState();
+}
+
+class _PaymentMethodCardState extends State<_PaymentMethodCard> {
+  bool _copied = false;
+
+  void _copy() {
+    final details = widget.paymentMethod['details']?.toString() ?? '';
+    if (details.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: details));
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = widget.paymentMethod['name']?.toString() ?? '';
+    final details = widget.paymentMethod['details']?.toString() ?? '';
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.payment, color: AppTheme.primary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(details,
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+              ],
+            ),
+          ),
+          if (details.isNotEmpty)
+            GestureDetector(
+              onTap: _copy,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _copied
+                      ? AppTheme.success.withValues(alpha: 0.1)
+                      : AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  _copied ? Icons.check : Icons.copy,
+                  size: 16,
+                  color: _copied ? AppTheme.success : AppTheme.primary,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 
