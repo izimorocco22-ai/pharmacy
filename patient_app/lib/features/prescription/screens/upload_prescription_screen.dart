@@ -6,6 +6,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../services/media_service.dart';
 import '../../../services/prescription_service.dart';
+import '../../../services/ai_service.dart';
 import '../../../core/localization/app_localizations.dart';
 
 class UploadPrescriptionScreen extends StatefulWidget {
@@ -19,6 +20,8 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+  bool _isScanning = false;
+  bool? _aiConfirmed;
 
   // Manual medicine entry
   bool _showMedicineEntry = false;
@@ -36,9 +39,22 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
         setState(() {
           _imageFile = File(image.path);
           _showMedicineEntry = false; // hide manual entry if image selected
+          _isScanning = true;
+          _aiConfirmed = null;
         });
+
+        // Scan image with AI
+        final isPrescription = await AiService.isPrescription(_imageFile!);
+        
+        if (mounted) {
+          setState(() {
+            _isScanning = false;
+            _aiConfirmed = isPrescription;
+          });
+        }
       }
     } catch (_) {
+      if (mounted) setState(() => _isScanning = false);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to pick image')),
       );
@@ -105,7 +121,7 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
   }
 
   bool get _canContinue {
-    if (_imageFile != null) return true;
+    if (_imageFile != null) return _aiConfirmed == true;
     if (_showMedicineEntry) {
       return _medicines.any((m) => m.nameController.text.trim().isNotEmpty);
     }
@@ -212,16 +228,80 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
             if (_imageFile != null) ...[
               AppCard(
                 padding: EdgeInsets.zero,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-                  child: Image.file(_imageFile!, fit: BoxFit.cover),
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                      child: Image.file(_imageFile!, fit: BoxFit.cover),
+                    ),
+                    if (_isScanning)
+                      Positioned.fill(
+                        child: Container(
+                          color: Colors.black45,
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircularProgressIndicator(color: Colors.white),
+                              SizedBox(height: 16),
+                              Text(
+                                'Analyzing prescription...',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
+              const SizedBox(height: AppTheme.spacing12),
+              if (_aiConfirmed == false)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                    border: Border.all(color: AppTheme.error),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.error_outline, color: AppTheme.error),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'AI could not identify this as a prescription. Please try again with a clearer photo.',
+                          style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_aiConfirmed == true)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.success.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                    border: Border.all(color: AppTheme.success),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.check_circle_outline, color: AppTheme.success),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Prescription verified!',
+                          style: TextStyle(color: AppTheme.success, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: AppTheme.spacing12),
               SecondaryButton(
                 text: 'Change Image', // Could add this to l10n
                 icon: Icons.refresh,
-                onPressed: _showImageSourceDialog,
+                onPressed: _isScanning ? null : _showImageSourceDialog,
               ),
             ] else ...[
               PrimaryButton(
