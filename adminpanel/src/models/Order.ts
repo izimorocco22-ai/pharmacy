@@ -18,7 +18,7 @@ export interface IOrder extends Document {
   commissionAmount: number;
   deliveryFee: number;
   totalAmount: number;
-  paymentMethod?: 'cash' | 'online';
+  paymentMethod?: 'cash' | 'online' | 'manual';
   paymentMethodDetails?: {
     name: string;
     details: string;
@@ -106,7 +106,7 @@ const OrderSchema = new Schema<IOrder>(
     },
     paymentMethod: {
       type: String,
-      enum: ['cash', 'online'],
+      enum: ['cash', 'online', 'manual'],
     },
     paymentMethodDetails: {
       name: { type: String },
