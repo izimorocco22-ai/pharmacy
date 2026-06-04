@@ -19,6 +19,10 @@ export interface IOrder extends Document {
   deliveryFee: number;
   totalAmount: number;
   paymentMethod?: 'cash' | 'online';
+  paymentMethodDetails?: {
+    name: string;
+    details: string;
+  };
   paymentStatus: 'pending' | 'paid' | 'failed';
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
   deliveryAddress: {
@@ -102,6 +106,10 @@ const OrderSchema = new Schema<IOrder>(
     paymentMethod: {
       type: String,
       enum: ['cash', 'online'],
+    },
+    paymentMethodDetails: {
+      name: { type: String },
+      details: { type: String },
     },
     paymentStatus: {
       type: String,

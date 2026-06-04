@@ -49,6 +49,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       deliveryFee: quote.deliveryFee,
       totalAmount: quote.totalAmount,
       paymentMethod,
+      paymentMethodDetails: quote.paymentMethod,
       paymentStatus: 'pending',
       status: 'confirmed',
       deliveryAddress: prescription.deliveryAddress,

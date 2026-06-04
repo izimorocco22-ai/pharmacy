@@ -12,6 +12,7 @@ class Order {
   final double deliveryFee;
   final String status;
   final String? paymentMethod;
+  final Map<String, dynamic>? paymentMethodDetails;
   final DateTime createdAt;
   final DateTime? estimatedDeliveryTime;
   final DateTime? expiresAt;
@@ -39,6 +40,7 @@ class Order {
     this.deliveryFee = 0,
     required this.status,
     this.paymentMethod,
+    this.paymentMethodDetails,
     required this.createdAt,
     this.estimatedDeliveryTime,
     this.expiresAt,
@@ -85,6 +87,9 @@ class Order {
       deliveryFee: (json['deliveryFee'] ?? 0).toDouble(),
       status: json['status'] ?? 'pending',
       paymentMethod: json['paymentMethod'],
+      paymentMethodDetails: json['paymentMethodDetails'] is Map
+          ? Map<String, dynamic>.from(json['paymentMethodDetails'])
+          : null,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt']).toLocal()
           : DateTime.now(),

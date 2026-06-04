@@ -148,6 +148,7 @@ export async function GET(
       orderNumber: order.orderNumber || '',
       status: pendingQuote ? 'quoted' : order.status,
       paymentMethod: order.paymentMethod,
+      paymentMethodDetails: pendingQuote?.paymentMethod || order.paymentMethodDetails,
       paymentStatus: order.paymentStatus,
       subtotal: pendingQuote?.subtotal || order.subtotal || 0,
       commissionAmount: pendingQuote?.commissionAmount || order.commissionAmount || 0,

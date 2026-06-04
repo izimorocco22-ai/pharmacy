@@ -327,6 +327,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   }
 
   Future<void> _confirmQuote(Order order) async {
+    final l10n = AppLocalizations.of(context)!;
+    final paymentMethod = order.paymentMethodDetails;
+    
     final method = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
@@ -335,7 +338,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Confirm Order'),
+            Text(l10n.translate('confirm_order')),
             IconButton(
               icon: const Icon(Icons.close, size: 20),
               onPressed: () => Navigator.pop(_, null),
@@ -344,95 +347,83 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             ),
           ],
         ),
-        content: Text('Confirm this order for ${order.totalAmount.toStringAsFixed(2)} MAD?'),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(_, 'cash'),
-                  child: const Text('COD'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${l10n.translate('confirm_order_desc')} ${order.totalAmount.toStringAsFixed(2)} MAD?'),
+            if (paymentMethod != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(_, 'online'),
-                  child: const Text('Pay Now'),
+                child: Row(
+                  children: [
+                    const Icon(Icons.payment, color: AppTheme.primary, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(paymentMethod['name']?.toString() ?? '',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(paymentMethod['details']?.toString() ?? '',
+                              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(_, 'online'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Pay Now'),
+            ),
           ),
         ],
       ),
     );
     if (method == null || !mounted) return;
 
-    if (method == 'cash') {
-      _showLoading('Confirming order...');
-      try {
-        final provider = context.read<OrderProvider>();
-        final res = await provider.confirmQuote(
-          quoteId: order.quoteId!,
-          paymentMethod: 'cash',
-        );
-        if (mounted) Navigator.pop(context);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(res ? 'Order confirmed! Cash on delivery 🎉' : 'Failed to confirm order'),
-              backgroundColor: res ? AppTheme.success : AppTheme.error,
-            ),
-          );
-          if (res) {
-            await provider.fetchOrders();
-            if (mounted) Navigator.pop(context);
-          }
-        }
-      } catch (_) {
-        if (mounted) Navigator.pop(context);
-      }
-      return;
-    }
-
-    // Pay Online — Razorpay flow
-    final keyResponse = await ApiService.get('/settings/razorpay');
-    final razorpayKeyId = keyResponse.success ? (keyResponse.data['keyId'] ?? '') : '';
-
-    if (razorpayKeyId.isEmpty) {
+    // Direct confirmation flow for now as requested
+    _showLoading('Confirming order...');
+    try {
+      final provider = context.read<OrderProvider>();
+      final res = await provider.confirmQuote(
+        quoteId: order.quoteId!,
+        paymentMethod: 'online',
+      );
+      if (mounted) Navigator.pop(context); // hide loading
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Payment not configured. Please contact support.'),
-            backgroundColor: AppTheme.error,
+          SnackBar(
+            content: Text(res ? 'Order confirmed! Payment pending 🎉' : 'Failed to confirm order'),
+            backgroundColor: res ? AppTheme.success : AppTheme.error,
           ),
         );
+        if (res) {
+          await provider.fetchOrders();
+          if (mounted) Navigator.pop(context); // return to home
+        }
       }
-      return;
-    }
-
-    _pendingOrder = order;
-    final amountInSmallestUnit = (order.totalAmount * 100).toInt();
-
-    final options = {
-      'key': razorpayKeyId,
-      'amount': amountInSmallestUnit,
-      'currency': 'INR',
-      'name': 'OrdoGo',
-      'description': 'Medicine Order Payment',
-      'prefill': {'contact': '', 'email': ''},
-      'theme': {'color': '#2E7D32'},
-    };
-
-    try {
-      _razorpay.open(options);
-    } catch (e) {
-      _pendingOrder = null;
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open payment: $e'), backgroundColor: AppTheme.error),
-        );
-      }
+    } catch (_) {
+      if (mounted) Navigator.pop(context);
     }
   }
 
