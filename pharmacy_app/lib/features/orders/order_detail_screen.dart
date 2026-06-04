@@ -11,6 +11,7 @@ class OrderDetailScreen extends StatelessWidget {
     final status = order['status'] ?? 'confirmed';
     final items = (order['items'] as List?) ?? [];
     final prescriptionImage = order['prescriptionImage'] as String?;
+    final paymentProofUrl = order['paymentProofUrl'] as String?;
     final medicines = (order['medicines'] as List?) ?? [];
     final subtotal = (order['subtotal'] ?? 0).toDouble();
     final paymentMethod = order['paymentMethod']?.toString();
@@ -125,6 +126,60 @@ class OrderDetailScreen extends StatelessWidget {
                       ),
                       child: Image.network(
                         prescriptionImage,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (_, child, progress) => progress == null
+                            ? child
+                            : Container(
+                                height: 200,
+                                color: AppTheme.background,
+                                child: const Center(
+                                    child: CircularProgressIndicator()),
+                              ),
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 120,
+                          color: AppTheme.background,
+                          child: const Center(
+                              child: Icon(Icons.broken_image,
+                                  color: AppTheme.textHint, size: 40)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacing16),
+            ],
+
+            // Payment proof image
+            if (paymentProofUrl != null && paymentProofUrl.isNotEmpty) ...[
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                          AppTheme.spacing16, AppTheme.spacing16,
+                          AppTheme.spacing16, AppTheme.spacing12),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.receipt, color: AppTheme.primary, size: 20),
+                          const SizedBox(width: 8),
+                          Text('Payment Proof',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(AppTheme.radiusLarge),
+                        bottomRight: Radius.circular(AppTheme.radiusLarge),
+                      ),
+                      child: Image.network(
+                        paymentProofUrl,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         loadingBuilder: (_, child, progress) => progress == null

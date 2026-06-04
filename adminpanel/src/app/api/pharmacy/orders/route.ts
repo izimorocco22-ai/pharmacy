@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
       deliveryFee: o.deliveryFee,
       totalAmount: o.totalAmount,
       paymentMethod: o.paymentMethod,
+      paymentMethodDetails: o.paymentMethodDetails || null,
+      paymentProofUrl: o.paymentProofUrl || null,
       paymentStatus: o.paymentStatus,
       items: o.items,
       createdAt: o.createdAt,
