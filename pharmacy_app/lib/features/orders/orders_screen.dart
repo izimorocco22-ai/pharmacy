@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../services/api_service.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -40,8 +41,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Order History')),
+      appBar: AppBar(title: Text(l10n.translate('order_history'))),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -51,7 +53,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     children: [
                       Text(_error!, style: const TextStyle(color: AppTheme.error)),
                       const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _loadOrders, child: const Text('Retry')),
+                      ElevatedButton(onPressed: _loadOrders, child: Text(l10n.translate('retry'))),
                     ],
                   ),
                 )
@@ -64,10 +66,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                               size: 80,
                               color: AppTheme.textSecondary.withOpacity(0.4)),
                           const SizedBox(height: 16),
-                          Text('No Orders Yet',
+                          Text(l10n.translate('no_orders_yet'),
                               style: Theme.of(context).textTheme.titleLarge),
                           const SizedBox(height: 8),
-                          Text('Confirmed orders will appear here',
+                          Text(l10n.translate('confirmed_orders_desc'),
                               style: Theme.of(context).textTheme.bodyMedium),
                         ],
                       ),
@@ -87,6 +89,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   Widget _buildOrderCard(BuildContext context, dynamic order) {
+    final l10n = AppLocalizations.of(context)!;
     final status = order['status'] ?? 'confirmed';
     final color = _statusColor(status);
     final orderId = order['id']?.toString() ?? order['_id']?.toString() ?? '$status$status';
@@ -122,7 +125,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      status.toString().toUpperCase(),
+                      l10n.translate(status.toString().toLowerCase()).toUpperCase(),
                       style: TextStyle(
                           fontSize: 11, fontWeight: FontWeight.w600, color: color),
                     ),
@@ -135,13 +138,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${items.length} item${items.length == 1 ? '' : 's'}',
+                    '${items.length} ${l10n.translate(items.length == 1 ? 'item' : 'items')}',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   Row(
                     children: [
                       Text(
-                        '${subtotal.toStringAsFixed(2)} MAD',
+                        '${subtotal.toStringAsFixed(2)} ${l10n.translate('mad')}',
                         style: Theme.of(context)
                             .textTheme
                             .titleMedium

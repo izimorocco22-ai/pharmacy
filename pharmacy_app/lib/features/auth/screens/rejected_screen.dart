@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/api_service.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class RejectedScreen extends StatelessWidget {
   final String adminNote;
@@ -51,6 +52,7 @@ class RejectedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -68,14 +70,14 @@ class RejectedScreen extends StatelessWidget {
                 child: const Icon(Icons.cancel_outlined, size: 52, color: Colors.red),
               ),
               const SizedBox(height: 32),
-              const Text(
-                'Application Rejected',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              Text(
+                l10n.translate('application_rejected'),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               Text(
-                'Unfortunately, your pharmacy registration was not approved by the admin.',
+                l10n.translate('pharmacy_rejected_desc'),
                 style: TextStyle(fontSize: 15, color: Colors.grey.shade600, height: 1.5),
                 textAlign: TextAlign.center,
               ),
@@ -97,7 +99,7 @@ class RejectedScreen extends StatelessWidget {
                           Icon(Icons.info_outline, color: Colors.red.shade600, size: 18),
                           const SizedBox(width: 8),
                           Text(
-                            'Admin Note',
+                            l10n.translate('admin_note'),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.red.shade700,
@@ -125,7 +127,7 @@ class RejectedScreen extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: () => _tryAgain(context),
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Try Again'),
+                  label: Text(l10n.translate('try_again')),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     backgroundColor: AppTheme.primary,

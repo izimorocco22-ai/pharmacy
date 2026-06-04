@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/delivery_provider.dart';
 
 class DeliveryDetailScreen extends StatelessWidget {
@@ -12,24 +13,28 @@ class DeliveryDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Delivery Details'),
+        title: Text(l10n.translate('delivery_details')),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacing16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildOrderInfo(context),
+            _buildOrderInfo(context, l10n),
             const SizedBox(height: AppTheme.spacing16),
-            _buildLocationInfo(context),
+            _buildLocationInfo(context, l10n),
             const SizedBox(height: AppTheme.spacing16),
-            _buildEarningsInfo(context),
+            _buildEarningsInfo(context, l10n),
             const SizedBox(height: AppTheme.spacing24),
-            PrimaryButton(
-              text: 'Accept Delivery',
-              onPressed: () => _acceptDelivery(context),
+            Consumer<DeliveryProvider>(
+              builder: (context, provider, _) => PrimaryButton(
+                text: l10n.translate('accept_delivery'),
+                isLoading: provider.isLoading,
+                onPressed: provider.isLoading ? null : () => _acceptDelivery(context),
+              ),
             ),
           ],
         ),
@@ -37,7 +42,7 @@ class DeliveryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderInfo(BuildContext context) {
+  Widget _buildOrderInfo(BuildContext context, AppLocalizations l10n) {
     return AppCard(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacing16),
@@ -45,18 +50,18 @@ class DeliveryDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Order Information',
+              l10n.translate('order_information'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: AppTheme.spacing12),
-            _buildInfoRow(Icons.receipt, 'Order', delivery.orderNumber ?? 'N/A'),
+            _buildInfoRow(Icons.receipt, l10n.translate('order'), delivery.orderNumber ?? 'N/A'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLocationInfo(BuildContext context) {
+  Widget _buildLocationInfo(BuildContext context, AppLocalizations l10n) {
     return AppCard(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacing16),
@@ -64,20 +69,20 @@ class DeliveryDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Locations',
+              l10n.translate('locations'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: AppTheme.spacing12),
-            _buildInfoRow(Icons.store, 'Pickup', delivery.pickupAddress ?? 'N/A'),
-            _buildInfoRow(Icons.location_on, 'Delivery', delivery.deliveryAddress ?? 'N/A'),
-            _buildInfoRow(Icons.straighten, 'Distance', '${delivery.distance ?? 0} km'),
+            _buildInfoRow(Icons.store, l10n.translate('pickup'), delivery.pickupAddress ?? 'N/A'),
+            _buildInfoRow(Icons.location_on, l10n.translate('delivery'), delivery.deliveryAddress ?? 'N/A'),
+            _buildInfoRow(Icons.straighten, l10n.translate('distance'), '${delivery.distance ?? 0} km'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEarningsInfo(BuildContext context) {
+  Widget _buildEarningsInfo(BuildContext context, AppLocalizations l10n) {
     return AppCard(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacing16),
@@ -85,11 +90,11 @@ class DeliveryDetailScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Delivery Fee',
+              l10n.translate('delivery_fee'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             Text(
-              '${delivery.deliveryFee ?? 0} MAD',
+              '${delivery.deliveryFee ?? 0} ${l10n.translate('mad')}',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: AppTheme.primary,
                   ),
@@ -115,12 +120,13 @@ class DeliveryDetailScreen extends StatelessWidget {
   }
 
   Future<void> _acceptDelivery(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final success = await context.read<DeliveryProvider>().acceptDelivery(delivery.orderId);
 
     if (success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Delivery accepted!'),
+        SnackBar(
+          content: Text(l10n.translate('delivery_accepted')),
           backgroundColor: AppTheme.success,
         ),
       );
@@ -132,7 +138,7 @@ class DeliveryDetailScreen extends StatelessWidget {
     } else if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(context.read<DeliveryProvider>().error ?? 'Failed to accept delivery'),
+          content: Text(context.read<DeliveryProvider>().error ?? l10n.translate('failed_to_accept')),
           backgroundColor: AppTheme.error,
         ),
       );

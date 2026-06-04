@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../services/api_service.dart';
 import '../../../services/location_service.dart';
 import 'map_navigation_screen.dart';
@@ -53,6 +54,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
   Future<void> _openMaps(String address, List? coords) async {
+    final l10n = AppLocalizations.of(context)!;
     if (coords == null || coords.length < 2) return;
     final lat = (coords[1] as num).toDouble();
     final lng = (coords[0] as num).toDouble();
@@ -61,7 +63,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => MapNavigationScreen(
-          title: _phase == 'to_pharmacy' ? 'Pickup Location' : 'Delivery Location',
+          title: _phase == 'to_pharmacy' ? l10n.translate('pickup_location') : l10n.translate('delivery_location'),
           address: address,
           destination: LatLng(lat, lng),
         ),
@@ -109,12 +111,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return PopScope(
       canPop: _phase == 'delivered',
       onPopInvoked: (didPop) {
         if (!didPop) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Complete the delivery before going back')),
+            SnackBar(content: Text(l10n.translate('complete_delivery_before_back'))),
           );
         }
       },
@@ -123,8 +126,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              _buildHeader(),
-              Expanded(child: _buildBody()),
+              _buildHeader(l10n),
+              Expanded(child: _buildBody(l10n)),
             ],
           ),
         ),
@@ -132,7 +135,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppTheme.spacing16,
@@ -155,10 +158,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
               children: [
                 Text(
                   _phase == 'to_pharmacy'
-                      ? 'Head to Pharmacy'
+                      ? l10n.translate('head_to_pharmacy')
                       : _phase == 'to_patient'
-                          ? 'Head to Patient'
-                          : 'Delivery Complete!',
+                          ? l10n.translate('head_to_patient')
+                          : l10n.translate('delivery_complete'),
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 Text(_orderNumber,
@@ -173,7 +176,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             ),
             child: Text(
-              '$_deliveryFee MAD',
+              '$_deliveryFee ${l10n.translate('mad')}',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppTheme.success,
@@ -186,14 +189,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
     );
   }
 
-  Widget _buildBody() {
-    if (_phase == 'delivered') return _buildDeliveredView();
+  Widget _buildBody(AppLocalizations l10n) {
+    if (_phase == 'delivered') return _buildDeliveredView(l10n);
 
     final isToPharmacy = _phase == 'to_pharmacy';
 
     return Column(
       children: [
-        _buildProgressSteps(),
+        _buildProgressSteps(l10n),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppTheme.spacing16),
@@ -203,7 +206,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   isActive: true,
                   icon: isToPharmacy ? Icons.store : Icons.location_on,
                   color: isToPharmacy ? AppTheme.primary : AppTheme.error,
-                  title: isToPharmacy ? 'Pickup Location' : 'Delivery Location',
+                  title: isToPharmacy ? l10n.translate('pickup_location') : l10n.translate('delivery_location'),
                   address: isToPharmacy ? _pickupAddress : _deliveryAddress,
                   coords: isToPharmacy ? _pharmacyCoords : _deliveryCoords,
                   phone: isToPharmacy ? _pharmacyPhone : _patientPhone,
@@ -213,8 +216,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   isActive: false,
                   icon: isToPharmacy ? Icons.location_on : Icons.check_circle,
                   color: AppTheme.textSecondary,
-                  title: isToPharmacy ? 'Then Deliver To' : 'Completed',
-                  address: isToPharmacy ? _deliveryAddress : 'Delivery done',
+                  title: isToPharmacy ? l10n.translate('then_deliver_to') : l10n.translate('completed'),
+                  address: isToPharmacy ? _deliveryAddress : l10n.translate('delivery_done'),
                   coords: isToPharmacy ? _deliveryCoords : null,
                   phone: '',
                 ),
@@ -244,7 +247,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : Text(
-                      isToPharmacy ? 'Arrived at Pharmacy' : 'Arrived at Patient',
+                      isToPharmacy ? l10n.translate('arrived_at_pharmacy') : l10n.translate('arrived_at_patient'),
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
             ),
@@ -254,18 +257,18 @@ class _NavigationScreenState extends State<NavigationScreen> {
     );
   }
 
-  Widget _buildProgressSteps() {
+  Widget _buildProgressSteps(AppLocalizations l10n) {
     return Container(
       color: AppTheme.surface,
       padding: const EdgeInsets.symmetric(
           horizontal: AppTheme.spacing24, vertical: AppTheme.spacing12),
       child: Row(
         children: [
-          _stepDot(label: 'Pickup', done: _phase != 'to_pharmacy', active: _phase == 'to_pharmacy'),
+          _stepDot(label: l10n.translate('pickup'), done: _phase != 'to_pharmacy', active: _phase == 'to_pharmacy'),
           Expanded(child: Container(height: 2, color: _phase != 'to_pharmacy' ? AppTheme.primary : AppTheme.divider)),
-          _stepDot(label: 'Deliver', done: _phase == 'delivered', active: _phase == 'to_patient'),
+          _stepDot(label: l10n.translate('delivery'), done: _phase == 'delivered', active: _phase == 'to_patient'),
           Expanded(child: Container(height: 2, color: _phase == 'delivered' ? AppTheme.primary : AppTheme.divider)),
-          _stepDot(label: 'Done', done: _phase == 'delivered', active: false),
+          _stepDot(label: l10n.translate('completed'), done: _phase == 'delivered', active: false),
         ],
       ),
     );
@@ -387,7 +390,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     );
   }
 
-  Widget _buildDeliveredView() {
+  Widget _buildDeliveredView(AppLocalizations l10n) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacing32),
@@ -403,10 +406,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
               child: const Icon(Icons.check_circle, color: AppTheme.success, size: 56),
             ),
             const SizedBox(height: AppTheme.spacing24),
-            const Text('Delivery Completed!',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(l10n.translate('delivery_complete'),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: AppTheme.spacing8),
-            Text('You earned $_deliveryFee MAD',
+            Text('${l10n.translate('you_earned')} $_deliveryFee ${l10n.translate('mad')}',
                 style: const TextStyle(
                     fontSize: 18, color: AppTheme.success, fontWeight: FontWeight.w600)),
             const SizedBox(height: AppTheme.spacing8),
@@ -425,7 +428,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
                 ),
-                child: const Text('Back to Home', style: TextStyle(fontSize: 16)),
+                child: Text(l10n.translate('back_to_home'), style: const TextStyle(fontSize: 16)),
               ),
             ),
           ],

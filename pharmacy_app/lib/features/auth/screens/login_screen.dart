@@ -4,6 +4,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/input_field.dart';
+import '../../../core/localization/app_localizations.dart';
 import 'register_screen.dart';
 import 'pending_approval_screen.dart';
 import 'rejected_screen.dart';
@@ -30,9 +31,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleSendOtp() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_phoneController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your phone number')),
+        SnackBar(content: Text(l10n.translate('enter_phone'))),
       );
       return;
     }
@@ -48,12 +50,12 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success) {
       setState(() => _otpSent = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP sent successfully')),
+        SnackBar(content: Text(l10n.translate('otp_sent_success'))),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(context.read<AuthProvider>().error ?? 'Failed to send OTP'),
+          content: Text(context.read<AuthProvider>().error ?? l10n.translate('failed_send_otp')),
           backgroundColor: AppTheme.error,
         ),
       );
@@ -61,6 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    final l10n = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
 
     final result = await context.read<AuthProvider>().loginWithOtp(
@@ -73,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (result == null || !result.success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(context.read<AuthProvider>().error ?? 'Login failed'),
+          content: Text(context.read<AuthProvider>().error ?? l10n.translate('login_failed')),
           backgroundColor: AppTheme.error,
         ),
       );
@@ -101,6 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -116,12 +120,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: AppTheme.spacing16),
                 Text(
-                  'Welcome Back',
+                  l10n.translate('welcome_back'),
                   style: Theme.of(context).textTheme.displaySmall,
                 ),
                 const SizedBox(height: AppTheme.spacing8),
                 Text(
-                  'Login to your pharmacy account',
+                  l10n.translate('login_to_pharmacy_account'),
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: AppTheme.spacing48),
@@ -132,16 +136,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     Expanded(
                       child: InputField(
                         controller: _phoneController,
-                        label: 'Phone Number',
-                        hint: 'e.g. +212600000000',
+                        label: l10n.translate('phone_number'),
+                        hint: l10n.translate('phone_hint'),
                         prefixIcon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your phone number';
+                            return l10n.translate('enter_phone');
                           }
                           if (!value.startsWith('+')) {
-                            return 'Include country code (e.g. +212)';
+                            return l10n.translate('include_country_code');
                           }
                           return null;
                         },
@@ -171,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               )
                             : Text(
-                                _otpSent ? 'Resend' : 'Send OTP',
+                                _otpSent ? l10n.translate('resend') : l10n.translate('send_otp'),
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -185,18 +189,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 // OTP field
                 InputField(
                   controller: _otpController,
-                  label: 'Enter OTP',
-                  hint: 'Enter the OTP sent to your phone',
+                  label: l10n.translate('enter_otp'),
+                  hint: l10n.translate('otp_hint'),
                   prefixIcon: Icons.lock_outlined,
                   keyboardType: TextInputType.number,
                   validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Please enter the OTP'
+                      ? l10n.translate('please_enter_otp')
                       : null,
                 ),
                 const SizedBox(height: AppTheme.spacing32),
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, _) => PrimaryButton(
-                    text: 'Login',
+                    text: l10n.translate('login'),
                     onPressed: authProvider.isLoading ? null : _handleLogin,
                     isLoading: authProvider.isLoading,
                   ),
@@ -208,7 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       context,
                       MaterialPageRoute(builder: (_) => const RegisterScreen()),
                     ),
-                    child: const Text("Don't have an account? Register"),
+                    child: Text(l10n.translate('no_account_register')),
                   ),
                 ),
               ],

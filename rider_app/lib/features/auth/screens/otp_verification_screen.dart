@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/input_field.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../services/api_service.dart';
 import 'pending_approval_screen.dart';
 
@@ -54,8 +55,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   }
 
   Future<void> _verifyAndRegister() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_otpController.text.trim().length != 6) {
-      _showError('Please enter the 6-digit OTP');
+      _showError(l10n.translate('enter_6_digit_otp'));
       return;
     }
     setState(() => _isLoading = true);
@@ -86,12 +88,13 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
         _showError(registerRes.message);
       }
     } catch (_) {
-      _showError('Something went wrong');
+      _showError(l10n.translate('something_went_wrong'));
     }
     setState(() => _isLoading = false);
   }
 
   void _showSuccessDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -107,11 +110,11 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
               child: const Icon(Icons.hourglass_top_rounded, size: 40, color: Colors.orange),
             ),
             const SizedBox(height: 20),
-            const Text('Registration Submitted!',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(l10n.translate('registration_submitted'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            Text('Your rider registration is under review by our admin team.',
+            Text(l10n.translate('rider_under_review'),
                 style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
                 textAlign: TextAlign.center),
             const SizedBox(height: 16),
@@ -124,7 +127,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
               child: Row(children: [
                 Icon(Icons.access_time, color: Colors.blue.shade600, size: 18),
                 const SizedBox(width: 10),
-                Expanded(child: Text('Approval takes 24 to 48 hours.',
+                Expanded(child: Text(l10n.translate('approval_time'),
                     style: TextStyle(fontSize: 13, color: Colors.blue.shade700))),
               ]),
             ),
@@ -144,7 +147,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('OK, Got it'),
+                child: Text(l10n.translate('ok_got_it')),
               ),
             ),
           ],
@@ -154,6 +157,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   }
 
   Future<void> _resendOTP() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_secondsRemaining > 0) return;
     setState(() => _isLoading = true);
     final res = await ApiService.post(
@@ -165,7 +169,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     if (res.success) {
       _startTimer();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP resent to your phone')),
+        SnackBar(content: Text(l10n.translate('otp_resent_success'))),
       );
     } else {
       _showError(res.message);
@@ -180,8 +184,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify Phone')),
+      appBar: AppBar(title: Text(l10n.translate('verify_phone'))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacing24),
         child: Column(
@@ -190,11 +195,11 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
             const SizedBox(height: AppTheme.spacing32),
             const Icon(Icons.phone_android_outlined, size: 80, color: AppTheme.primary),
             const SizedBox(height: AppTheme.spacing24),
-            Text('Verify Your Phone',
+            Text(l10n.translate('verify_your_phone'),
                 style: Theme.of(context).textTheme.headlineMedium,
                 textAlign: TextAlign.center),
             const SizedBox(height: AppTheme.spacing8),
-            Text('We sent a 6-digit code to',
+            Text(l10n.translate('sent_code_to'),
                 style: Theme.of(context).textTheme.bodyMedium,
                 textAlign: TextAlign.center),
             const SizedBox(height: 4),
@@ -204,13 +209,13 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
             const SizedBox(height: AppTheme.spacing32),
             InputField(
               controller: _otpController,
-              label: 'Enter OTP',
+              label: l10n.translate('enter_otp'),
               keyboardType: TextInputType.number,
               prefixIcon: const Icon(Icons.lock_outline),
             ),
             const SizedBox(height: AppTheme.spacing24),
             PrimaryButton(
-              text: 'Verify & Register',
+              text: l10n.translate('verify_register'),
               onPressed: _isLoading ? null : _verifyAndRegister,
               isLoading: _isLoading,
             ),
@@ -218,12 +223,12 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("Didn't receive code? ", style: Theme.of(context).textTheme.bodyMedium),
+                Text(l10n.translate('didnt_receive_code'), style: Theme.of(context).textTheme.bodyMedium),
                 TextButton(
                   onPressed: _secondsRemaining > 0 ? null : _resendOTP,
                   child: Text(_secondsRemaining > 0
-                      ? 'Resend in ${_secondsRemaining}s'
-                      : 'Resend OTP'),
+                      ? '${l10n.translate('resend_in')} ${_secondsRemaining}s'
+                      : l10n.translate('resend')),
                 ),
               ],
             ),

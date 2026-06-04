@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../services/api_service.dart';
 import '../../deliveries/screens/navigation_screen.dart';
 
@@ -86,9 +87,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Available Orders'),
+        title: Text(l10n.translate('available_orders')),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -108,9 +110,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     children: [
                       Icon(Icons.delivery_dining, size: 80, color: AppTheme.textSecondary.withOpacity(0.4)),
                       const SizedBox(height: AppTheme.spacing16),
-                      Text('No orders nearby', style: Theme.of(context).textTheme.titleLarge),
+                      Text(l10n.translate('no_orders_nearby'), style: Theme.of(context).textTheme.titleLarge),
                       const SizedBox(height: AppTheme.spacing8),
-                      Text('Pull to refresh or wait for new orders', style: Theme.of(context).textTheme.bodyMedium),
+                      Text(l10n.translate('pull_to_refresh_desc'), style: Theme.of(context).textTheme.bodyMedium),
                     ],
                   ),
                 )
@@ -147,6 +149,7 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final deliveryFee = (order['deliveryFee'] ?? 0).toDouble();
     final distance = order['distance'];
     final pickupAddress = order['pickupAddress'] ?? 'Pharmacy';
@@ -178,7 +181,7 @@ class _OrderCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
                   child: Text(
-                    '${deliveryFee.toStringAsFixed(0)} MAD',
+                    '${deliveryFee.toStringAsFixed(0)} ${l10n.translate('mad')}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppTheme.success,

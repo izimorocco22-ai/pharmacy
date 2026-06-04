@@ -121,9 +121,9 @@ class _DashboardTabState extends State<_DashboardTab> {
 
   String _greeting(AppLocalizations l10n) {
     final h = DateTime.now().hour;
-    if (h < 12) return 'Good Morning';
-    if (h < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (h < 12) return l10n.translate('good_morning');
+    if (h < 17) return l10n.translate('good_afternoon');
+    return l10n.translate('good_evening');
   }
 
   Color _statusColor(String s) {
@@ -141,7 +141,7 @@ class _DashboardTabState extends State<_DashboardTab> {
       case 'confirmed': return l10n.translate('confirm');
       case 'preparing': return l10n.translate('preparing');
       case 'ready': return l10n.translate('ready_for_pickup');
-      case 'assigned': return 'Rider Assigned';
+      case 'assigned': return l10n.translate('rider_assigned');
       case 'in_transit': return l10n.translate('on_the_way');
       case 'cancelled': return l10n.translate('cancelled');
       default: return l10n.translate('pending');
@@ -178,9 +178,11 @@ class _DashboardTabState extends State<_DashboardTab> {
                 child: Container(
                   decoration: const BoxDecoration(
                     color: AppTheme.primary,
-                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(AppTheme.radiusXLarge)),
+                    borderRadius: BorderRadius.vertical(
+                        bottom: Radius.circular(AppTheme.radiusXLarge)),
                   ),
-                  padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 28),
+                  padding: EdgeInsets.fromLTRB(
+                      20, MediaQuery.of(context).padding.top + 16, 20, 28),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -190,18 +192,28 @@ class _DashboardTabState extends State<_DashboardTab> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(_greeting(l10n), style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                              Text(_greeting(l10n),
+                                  style: const TextStyle(
+                                      color: Colors.white70, fontSize: 14)),
                               const SizedBox(height: 2),
                               Text(user?.fullName ?? 'Pharmacy',
-                                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold)),
                             ],
                           ),
                           CircleAvatar(
                             radius: 24,
                             backgroundColor: Colors.white.withOpacity(0.2),
                             child: Text(
-                              (user?.fullName ?? 'P').substring(0, 1).toUpperCase(),
-                              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                              (user?.fullName ?? 'P')
+                                  .substring(0, 1)
+                                  .toUpperCase(),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
@@ -211,15 +223,21 @@ class _DashboardTabState extends State<_DashboardTab> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusMedium),
                         ),
                         child: Row(
                           children: [
-                            _headerStat(l10n.translate('pending'), '$pending', Icons.pending_actions_outlined),
-                            Container(width: 1, height: 40, color: Colors.white30),
-                            _headerStat(l10n.translate('active_requests'), '$confirmed', Icons.local_shipping_outlined),
-                            Container(width: 1, height: 40, color: Colors.white30),
-                            _headerStat(l10n.translate('completed_orders'), '$completed', Icons.check_circle_outline),
+                            _headerStat(l10n.translate('pending'), '$pending',
+                                Icons.pending_actions_outlined),
+                            Container(
+                                width: 1, height: 40, color: Colors.white30),
+                            _headerStat(l10n.translate('active_requests'),
+                                '$confirmed', Icons.local_shipping_outlined),
+                            Container(
+                                width: 1, height: 40, color: Colors.white30),
+                            _headerStat(l10n.translate('completed_orders'),
+                                '$completed', Icons.check_circle_outline),
                           ],
                         ),
                       ),
@@ -234,42 +252,64 @@ class _DashboardTabState extends State<_DashboardTab> {
                     // Stats row
                     Row(
                       children: [
-                        Expanded(child: _statCard(Icons.today, l10n.translate('total_sales'),
-                            '${_todayRevenue.toStringAsFixed(0)} MAD', AppTheme.success)),
+                        Expanded(
+                            child: _statCard(
+                                Icons.today,
+                                l10n.translate('total_sales'),
+                                '${_todayRevenue.toStringAsFixed(0)} ${l10n.translate('mad')}',
+                                AppTheme.success)),
                         const SizedBox(width: 12),
-                        Expanded(child: _statCard(Icons.check_circle_outline, l10n.translate('completed_orders'),
-                            '$completed', AppTheme.primary)),
+                        Expanded(
+                            child: _statCard(
+                                Icons.check_circle_outline,
+                                l10n.translate('completed_orders'),
+                                '$completed',
+                                AppTheme.primary)),
                       ],
                     ),
                     const SizedBox(height: 20),
 
                     // Quick actions
-                    Text(l10n.translate('dashboard'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(l10n.translate('dashboard'),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(child: _actionTile(
-                          Icons.receipt_long, l10n.translate('requests'), AppTheme.warning,
+                        Expanded(
+                            child: _actionTile(
+                          Icons.receipt_long,
+                          l10n.translate('requests'),
+                          AppTheme.warning,
                           badge: pending > 0 ? '$pending' : null,
                           onTap: () {
-                            final s = context.findAncestorStateOfType<_HomeScreenState>();
+                            final s = context
+                                .findAncestorStateOfType<_HomeScreenState>();
                             s?.setState(() => s._currentIndex = 1);
                           },
                         )),
                         const SizedBox(width: 12),
-                        Expanded(child: _actionTile(
-                          Icons.history, l10n.translate('orders'), AppTheme.info,
+                        Expanded(
+                            child: _actionTile(
+                          Icons.history,
+                          l10n.translate('orders'),
+                          AppTheme.info,
                           badge: confirmed > 0 ? '$confirmed' : null,
                           onTap: () {
-                            final s = context.findAncestorStateOfType<_HomeScreenState>();
+                            final s = context
+                                .findAncestorStateOfType<_HomeScreenState>();
                             s?.setState(() => s._currentIndex = 2);
                           },
                         )),
                         const SizedBox(width: 12),
-                        Expanded(child: _actionTile(
-                          Icons.person_outline, l10n.translate('profile'), AppTheme.textSecondary,
+                        Expanded(
+                            child: _actionTile(
+                          Icons.person_outline,
+                          l10n.translate('profile'),
+                          AppTheme.textSecondary,
                           onTap: () {
-                            final s = context.findAncestorStateOfType<_HomeScreenState>();
+                            final s = context
+                                .findAncestorStateOfType<_HomeScreenState>();
                             s?.setState(() => s._currentIndex = 3);
                           },
                         )),
@@ -281,10 +321,13 @@ class _DashboardTabState extends State<_DashboardTab> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(l10n.translate('orders'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(l10n.translate('orders'),
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
                         TextButton(
                           onPressed: () {
-                            final s = context.findAncestorStateOfType<_HomeScreenState>();
+                            final s = context
+                                .findAncestorStateOfType<_HomeScreenState>();
                             s?.setState(() => s._currentIndex = 2);
                           },
                           child: Text(l10n.translate('view_all')),
@@ -300,17 +343,23 @@ class _DashboardTabState extends State<_DashboardTab> {
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           color: AppTheme.surface,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusLarge),
                           border: Border.all(color: AppTheme.divider),
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.inbox_outlined, size: 48, color: AppTheme.textSecondary.withOpacity(0.4)),
+                            Icon(Icons.inbox_outlined,
+                                size: 48,
+                                color: AppTheme.textSecondary.withOpacity(0.4)),
                             const SizedBox(height: 8),
-                            Text(l10n.translate('no_requests'), style: const TextStyle(fontWeight: FontWeight.w600)),
+                            Text(l10n.translate('no_requests'),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
                             const SizedBox(height: 4),
                             Text(l10n.translate('requests'),
-                                style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
+                                style: Theme.of(context).textTheme.bodySmall,
+                                textAlign: TextAlign.center),
                           ],
                         ),
                       )
@@ -323,15 +372,20 @@ class _DashboardTabState extends State<_DashboardTab> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                            borderRadius:
+                                BorderRadius.circular(AppTheme.radiusLarge),
                             border: Border.all(color: AppTheme.divider),
                           ),
                           child: Row(
                             children: [
                               Container(
-                                width: 40, height: 40,
-                                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-                                child: const Icon(Icons.receipt_long, color: color, size: 20),
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                    color: color.withOpacity(0.1),
+                                    shape: BoxShape.circle),
+                                child: Icon(Icons.receipt_long,
+                                    color: color, size: 20),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -339,25 +393,36 @@ class _DashboardTabState extends State<_DashboardTab> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(o['orderNumber']?.toString() ?? '',
-                                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14)),
                                     Text(_formatDate(o['createdAt']),
-                                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.textSecondary)),
                                   ],
                                 ),
                               ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text('${(o['subtotal'] as num?)?.toStringAsFixed(0) ?? '0'} MAD',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  Text(
+                                      '${(o['subtotal'] as num?)?.toStringAsFixed(0) ?? '0'} ${l10n.translate('mad')}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13)),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: color.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(_statusLabel(status, l10n),
-                                        style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: color,
+                                            fontWeight: FontWeight.w600)),
                                   ),
                                 ],
                               ),
@@ -366,40 +431,41 @@ class _DashboardTabState extends State<_DashboardTab> {
                         );
                       }),
                     const SizedBox(height: 16),
-                  ]),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
                     // Tips
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: AppTheme.info.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-                        border: Border.all(color: AppTheme.info.withOpacity(0.2)),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusLarge),
+                        border:
+                            Border.all(color: AppTheme.info.withOpacity(0.2)),
                       ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(color: AppTheme.info.withOpacity(0.15), shape: BoxShape.circle),
-                            child: const Icon(Icons.tips_and_updates, color: AppTheme.info, size: 22),
+                            decoration: BoxDecoration(
+                                color: AppTheme.info.withOpacity(0.15),
+                                shape: BoxShape.circle),
+                            child: const Icon(Icons.tips_and_updates,
+                                color: AppTheme.info, size: 22),
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Respond Quickly', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                SizedBox(height: 2),
-                                Text('Faster quote responses increase your order acceptance rate.',
-                                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                                Text(l10n.translate('respond_quickly'),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14)),
+                                const SizedBox(height: 2),
+                                Text(l10n.translate('respond_quickly_desc'),
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme.textSecondary)),
                               ],
                             ),
                           ),

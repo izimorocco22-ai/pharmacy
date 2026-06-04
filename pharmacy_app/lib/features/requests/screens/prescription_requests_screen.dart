@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../providers/prescription_provider.dart';
 import 'package:provider/provider.dart';
 import '../../../services/api_service.dart';
+import '../../../core/localization/app_localizations.dart';
 import 'prescription_detail_screen.dart';
 
 class PrescriptionRequestsScreen extends StatefulWidget {
@@ -27,9 +28,10 @@ class _PrescriptionRequestsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Prescription Requests'),
+        title: Text(l10n.translate('prescription_requests')),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
@@ -57,14 +59,14 @@ class _PrescriptionRequestsScreenState
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => provider.fetchPrescriptionRequests(),
-                    child: const Text('Retry'),
+                    child: Text(l10n.translate('retry')),
                   ),
                 ],
               ),
             );
           }
           if (provider.prescriptions.isEmpty) {
-            return _buildEmptyState();
+            return _buildEmptyState(l10n);
           }
           return RefreshIndicator(
             onRefresh: () => provider.fetchPrescriptionRequests(),
@@ -75,7 +77,7 @@ class _PrescriptionRequestsScreenState
                   const SizedBox(height: AppTheme.spacing12),
               itemBuilder: (context, index) {
                 final request = provider.prescriptions[index];
-                return _buildRequestCard(context, request);
+                return _buildRequestCard(context, request, l10n);
               },
             ),
           );
@@ -84,7 +86,7 @@ class _PrescriptionRequestsScreenState
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -92,10 +94,10 @@ class _PrescriptionRequestsScreenState
           Icon(Icons.inbox_outlined,
               size: 80, color: AppTheme.textSecondary.withOpacity(0.5)),
           const SizedBox(height: AppTheme.spacing16),
-          Text('No Requests Yet',
+          Text(l10n.translate('no_requests_yet'),
               style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: AppTheme.spacing8),
-          Text('New prescription requests will appear here',
+          Text(l10n.translate('no_requests'),
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center),
         ],
@@ -103,7 +105,7 @@ class _PrescriptionRequestsScreenState
     );
   }
 
-  Widget _buildRequestCard(BuildContext context, dynamic request) {
+  Widget _buildRequestCard(BuildContext context, dynamic request, AppLocalizations l10n) {
     final imageUrl = request['imageUrl']?.toString() ?? '';
     final assignedAt = request['assignedAt'] != null
         ? DateTime.tryParse(request['assignedAt'].toString()) ?? DateTime.now()
@@ -171,9 +173,9 @@ class _PrescriptionRequestsScreenState
                         // Reject button
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () => _showRejectDialog(context, request),
+                            onPressed: () => _showRejectDialog(context, request, l10n),
                             icon: const Icon(Icons.cancel_outlined, size: 16),
-                            label: const Text('Reject'),
+                            label: Text(l10n.translate('reject')),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppTheme.error,
                               side: const BorderSide(color: AppTheme.error),
@@ -202,8 +204,8 @@ class _PrescriptionRequestsScreenState
                             ),
                             child: Text(
                               request['existingQuote'] != null
-                                  ? 'View & Edit Quote'
-                                  : 'View & Send Quote',
+                                  ? l10n.translate('view_edit_quote')
+                                  : l10n.translate('view_send_quote'),
                             ),
                           ),
                         ),
@@ -220,7 +222,7 @@ class _PrescriptionRequestsScreenState
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text('✓ Order Confirmed by Patient'),
+                        child: Text(l10n.translate('order_confirmed_by_patient')),
                       ),
                     ),
                 ],
@@ -232,7 +234,7 @@ class _PrescriptionRequestsScreenState
     );
   }
 
-  Future<void> _showRejectDialog(BuildContext context, dynamic request) async {
+  Future<void> _showRejectDialog(BuildContext context, dynamic request, AppLocalizations l10n) async {
     final reasonController = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
@@ -240,14 +242,14 @@ class _PrescriptionRequestsScreenState
         builder: (context, setState) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Reject Prescription'),
+          title: Text(l10n.translate('reject_prescription')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Please provide a reason for rejection. The request will be sent to the next nearest pharmacy.',
-                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              Text(
+                l10n.translate('reject_desc'),
+                style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -255,7 +257,7 @@ class _PrescriptionRequestsScreenState
                 maxLines: 3,
                 onChanged: (value) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'e.g. Medicine out of stock, closed today...',
+                  hintText: 'e.g. Medicine out of stock, closed today...', // Could localize
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
                   contentPadding: const EdgeInsets.all(12),
@@ -266,7 +268,7 @@ class _PrescriptionRequestsScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(l10n.translate('cancel')),
             ),
             ElevatedButton(
               onPressed: reasonController.text.trim().isEmpty
@@ -277,7 +279,7 @@ class _PrescriptionRequestsScreenState
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: AppTheme.error.withOpacity(0.3),
               ),
-              child: const Text('Reject & Reassign'),
+              child: Text(l10n.translate('reject_reassign')),
             ),
           ],
         ),
@@ -291,11 +293,11 @@ class _PrescriptionRequestsScreenState
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const AlertDialog(
+        builder: (_) => AlertDialog(
           content: Row(children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 16),
-            Text('Rejecting...'),
+            const CircularProgressIndicator(),
+            const SizedBox(width: 16),
+            Text(l10n.translate('rejecting')),
           ]),
         ),
       );
@@ -338,11 +340,11 @@ class _PrescriptionRequestsScreenState
     );
   }
 
-  String _getTimeAgo(DateTime dateTime) {
+  String _getTimeAgo(DateTime dateTime, AppLocalizations l10n) {
     final diff = DateTime.now().difference(dateTime);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}${l10n.translate('minutes_ago')}';
+    if (diff.inHours < 24) return '${diff.inHours}${l10n.translate('hours_ago')}';
+    return '${diff.inDays}${l10n.translate('days_ago')}';
   }
 }
 

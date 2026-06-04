@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:latlong2/latlong.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -81,6 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
+    final l10n = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSendingOtp = true);
@@ -124,7 +126,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() => _isSendingOtp = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to send OTP'), backgroundColor: AppTheme.error),
+          SnackBar(content: Text(l10n.translate('failed_send_otp')), backgroundColor: AppTheme.error),
         );
       }
     }
@@ -132,8 +134,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Register Pharmacy')),
+      appBar: AppBar(title: Text(l10n.translate('register_pharmacy'))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacing24),
         child: Form(
@@ -146,60 +149,60 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: AppTheme.spacing8),
               Center(
-                child: Text('Create Pharmacy Account',
+                child: Text(l10n.translate('create_pharmacy_account'),
                     style: Theme.of(context).textTheme.titleLarge),
               ),
               const SizedBox(height: AppTheme.spacing32),
 
               // Personal Info
-              Text('Personal Info',
+              Text(l10n.translate('personal_info'),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.textSecondary)),
               const SizedBox(height: AppTheme.spacing12),
               InputField(
                 controller: _nameController,
-                label: 'Full Name',
+                label: l10n.translate('full_name'),
                 prefixIcon: Icons.person,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? l10n.translate('required') : null,
               ),
               const SizedBox(height: AppTheme.spacing12),
               InputField(
                 controller: _phoneController,
-                label: 'Phone Number',
+                label: l10n.translate('phone_number'),
                 hint: 'e.g. +212600000000',
                 prefixIcon: Icons.phone,
                 keyboardType: TextInputType.phone,
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Required';
-                  if (!v.startsWith('+')) return 'Include country code (e.g. +212)';
+                  if (v == null || v.isEmpty) return l10n.translate('required');
+                  if (!v.startsWith('+')) return l10n.translate('include_country_code');
                   return null;
                 },
               ),
               const SizedBox(height: AppTheme.spacing12),
               InputField(
                 controller: _passwordController,
-                label: 'Password',
+                label: l10n.translate('password'),
                 prefixIcon: Icons.lock,
                 isPassword: true,
-                validator: (v) => v!.length < 6 ? 'Min 6 characters' : null,
+                validator: (v) => v!.length < 6 ? l10n.translate('min_6_chars') : null,
               ),
               const SizedBox(height: AppTheme.spacing24),
 
               // Pharmacy Info
-              Text('Pharmacy Info',
+              Text(l10n.translate('pharmacy_info'),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.textSecondary)),
               const SizedBox(height: AppTheme.spacing12),
               InputField(
                 controller: _pharmacyNameController,
-                label: 'Pharmacy Name',
+                label: l10n.translate('pharmacy_name'),
                 prefixIcon: Icons.store,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? l10n.translate('required') : null,
               ),
               const SizedBox(height: AppTheme.spacing12),
               InputField(
                 controller: _licenseController,
-                label: 'License Number',
+                label: l10n.translate('license_number'),
                 prefixIcon: Icons.badge,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: (v) => v!.isEmpty ? l10n.translate('required') : null,
               ),
               const SizedBox(height: AppTheme.spacing12),
 
@@ -209,9 +212,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: AbsorbPointer(
                   child: InputField(
                     controller: _addressController,
-                    label: 'Pharmacy Address',
+                    label: l10n.translate('pharmacy_address'),
                     prefixIcon: Icons.location_on,
-                    validator: (v) => v!.isEmpty ? 'Please select location on map' : null,
+                    validator: (v) => v!.isEmpty ? l10n.translate('please_select_location') : null,
                   ),
                 ),
               ),
@@ -225,7 +228,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     color: AppTheme.primary,
                   ),
                   label: Text(
-                    _locationSelected ? 'Change Location on Map' : 'Select Location on Map',
+                    _locationSelected ? l10n.translate('change_location_map') : l10n.translate('select_location_map'),
                     style: const TextStyle(color: AppTheme.primary),
                   ),
                   style: OutlinedButton.styleFrom(
@@ -245,7 +248,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const Icon(Icons.check_circle, color: Colors.green, size: 16),
                       const SizedBox(width: 6),
                       Text(
-                        'Location selected (${_lat.toStringAsFixed(4)}, ${_lng.toStringAsFixed(4)})',
+                        '${l10n.translate('location_selected')} (${_lat.toStringAsFixed(4)}, ${_lng.toStringAsFixed(4)})',
                         style: const TextStyle(fontSize: 12, color: Colors.green),
                       ),
                     ],
@@ -256,7 +259,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               Consumer<AuthProvider>(
                 builder: (context, auth, _) => PrimaryButton(
-                  text: 'Send OTP & Continue',
+                  text: l10n.translate('send_otp_continue'),
                   onPressed: _isSendingOtp ? null : _register,
                   isLoading: _isSendingOtp,
                 ),
@@ -265,7 +268,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Already have an account? Login'),
+                  child: Text(l10n.translate('already_have_account_login')),
                 ),
               ),
             ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
 import '../../../services/auth_service.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class PendingApprovalScreen extends StatefulWidget {
   const PendingApprovalScreen({super.key});
@@ -14,6 +15,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
   bool _checking = false;
 
   Future<void> _checkStatus() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _checking = true);
     try {
       final res = await ApiService.get('/rider/approval-status');
@@ -27,7 +29,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
           Navigator.pushReplacementNamed(context, '/rejected', arguments: note);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Still pending approval. Please wait.')),
+            SnackBar(content: Text(l10n.translate('still_pending'))),
           );
         }
       }
@@ -44,6 +46,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -57,12 +60,12 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                 child: const Icon(Icons.hourglass_top_rounded, size: 52, color: Colors.orange),
               ),
               const SizedBox(height: 32),
-              const Text('Waiting for Admin Approval',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              Text(l10n.translate('waiting_admin_approval'),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center),
               const SizedBox(height: 16),
               Text(
-                'Your rider registration has been submitted. Our admin team will review your details and driving licence.',
+                l10n.translate('rider_submitted_desc'),
                 style: TextStyle(fontSize: 15, color: Colors.grey.shade600, height: 1.5),
                 textAlign: TextAlign.center,
               ),
@@ -78,7 +81,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                   Icon(Icons.access_time, color: Colors.blue.shade600, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text('Approval typically takes 24 to 48 hours.',
+                    child: Text(l10n.translate('approval_takes_time'),
                         style: TextStyle(fontSize: 13, color: Colors.blue.shade700, height: 1.4)),
                   ),
                 ]),
@@ -92,7 +95,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                       ? const SizedBox(width: 18, height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.refresh),
-                  label: Text(_checking ? 'Checking...' : 'Check Status'),
+                  label: Text(_checking ? l10n.translate('checking') : l10n.translate('check_status')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
@@ -104,7 +107,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
               const SizedBox(height: 12),
               TextButton(
                 onPressed: _logout,
-                child: const Text('Logout', style: TextStyle(color: Colors.grey)),
+                child: Text(l10n.translate('logout'), style: const TextStyle(color: Colors.grey)),
               ),
             ],
           ),

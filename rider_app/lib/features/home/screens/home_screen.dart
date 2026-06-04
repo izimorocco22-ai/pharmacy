@@ -105,8 +105,9 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!granted) {
         setState(() => _togglingOnline = false);
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permission required to go online')),
+            SnackBar(content: Text(l10n.translate('location_required'))),
           );
         }
         return;
@@ -173,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${l10n.translate('welcome_back')} ${user?.fullName?.split(' ').first ?? 'Driver'}!',
+                              '${l10n.translate('welcome_back')} ${user?.fullName?.split(' ').first ?? l10n.translate('rider')}!',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 22,
@@ -181,9 +182,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            const Text(
-                              'Ready to earn today?', // Could localize
-                              style: TextStyle(color: Colors.white70, fontSize: 13),
+                            Text(
+                              l10n.translate('ready_to_earn'),
+                              style: const TextStyle(color: Colors.white70, fontSize: 13),
                             ),
                           ],
                         ),
@@ -223,10 +224,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Availability', // Could localize
-                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+                                Text(l10n.translate('availability'),
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
                                 Text(
-                                  _isOnline ? 'Online' : 'Offline',
+                                  _isOnline ? l10n.translate('online') : l10n.translate('offline'),
                                   style: TextStyle(
                                     color: _isOnline ? Colors.white : Colors.white60,
                                     fontSize: 12,
@@ -282,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${_walletBalance.toStringAsFixed(0)} MAD',
+                          '${_walletBalance.toStringAsFixed(0)} ${l10n.translate('mad')}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 30,
@@ -302,8 +303,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
                             ),
-                            child: const Text('Request Payout',
-                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                            child: Text(l10n.translate('request_payout'),
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                           ),
                         ),
                       ],
@@ -318,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: _statCard(
                           icon: Icons.trending_up,
                           label: l10n.translate('earnings'),
-                          value: '${_todayEarnings.toStringAsFixed(0)} MAD',
+                          value: '${_todayEarnings.toStringAsFixed(0)} ${l10n.translate('mad')}',
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -350,13 +351,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text("You're offline", // Could localize
-                                    style: TextStyle(
+                                Text(l10n.translate('you_are_offline'),
+                                    style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Color(0xFFF39C12),
                                         fontSize: 14)),
                                 const SizedBox(height: 2),
-                                Text('Toggle your availability to start receiving job offers',
+                                Text(l10n.translate('toggle_availability_desc'),
                                     style: TextStyle(color: Colors.orange.shade700, fontSize: 12)),
                               ],
                             ),
@@ -388,11 +389,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             Icon(Icons.delivery_dining,
                                 size: 48, color: AppTheme.textSecondary.withOpacity(0.4)),
                             const SizedBox(height: 8),
-                            const Text('No jobs available nearby', // Could localize
-                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                            Text(l10n.translate('no_jobs_nearby'),
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                             const SizedBox(height: 4),
-                            const Text('New jobs will appear here automatically',
-                                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                            Text(l10n.translate('new_jobs_desc'),
+                                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                           ],
                         ),
                       )
@@ -458,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _jobCard(Map<String, dynamic> order) {
+  Widget _jobCard(Map<String, dynamic> order, AppLocalizations l10n) {
     final fee = (order['deliveryFee'] as num?)?.toDouble() ?? 0;
     final distance = order['distance'];
     final pickup = order['pickupAddress']?.toString() ?? 'Pharmacy';
@@ -488,19 +489,19 @@ class _HomeScreenState extends State<HomeScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('${fee.toStringAsFixed(0)} MAD',
+                  Text('${fee.toStringAsFixed(0)} ${l10n.translate('mad')}',
                       style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                           color: AppTheme.primary)),
-                  const Text('Payment',
-                      style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                  Text(l10n.translate('payment'),
+                      style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text('Pickup for $patientName',
+          Text('${l10n.translate('pickup_for')} $patientName',
               style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
           if (distance != null) ...[
             const SizedBox(height: 6),
@@ -527,7 +528,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
                     elevation: 0,
                   ),
-                  child: const Text('Accept', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                  child: Text(l10n.translate('accept'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -541,7 +542,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
                   ),
-                  child: const Text('Skip', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                  child: Text(l10n.translate('skip'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                 ),
               ),
             ],

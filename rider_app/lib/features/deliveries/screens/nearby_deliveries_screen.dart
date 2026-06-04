@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class NearbyDeliveriesScreen extends StatefulWidget {
   const NearbyDeliveriesScreen({super.key});
@@ -54,16 +55,17 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Available Deliveries'),
+        title: Text(l10n.translate('available_orders')),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: AppTheme.spacing8),
             child: Row(
               children: [
                 Text(
-                  _isOnline ? 'Online' : 'Offline',
+                  _isOnline ? l10n.translate('online') : l10n.translate('offline'),
                   style: TextStyle(
                     color: _isOnline ? AppTheme.success : AppTheme.textSecondary,
                     fontWeight: FontWeight.w500,
@@ -80,11 +82,11 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
         ],
       ),
       body: !_isOnline
-          ? _buildOfflineState()
+          ? _buildOfflineState(l10n)
           : _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _deliveries.isEmpty
-                  ? _buildEmptyState()
+                  ? _buildEmptyState(l10n)
                   : RefreshIndicator(
                       onRefresh: _loadDeliveries,
                       child: ListView.separated(
@@ -94,14 +96,14 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
                             const SizedBox(height: AppTheme.spacing12),
                         itemBuilder: (context, index) {
                           final delivery = _deliveries[index];
-                          return _buildDeliveryCard(delivery);
+                          return _buildDeliveryCard(delivery, l10n);
                         },
                       ),
                     ),
     );
   }
 
-  Widget _buildOfflineState() {
+  Widget _buildOfflineState(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -113,12 +115,12 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
           ),
           const SizedBox(height: AppTheme.spacing16),
           Text(
-            'You\'re Offline',
+            l10n.translate('you_are_offline'),
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: AppTheme.spacing8),
           Text(
-            'Go online to see available deliveries',
+            l10n.translate('toggle_availability_desc'),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
@@ -126,7 +128,7 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -138,12 +140,12 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
           ),
           const SizedBox(height: AppTheme.spacing16),
           Text(
-            'No Deliveries Available',
+            l10n.translate('no_orders_nearby'),
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: AppTheme.spacing8),
           Text(
-            'New deliveries will appear here',
+            l10n.translate('new_jobs_desc'),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
@@ -151,7 +153,7 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
     );
   }
 
-  Widget _buildDeliveryCard(Map<String, dynamic> delivery) {
+  Widget _buildDeliveryCard(Map<String, dynamic> delivery, AppLocalizations l10n) {
     return AppCard(
       padding: const EdgeInsets.all(AppTheme.spacing16),
       child: Column(
@@ -174,7 +176,7 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
                   child: Text(
-                    '${delivery['deliveryFee']} MAD',
+                    '${delivery['deliveryFee']} ${l10n.translate('mad')}',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -187,13 +189,13 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
             const SizedBox(height: AppTheme.spacing16),
             _buildAddressRow(
               Icons.store,
-              'Pickup',
+              l10n.translate('pickup'),
               delivery['pickupAddress'],
             ),
             const SizedBox(height: AppTheme.spacing12),
             _buildAddressRow(
               Icons.location_on,
-              'Delivery',
+              l10n.translate('delivery'),
               delivery['deliveryAddress'],
             ),
             const SizedBox(height: AppTheme.spacing12),
@@ -218,7 +220,7 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
                 onPressed: () {
                   // TODO: Accept delivery
                 },
-                child: const Text('Accept Delivery'),
+                child: Text(l10n.translate('accept_delivery')),
               ),
             ),
           ],
