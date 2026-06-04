@@ -7,6 +7,7 @@ import User from '@/models/User';
 import Quote from '@/models/Quote';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
+import { sendNotificationToUser } from '@/services/notification';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,39 +50,23 @@ export async function GET(request: NextRequest) {
           rejectionReason: 'Auto-cancelled: Request timed out (1 hour limit)',
         });
 
-        // Try to reassign to next pharmacy
-        const triedQuotes = await Quote.find({
-          prescriptionId: p._id,
-          status: { $in: ['rejected', 'accepted'] },
-        }).lean() as any[];
-        const triedIds = triedQuotes.map((q: any) => q.pharmacyId.toString());
-
-        let nextPharmacy = null;
-        if (p.deliveryAddress?.location?.coordinates?.length === 2) {
-          nextPharmacy = await Pharmacy.findOne({
-            _id: { $nin: triedIds },
-            approvalStatus: 'approved',
-            location: {
-              $near: {
-                $geometry: { type: 'Point', coordinates: p.deliveryAddress.location.coordinates },
-              },
-            },
-          }).lean() as any;
-        } else {
-          nextPharmacy = await Pharmacy.findOne({
-            _id: { $nin: triedIds },
-            approvalStatus: 'approved',
-          }).lean() as any;
-        }
-
-        if (nextPharmacy) {
-          p.nearbyPharmacies = [nextPharmacy._id];
-          p.assignedAt = new Date();
-        } else {
-          p.nearbyPharmacies = [];
-          p.status = 'expired'; // Or keep pending but empty
-        }
+        // Cancel the request and don't reassign
+        p.nearbyPharmacies = [];
+        p.status = 'expired';
         await p.save();
+
+        // Notify patient
+        try {
+          const patient = await Patient.findById(p.patientId).lean() as any;
+          if (patient) {
+            await sendNotificationToUser(
+              patient.userId.toString(),
+              'Request Timed Out',
+              'Your prescription request has timed out as no pharmacy responded within 1 hour.',
+              { prescriptionId: p._id.toString(), type: 'prescription_expired' }
+            );
+          }
+        } catch (_) {}
       }
     }
 
