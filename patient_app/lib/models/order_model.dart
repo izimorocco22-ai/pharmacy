@@ -23,6 +23,7 @@ class Order {
   final String? prescriptionImage;
   final bool isPendingQuote;
   final List<Map<String, dynamic>> medicines;
+  final List<QuoteHistoryItem> quoteHistory;
 
   Order({
     required this.id,
@@ -49,6 +50,7 @@ class Order {
     this.prescriptionImage,
     this.isPendingQuote = false,
     this.medicines = const [],
+    this.quoteHistory = const [],
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -64,6 +66,10 @@ class Order {
     final medicinesRaw = (json['medicines'] as List?)?.isNotEmpty == true
         ? json['medicines'] as List
         : (prescriptionObj?['medicines'] as List?);
+
+    final quoteHistoryRaw = (json['quoteHistory'] as List?)
+        ?.map((q) => QuoteHistoryItem.fromJson(Map<String, dynamic>.from(q as Map)))
+        .toList() ?? [];
 
     return Order(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
@@ -105,6 +111,32 @@ class Order {
       medicines: medicinesRaw
           ?.map((m) => Map<String, dynamic>.from(m as Map))
           .toList() ?? [],
+      quoteHistory: quoteHistoryRaw,
+    );
+  }
+}
+
+class QuoteHistoryItem {
+  final String? pharmacyName;
+  final String status;
+  final String rejectionReason;
+  final DateTime createdAt;
+
+  QuoteHistoryItem({
+    this.pharmacyName,
+    required this.status,
+    required this.rejectionReason,
+    required this.createdAt,
+  });
+
+  factory QuoteHistoryItem.fromJson(Map<String, dynamic> json) {
+    return QuoteHistoryItem(
+      pharmacyName: json['pharmacyName'],
+      status: json['status'] ?? '',
+      rejectionReason: json['rejectionReason'] ?? '',
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt']).toLocal()
+          : DateTime.now(),
     );
   }
 }

@@ -24,11 +24,32 @@ export async function GET(
 
     await connectDB();
 
-    const order = await Order.findById(params.id)
+    let order = await Order.findById(params.id)
       .populate('pharmacyId', 'pharmacyName address')
       .populate({ path: 'riderId', model: Rider })
       .populate({ path: 'prescriptionId', model: Prescription })
       .lean() as any;
+
+    if (!order) {
+      // Try to find as a Prescription if it's not an Order (searching state)
+      const prescription = await Prescription.findById(params.id).lean() as any;
+      if (prescription) {
+        // Mock an order object from prescription
+        order = {
+          _id: prescription._id,
+          prescriptionId: prescription,
+          patientId: prescription.patientId,
+          status: 'searching',
+          orderNumber: `REQ-${prescription._id.toString().slice(-6).toUpperCase()}`,
+          createdAt: prescription.createdAt,
+          items: [],
+          subtotal: 0,
+          deliveryFee: 0,
+          totalAmount: 0,
+          deliveryAddress: prescription.deliveryAddress,
+        };
+      }
+    }
 
     if (!order) return errorResponse('Order not found', 404);
 

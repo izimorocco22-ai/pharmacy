@@ -117,6 +117,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 children: [
                   _buildStatusBanner(order),
                   const SizedBox(height: AppTheme.spacing16),
+                  // Rejection History
+                  if (order.quoteHistory.any((q) => q.status == 'rejected' && q.rejectionReason.isNotEmpty)) ...[
+                    _buildRejectionHistory(order.quoteHistory),
+                    const SizedBox(height: AppTheme.spacing16),
+                  ],
                   // Pending quote actions
                   if (order.isPendingQuote) ...[
                     _buildPendingQuoteActions(order),
@@ -193,6 +198,69 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     color: Colors.white.withValues(alpha: 0.85)),
               textAlign: TextAlign.center),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRejectionHistory(List<QuoteHistoryItem> history) {
+    final rejections = history.where((q) => q.status == 'rejected' && q.rejectionReason.isNotEmpty).toList();
+    if (rejections.isEmpty) return const SizedBox.shrink();
+
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spacing16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.info_outline, color: AppTheme.error, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Order Rejected ${rejections.length} ${rejections.length == 1 ? 'time' : 'times'}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.error,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.spacing12),
+            ...rejections.map((r) => Padding(
+              padding: const EdgeInsets.only(bottom: AppTheme.spacing8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Icon(Icons.circle, size: 6, color: AppTheme.error),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          r.rejectionReason,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          _formatDate(r.createdAt),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textSecondary,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ),
       ),
     );
   }

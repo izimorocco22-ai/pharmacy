@@ -48,7 +48,7 @@ class QuoteDetailsScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    quote.pharmacyName,
+                                    'Pharmacy Quote',
                                     style: Theme.of(context).textTheme.titleLarge,
                                   ),
                                   const SizedBox(height: AppTheme.spacing4),

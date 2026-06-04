@@ -47,21 +47,48 @@ export async function GET(request: NextRequest) {
       status: 'pending',
     }).sort({ createdAt: -1 }).lean() as any[];
 
-    const enrichedPrescriptions = pendingPrescriptions.map((p: any) => ({
-      _isPendingQuote: false,
-      id: p._id?.toString(),
-      prescriptionId: p._id?.toString(),
-      prescriptionImage: p.imageUrl || null,
-      medicines: p.medicines || [],
-      pharmacyName: null,
-      items: [],
-      subtotal: 0,
-      deliveryFee: 0,
-      totalAmount: 0,
-      status: 'searching',
-      orderNumber: `REQ-${p._id.toString().slice(-6).toUpperCase()}`,
-      createdAt: p.createdAt,
-      deliveryAddress: p.deliveryAddress || null,
+    const enrichedPrescriptions = await Promise.all(pendingPrescriptions.map(async (p: any) => {
+      // Get full quote history for this prescription to show rejections
+      let quoteHistory: any[] = [];
+      try {
+        const quotes = await Quote.find({ prescriptionId: p._id })
+          .sort({ createdAt: 1 })
+          .lean() as any[];
+
+        quoteHistory = await Promise.all(quotes.map(async (q: any) => {
+          let pharmacyName = 'Unknown Pharmacy';
+          try {
+            const ph = await Pharmacy.findById(q.pharmacyId).lean() as any;
+            if (ph) pharmacyName = ph.pharmacyName || 'Unknown';
+          } catch (_) {}
+
+          return {
+            id: q._id?.toString(),
+            pharmacyName,
+            status: q.status,
+            rejectionReason: q.rejectionReason || '',
+            createdAt: q.createdAt,
+          };
+        }));
+      } catch (_) {}
+
+      return {
+        _isPendingQuote: false,
+        id: p._id?.toString(),
+        prescriptionId: p._id?.toString(),
+        prescriptionImage: p.imageUrl || null,
+        medicines: p.medicines || [],
+        pharmacyName: null,
+        items: [],
+        subtotal: 0,
+        deliveryFee: 0,
+        totalAmount: 0,
+        status: 'searching',
+        orderNumber: `REQ-${p._id.toString().slice(-6).toUpperCase()}`,
+        createdAt: p.createdAt,
+        deliveryAddress: p.deliveryAddress || null,
+        quoteHistory,
+      };
     }));
 
     // Fetch pending quotes (pharmacy sent quote but patient hasn't confirmed yet)
