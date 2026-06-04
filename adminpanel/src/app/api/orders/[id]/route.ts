@@ -123,6 +123,24 @@ export async function GET(
         prescriptionId: prescription._id || prescription,
         status: 'pending'
       }).lean() as any;
+
+      // Auto-expire if time is up
+      if (pendingQuote && pendingQuote.expiresAt && new Date() > new Date(pendingQuote.expiresAt)) {
+        await Quote.updateOne({ _id: pendingQuote._id }, { status: 'expired' });
+        
+        // Mark prescription as expired if no other quotes
+        const otherQuotes = await Quote.countDocuments({
+          prescriptionId: prescription._id || prescription,
+          status: 'pending',
+          _id: { $ne: pendingQuote._id }
+        });
+        if (otherQuotes === 0) {
+          await Prescription.updateOne({ _id: prescription._id || prescription }, { status: 'expired' });
+          order.status = 'expired'; // Update local object for the response below
+        }
+        
+        pendingQuote = null;
+      }
     }
 
     const result = {

@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     const quotes = await Quote.find({
       patientId: patient._id,
-      status: { $in: ['pending', 'expired'] },
+      status: 'pending',
     }).sort({ createdAt: -1 }).limit(20).lean() as any[];
 
     const formatted = await Promise.all(

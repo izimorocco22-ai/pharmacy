@@ -126,7 +126,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     const SizedBox(height: AppTheme.spacing16),
                   ],
                   // Pending quote actions
-                  if (order.isPendingQuote) ...[
+                  if (order.isPendingQuote && (order.expiresAt == null || order.expiresAt!.isAfter(DateTime.now()))) ...[
                     _buildPendingQuoteActions(order, l10n),
                     const SizedBox(height: AppTheme.spacing16),
                   ],
