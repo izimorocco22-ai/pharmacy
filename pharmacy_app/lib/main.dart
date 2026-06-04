@@ -18,6 +18,7 @@ import 'features/home/screens/home_screen.dart';
 import 'features/requests/screens/prescription_detail_screen.dart';
 import 'features/requests/screens/quote_builder_screen.dart';
 import 'features/orders/order_detail_screen.dart';
+import 'features/profile/payment_settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,6 +65,7 @@ class MyApp extends StatelessWidget {
           },
           '/home': (context) => const HomeScreen(),
           '/pending-approval': (context) => const PendingApprovalScreen(),
+          '/payment-settings': (context) => const PaymentSettingsScreen(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/rejected') {

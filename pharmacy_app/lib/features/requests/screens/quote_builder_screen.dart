@@ -186,7 +186,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
           prescriptionId: prescriptionId,
           items: itemsToSend,
           deliveryFee: 0,
-          paymentMethod: _selectedPaymentMethod,
+          paymentMethod: _selectedPaymentMethod!,
         );
 
     setState(() => _isLoading = false);
@@ -338,7 +338,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
             PrimaryButton(
               text: _isEdit ? 'Update Quote' : 'Send Quote',
               icon: _isEdit ? Icons.update : Icons.send,
-              onPressed: _isLoading ? null : _submit,
+              onPressed: (_isLoading || _selectedPaymentMethod == null) ? null : _submit,
               isLoading: _isLoading,
             ),
             const SizedBox(height: AppTheme.spacing16),
@@ -533,7 +533,10 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/payment-settings'),
+              onPressed: () async {
+                await Navigator.pushNamed(context, '/payment-settings');
+                _loadPaymentMethods();
+              },
               child: Text(l10n.translate('payment_settings')),
             ),
           ],
