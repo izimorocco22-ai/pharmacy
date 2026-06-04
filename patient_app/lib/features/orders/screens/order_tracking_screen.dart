@@ -926,6 +926,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       case 'assigned':
         return AppTheme.info;
       case 'cancelled': return AppTheme.error;
+      case 'payment_verification': return Colors.blueGrey;
       default: return AppTheme.warning;
     }
   }
@@ -937,6 +938,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       case 'picked_up': return Icons.shopping_bag;
       case 'preparing': return Icons.medication;
       case 'confirmed': return Icons.check_circle;
+      case 'payment_verification': return Icons.hourglass_top;
       case 'cancelled': return Icons.cancel;
       default: return Icons.receipt_long;
     }

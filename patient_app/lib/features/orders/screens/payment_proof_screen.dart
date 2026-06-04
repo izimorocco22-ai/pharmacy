@@ -325,9 +325,9 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
               text: _isUploading
                   ? 'Uploading...'
                   : _isConfirming
-                      ? 'Confirming Order...'
-                      : 'Confirm Order',
-              icon: Icons.check_circle_outline,
+                      ? 'Submitting...'
+                      : 'Submit Payment Proof',
+              icon: Icons.upload_file,
               onPressed: isBusy || _proofImage == null ? null : _submit,
               isLoading: isBusy,
             ),
