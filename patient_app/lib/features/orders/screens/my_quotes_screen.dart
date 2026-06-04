@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../providers/order_provider.dart';
 import '../../../services/api_service.dart';
 import '../../../core/localization/app_localizations.dart';
-import 'quote_details_screen.dart';
+import 'payment_proof_screen.dart';
 
 class MyQuotesScreen extends StatefulWidget {
   const MyQuotesScreen({super.key});
@@ -20,23 +20,11 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
   List<dynamic> _quotes = [];
   bool _loading = true;
   String? _error;
-  late Razorpay _razorpay;
-  dynamic _pendingQuote;
 
   @override
   void initState() {
     super.initState();
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _onPaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _onPaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _onExternalWallet);
     _fetchQuotes();
-  }
-
-  @override
-  void dispose() {
-    _razorpay.clear();
-    super.dispose();
   }
 
   Future<void> _fetchQuotes() async {
@@ -55,46 +43,17 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
     }
   }
 
-  // ── Payment handlers ──────────────────────────────────────────────────────
-
-  void _onPaymentSuccess(PaymentSuccessResponse response) async {
-    if (_pendingQuote == null || !mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    _showLoading(l10n.translate('confirming_order'));
-    try {
-      final res = await context.read<OrderProvider>().confirmQuote(
-        quoteId: _pendingQuote['id'].toString(),
-        paymentMethod: 'online',
-      );
-      if (mounted) Navigator.pop(context); // close loading
-      if (res && mounted) {
-        _showSuccess(l10n.translate('payment_success'));
-        _fetchQuotes();
-      }
-    } catch (_) {
-      if (mounted) Navigator.pop(context);
-    }
-    _pendingQuote = null;
-  }
-
-  void _onPaymentError(PaymentFailureResponse response) {
-    _pendingQuote = null;
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    _showError('${l10n.translate('payment_failed')}: ${response.message ?? 'Try again'}');
-  }
-
-  void _onExternalWallet(ExternalWalletResponse response) {
-    _pendingQuote = null;
-  }
-
-  // ── Confirm flow (same as order_tracking_screen) ──────────────────────────
+  // ── Confirm flow ──────────────────────────────────────────────────────────
 
   Future<void> _confirmQuote(dynamic quote) async {
     final totalAmount = (quote['totalAmount'] as num?)?.toDouble() ?? 0;
     final l10n = AppLocalizations.of(context)!;
+    final paymentMethodRaw = quote['paymentMethodDetails'];
+    final paymentMethod = paymentMethodRaw is Map
+        ? Map<String, dynamic>.from(paymentMethodRaw)
+        : null;
 
-    final method = await showDialog<String>(
+    final proceed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -105,137 +64,54 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
             Text(l10n.translate('confirm_order')),
             IconButton(
               icon: const Icon(Icons.close, size: 20),
-              onPressed: () => Navigator.pop(_, null),
+              onPressed: () => Navigator.pop(_, false),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
           ],
         ),
-        content: Text('${l10n.translate('confirm_order_desc')} ${totalAmount.toStringAsFixed(2)} MAD?'),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(_, 'cash'),
-                  child: Text(l10n.translate('cod')),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(_, 'online'),
-                  child: Text(l10n.translate('pay_now')),
-                ),
-              ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${l10n.translate('confirm_order_desc')} ${totalAmount.toStringAsFixed(2)} MAD?'),
+            if (paymentMethod != null) ...[
+              const SizedBox(height: 16),
+              _QuotePaymentCard(paymentMethod: paymentMethod),
             ],
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.pop(_, true),
+              icon: const Icon(Icons.payment, size: 18),
+              label: Text(l10n.translate('pay_now')),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
           ),
         ],
       ),
     );
 
-    if (method == null || !mounted) return;
+    if (proceed != true || !mounted) return;
 
-    if (method == 'cash') {
-      _showLoading(l10n.translate('confirming_order'));
-      try {
-        final res = await context.read<OrderProvider>().confirmQuote(
-          quoteId: quote['id'].toString(),
-          paymentMethod: 'cash',
-        );
-        if (mounted) Navigator.pop(context);
-        if (mounted) {
-          if (res) {
-            _showSuccess(l10n.translate('payment_success'));
-            _fetchQuotes();
-          } else {
-            _showError(l10n.translate('payment_failed'));
-          }
-        }
-      } catch (_) {
-        if (mounted) Navigator.pop(context);
-      }
-      return;
-    }
-
-    // Pay Online — Razorpay flow
-    final keyResponse = await ApiService.get('/settings/razorpay');
-    final razorpayKeyId = keyResponse.success ? (keyResponse.data['keyId'] ?? '') : '';
-
-    if (razorpayKeyId.isEmpty) {
-      if (mounted) _showError('Payment not configured. Please contact support.');
-      return;
-    }
-
-    _pendingQuote = quote;
-    final amountInSmallestUnit = (totalAmount * 100).toInt();
-
-    final options = {
-      'key': razorpayKeyId,
-      'amount': amountInSmallestUnit,
-      'currency': 'INR',
-      'name': 'OrdoGo',
-      'description': 'Medicine Order Payment',
-      'prefill': {'contact': '', 'email': ''},
-      'theme': {'color': '#2ECC71'},
-    };
-
-    try {
-      _razorpay.open(options);
-    } catch (e) {
-      _pendingQuote = null;
-      if (mounted) _showError('Could not open payment: $e');
-    }
-  }
-
-  Widget _paymentOption({
-    required IconData icon,
-    required String label,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: AppTheme.primary, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 14)),
-                  Text(subtitle,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppTheme.textSecondary)),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios,
-                size: 13, color: AppTheme.textSecondary),
-          ],
-        ),
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentProofScreen(quoteMap: Map<String, dynamic>.from(quote)),
       ),
     );
+    _fetchQuotes();
   }
 
-  // ── Cancel flow (same as order_tracking_screen) ───────────────────────────
+  // ── Cancel flow ───────────────────────────────────────────────────────────
 
   Future<void> _cancelQuote(dynamic quote) async {
     final l10n = AppLocalizations.of(context)!;
@@ -243,23 +119,23 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(l10n.translate('cancel')),
-        content: Text(l10n.translate('quote_cancelled_success')),
+        title: const Text('Cancel Quote'),
+        content: const Text("Cancel this quote? We'll send your request to the next nearest pharmacy."),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.translate('cancel'))), // or 'Keep'
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep')),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.translate('cancel'), style: const TextStyle(color: Colors.red)),
+            child: const Text('Cancel Quote', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
     if (confirm != true || !mounted) return;
 
-    _showLoading(l10n.translate('confirming_order')); // or 'Cancelling...'
+    _showLoading('Cancelling...');
     try {
       final res = await context.read<OrderProvider>().cancelQuote(quoteId: quote['id'].toString());
-      if (mounted) Navigator.pop(context); // close loading
+      if (mounted) Navigator.pop(context);
       if (mounted) {
         _showSuccess(res ? l10n.translate('quote_cancelled_success') : l10n.translate('quote_cancelled_generic'));
         _fetchQuotes();
@@ -358,8 +234,8 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
     final expiresAt = quote['expiresAt'] != null
         ? DateTime.tryParse(quote['expiresAt'].toString())
         : null;
-    final isExpired = quote['status'] == 'expired' || 
-                     (expiresAt != null && expiresAt.isBefore(DateTime.now()));
+    final isExpired = quote['status'] == 'expired' ||
+        (expiresAt != null && expiresAt.isBefore(DateTime.now()));
 
     return AppCard(
       child: Padding(
@@ -373,7 +249,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.1),
+                    color: AppTheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.receipt_long, color: AppTheme.primary, size: 24),
@@ -386,19 +262,16 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                       Text(l10n.translate('quote_received'),
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       if (expiresAt != null)
-                        _CountdownTimer(
-                          expiresAt: expiresAt,
-                          onTimeout: _fetchQuotes,
-                        ),
+                        _CountdownTimer(expiresAt: expiresAt, onTimeout: _fetchQuotes),
                     ],
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: AppTheme.success.withOpacity(0.1),
+                    color: AppTheme.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.success.withOpacity(0.3)),
+                    border: Border.all(color: AppTheme.success.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     '${totalAmount.toStringAsFixed(2)} MAD',
@@ -419,7 +292,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
+                          color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Icon(Icons.medication, size: 14, color: AppTheme.primary),
@@ -452,7 +325,6 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
 
             const Divider(height: 16),
 
-            // Price breakdown with service fee
             _priceRow(l10n.translate('subtotal'), subtotal),
             if (commissionAmount > 0)
               _priceRow(
@@ -465,7 +337,6 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
 
             const SizedBox(height: 16),
 
-            // Action buttons — same as order_tracking_screen
             if (!isExpired)
               Row(
                 children: [
@@ -526,6 +397,81 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
   }
 }
 
+// ── Payment method card with copy button ─────────────────────────────────────
+
+class _QuotePaymentCard extends StatefulWidget {
+  final Map<String, dynamic> paymentMethod;
+  const _QuotePaymentCard({required this.paymentMethod});
+
+  @override
+  State<_QuotePaymentCard> createState() => _QuotePaymentCardState();
+}
+
+class _QuotePaymentCardState extends State<_QuotePaymentCard> {
+  bool _copied = false;
+
+  void _copy() {
+    final details = widget.paymentMethod['details']?.toString() ?? '';
+    if (details.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: details));
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = widget.paymentMethod['name']?.toString() ?? '';
+    final details = widget.paymentMethod['details']?.toString() ?? '';
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.payment, color: AppTheme.primary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(details,
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+              ],
+            ),
+          ),
+          if (details.isNotEmpty)
+            GestureDetector(
+              onTap: _copy,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _copied
+                      ? AppTheme.success.withValues(alpha: 0.1)
+                      : AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  _copied ? Icons.check : Icons.copy,
+                  size: 16,
+                  color: _copied ? AppTheme.success : AppTheme.primary,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Countdown timer ───────────────────────────────────────────────────────────
+
 class _CountdownTimer extends StatefulWidget {
   final DateTime expiresAt;
   final VoidCallback onTimeout;
@@ -555,9 +501,7 @@ class _CountdownTimerState extends State<_CountdownTimer> {
   void _calculateRemaining() {
     final now = DateTime.now();
     _remaining = widget.expiresAt.difference(now);
-    if (_remaining.isNegative) {
-      _remaining = Duration.zero;
-    }
+    if (_remaining.isNegative) _remaining = Duration.zero;
   }
 
   void _startTimer() {
@@ -595,8 +539,7 @@ class _CountdownTimerState extends State<_CountdownTimer> {
     final minutes = (_remaining.inMinutes % 60).toString().padLeft(2, '0');
     final seconds = (_remaining.inSeconds % 60).toString().padLeft(2, '0');
     final isExpiringSoon = _remaining.inMinutes < 15;
-
-    String timeStr = hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+    final timeStr = hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
 
     return Text(
       '${l10n.translate('expires_in')} $timeStr',

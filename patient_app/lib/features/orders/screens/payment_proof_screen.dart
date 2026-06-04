@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
@@ -9,9 +10,21 @@ import '../../../services/media_service.dart';
 import '../../../providers/order_provider.dart';
 
 class PaymentProofScreen extends StatefulWidget {
-  final Order order;
+  // Accept either an Order object or raw map (from MyQuotesScreen)
+  final Order? order;
+  final Map<String, dynamic>? quoteMap;
 
-  const PaymentProofScreen({super.key, required this.order});
+  const PaymentProofScreen({super.key, this.order, this.quoteMap})
+      : assert(order != null || quoteMap != null);
+
+  String get quoteId => order?.quoteId ?? quoteMap!['id'].toString();
+  double get totalAmount =>
+      order?.totalAmount ?? (quoteMap!['totalAmount'] as num?)?.toDouble() ?? 0;
+  Map<String, dynamic>? get paymentMethodDetails =>
+      order?.paymentMethodDetails ??
+      (quoteMap?['paymentMethodDetails'] is Map
+          ? Map<String, dynamic>.from(quoteMap!['paymentMethodDetails'])
+          : null);
 
   @override
   State<PaymentProofScreen> createState() => _PaymentProofScreenState();
@@ -74,7 +87,6 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
 
     setState(() => _isUploading = true);
 
-    // Upload image
     final uploadResult = await MediaService.uploadImage(
       _proofImage!,
       folder: 'mediexpress/payment-proofs',
@@ -95,10 +107,9 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
     _uploadedUrl = uploadResult.url;
     setState(() => _isUploading = false);
 
-    // Save proof URL to quote
     final provider = context.read<OrderProvider>();
     final saved = await provider.uploadPaymentProof(
-      quoteId: widget.order.quoteId!,
+      quoteId: widget.quoteId,
       imageUrl: _uploadedUrl!,
     );
 
@@ -114,10 +125,9 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
       return;
     }
 
-    // Confirm the order
     setState(() => _isConfirming = true);
     final confirmed = await provider.confirmQuote(
-      quoteId: widget.order.quoteId!,
+      quoteId: widget.quoteId,
       paymentMethod: 'manual',
     );
     setState(() => _isConfirming = false);
@@ -134,8 +144,8 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
       if (confirmed) {
         await provider.fetchOrders();
         if (mounted) {
-          Navigator.pop(context); // pop proof screen
-          Navigator.pop(context); // pop tracking screen
+          Navigator.pop(context);
+          Navigator.pop(context);
         }
       }
     }
@@ -143,7 +153,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final paymentMethod = widget.order.paymentMethodDetails;
+    final paymentMethod = widget.paymentMethodDetails;
     final isBusy = _isUploading || _isConfirming;
 
     return Scaffold(
@@ -195,7 +205,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
                 const Text('Amount to pay',
                     style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
                 Text(
-                  '${widget.order.totalAmount.toStringAsFixed(2)} MAD',
+                  '${widget.totalAmount.toStringAsFixed(2)} MAD',
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primary),
                 ),
@@ -203,7 +213,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Payment method details
+            // Payment method details with copy button
             if (paymentMethod != null) ...[
               Text('Payment Details',
                   style: Theme.of(context)
@@ -211,41 +221,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
                       .titleMedium
                       ?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.divider),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.08),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.payment, color: AppTheme.primary, size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(paymentMethod['name']?.toString() ?? '',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14)),
-                          const SizedBox(height: 2),
-                          Text(paymentMethod['details']?.toString() ?? '',
-                              style: const TextStyle(
-                                  fontSize: 13, color: AppTheme.textSecondary)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _ProofPaymentCard(paymentMethod: paymentMethod),
               const SizedBox(height: 24),
             ],
 
@@ -266,11 +242,8 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
                   color: AppTheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _proofImage != null
-                        ? AppTheme.primary
-                        : AppTheme.divider,
+                    color: _proofImage != null ? AppTheme.primary : AppTheme.divider,
                     width: _proofImage != null ? 2 : 1,
-                    style: _proofImage != null ? BorderStyle.solid : BorderStyle.solid,
                   ),
                 ),
                 child: _proofImage != null
@@ -300,8 +273,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
                                   color: Colors.black54,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.close,
-                                    color: Colors.white, size: 16),
+                                child: const Icon(Icons.close, color: Colors.white, size: 16),
                               ),
                             ),
                           ),
@@ -311,8 +283,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
                             child: GestureDetector(
                               onTap: isBusy ? null : _showPickerSheet,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
                                   color: Colors.black54,
                                   borderRadius: BorderRadius.circular(8),
@@ -323,8 +294,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
                                     Icon(Icons.edit, color: Colors.white, size: 13),
                                     SizedBox(width: 4),
                                     Text('Change',
-                                        style: TextStyle(
-                                            color: Colors.white, fontSize: 12)),
+                                        style: TextStyle(color: Colors.white, fontSize: 12)),
                                   ],
                                 ),
                               ),
@@ -336,17 +306,14 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.cloud_upload_outlined,
-                              size: 40,
-                              color: AppTheme.primary.withValues(alpha: 0.5)),
+                              size: 40, color: AppTheme.primary.withValues(alpha: 0.5)),
                           const SizedBox(height: 8),
                           const Text('Tap to upload receipt',
                               style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.textSecondary)),
+                                  fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
                           const SizedBox(height: 4),
                           const Text('Photo or screenshot of bank transfer',
-                              style: TextStyle(
-                                  fontSize: 12, color: AppTheme.textHint)),
+                              style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
                         ],
                       ),
               ),
@@ -367,6 +334,85 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
             const SizedBox(height: 16),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ProofPaymentCard extends StatefulWidget {
+  final Map<String, dynamic> paymentMethod;
+  const _ProofPaymentCard({required this.paymentMethod});
+
+  @override
+  State<_ProofPaymentCard> createState() => _ProofPaymentCardState();
+}
+
+class _ProofPaymentCardState extends State<_ProofPaymentCard> {
+  bool _copied = false;
+
+  void _copy() {
+    final details = widget.paymentMethod['details']?.toString() ?? '';
+    if (details.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: details));
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = widget.paymentMethod['name']?.toString() ?? '';
+    final details = widget.paymentMethod['details']?.toString() ?? '';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.divider),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.payment, color: AppTheme.primary, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 2),
+                Text(details,
+                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+              ],
+            ),
+          ),
+          if (details.isNotEmpty)
+            GestureDetector(
+              onTap: _copy,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _copied
+                      ? AppTheme.success.withValues(alpha: 0.1)
+                      : AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  _copied ? Icons.check : Icons.copy,
+                  size: 16,
+                  color: _copied ? AppTheme.success : AppTheme.primary,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
