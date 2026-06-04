@@ -144,8 +144,8 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
       if (confirmed) {
         await provider.fetchOrders();
         if (mounted) {
-          // Pop back to tracking screen — it will show payment_verification status
-          Navigator.pop(context);
+          // Pop back to order history list
+          Navigator.popUntil(context, (route) => route.isFirst);
         }
       }
     }

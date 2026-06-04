@@ -165,6 +165,7 @@ export async function GET(request: NextRequest) {
       commissionRate: o.quoteId?.commissionRate || o.commissionRate || 0,
       commissionAmount: o.quoteId?.commissionAmount || o.commissionAmount || 0,
       deliveryFee: o.quoteId?.deliveryFee || o.deliveryFee || 0,
+      paymentProofUrl: o.paymentProofUrl || null,
     }));
 
     // Merge: searching prescriptions + pending quotes + confirmed orders

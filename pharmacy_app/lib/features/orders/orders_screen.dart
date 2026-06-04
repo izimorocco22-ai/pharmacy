@@ -94,8 +94,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final color = _statusColor(status);
     final orderId = order['id']?.toString() ?? order['_id']?.toString() ?? '$status$status';
     final items = (order['items'] as List?) ?? [];
-    // Show only the pharmacy's quote subtotal (medicines only, no tax/delivery)
     final subtotal = (order['subtotal'] ?? 0).toDouble();
+    final statusLabel = _statusLabel(status);
 
     return Card(
       child: InkWell(
@@ -110,14 +110,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '#${order['orderNumber'] ?? orderId.substring(0, 8)}',
-                    style: Theme.of(context).textTheme.titleMedium,
+                  Expanded(
+                    child: Text(
+                      '#${order['orderNumber'] ?? orderId.substring(0, 8)}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -125,7 +128,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      l10n.translate(status.toString().toLowerCase()).toUpperCase(),
+                      statusLabel,
                       style: TextStyle(
                           fontSize: 11, fontWeight: FontWeight.w600, color: color),
                     ),
@@ -133,7 +136,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ],
               ),
               const SizedBox(height: AppTheme.spacing8),
-              // Items count + subtotal + expand arrow
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -157,7 +159,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   ),
                 ],
               ),
-
             ],
           ),
         ),
@@ -165,10 +166,26 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'payment_verification': return 'VERIFYING';
+      case 'confirmed': return 'CONFIRMED';
+      case 'preparing': return 'PREPARING';
+      case 'ready': return 'READY';
+      case 'assigned': return 'ASSIGNED';
+      case 'picked_up': return 'PICKED UP';
+      case 'in_transit': return 'IN TRANSIT';
+      case 'delivered': return 'DELIVERED';
+      case 'cancelled': return 'CANCELLED';
+      default: return status.toUpperCase();
+    }
+  }
+
   Color _statusColor(String status) {
     switch (status) {
       case 'delivered': return AppTheme.success;
       case 'cancelled': return AppTheme.error;
+      case 'payment_verification': return Colors.blueGrey;
       case 'in_transit':
       case 'picked_up': return AppTheme.info;
       default: return AppTheme.warning;

@@ -144,6 +144,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     _buildMedicinesList(order.medicines, l10n),
                     const SizedBox(height: AppTheme.spacing16),
                   ],
+                  // Payment proof
+                  if (order.paymentProofUrl != null && order.paymentProofUrl!.isNotEmpty) ...[
+                    _buildPaymentProof(order.paymentProofUrl!, order.status),
+                    const SizedBox(height: AppTheme.spacing16),
+                  ],
                   // Quote details (medicines + pricing)
                   if (order.items.isNotEmpty) ...[
                     _buildQuoteDetails(order, l10n),
@@ -486,6 +491,88 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           const SizedBox(width: 16),
           Text(msg),
         ]),
+      ),
+    );
+  }
+
+  Widget _buildPaymentProof(String proofUrl, String status) {
+    final isVerified = status != 'payment_verification';
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacing16, AppTheme.spacing16,
+                AppTheme.spacing16, AppTheme.spacing12),
+            child: Row(
+              children: [
+                const Icon(Icons.receipt, color: AppTheme.primary, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Payment Proof',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isVerified
+                        ? AppTheme.success.withValues(alpha: 0.1)
+                        : AppTheme.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isVerified ? Icons.check_circle : Icons.hourglass_top,
+                        size: 12,
+                        color: isVerified ? AppTheme.success : AppTheme.warning,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isVerified ? 'Verified' : 'Pending',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isVerified ? AppTheme.success : AppTheme.warning,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(AppTheme.radiusLarge),
+              bottomRight: Radius.circular(AppTheme.radiusLarge),
+            ),
+            child: Image.network(
+              proofUrl,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              loadingBuilder: (_, child, progress) => progress == null
+                  ? child
+                  : Container(
+                      height: 200,
+                      color: AppTheme.background,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+              errorBuilder: (_, __, ___) => Container(
+                height: 120,
+                color: AppTheme.background,
+                child: const Center(
+                    child: Icon(Icons.broken_image,
+                        color: AppTheme.textHint, size: 40)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
