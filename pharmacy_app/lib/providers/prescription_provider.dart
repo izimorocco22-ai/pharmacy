@@ -15,10 +15,12 @@ class PrescriptionProvider with ChangeNotifier {
   int get confirmedCount => _confirmedCount;
   int get completedCount => _completedCount;
 
-  Future<void> fetchPrescriptionRequests() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  Future<void> fetchPrescriptionRequests({bool silent = false}) async {
+    if (!silent) {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+    }
 
     try {
       final result = await PrescriptionService.getPrescriptionRequests();
@@ -32,7 +34,7 @@ class PrescriptionProvider with ChangeNotifier {
         } else {
           _prescriptions = [];
         }
-      } else {
+      } else if (!silent) {
         _error = result.message;
       }
 
@@ -44,7 +46,7 @@ class PrescriptionProvider with ChangeNotifier {
         _completedCount = orders.where((o) => o['status'] == 'delivered').length;
       }
     } catch (e) {
-      _error = 'Connection error. Pull down to retry.';
+      if (!silent) _error = 'Connection error. Pull down to retry.';
     }
 
     _isLoading = false;

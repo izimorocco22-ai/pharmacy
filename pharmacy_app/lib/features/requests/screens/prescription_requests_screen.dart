@@ -156,7 +156,7 @@ class _PrescriptionRequestsScreenState
                   Align(
                     alignment: Alignment.centerRight,
                     child: _CountdownTimer(assignedAt: assignedAt, onTimeout: () {
-                      context.read<PrescriptionProvider>().fetchPrescriptionRequests();
+                      context.read<PrescriptionProvider>().fetchPrescriptionRequests(silent: true);
                     }),
                   ),
 
@@ -235,44 +235,51 @@ class _PrescriptionRequestsScreenState
     final reasonController = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Reject Prescription'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Please provide a reason for rejection. The request will be sent to the next nearest pharmacy.',
-              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: reasonController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'e.g. Medicine out of stock, closed today...',
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                contentPadding: const EdgeInsets.all(12),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Reject Prescription'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Please provide a reason for rejection. The request will be sent to the next nearest pharmacy.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
               ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                onChanged: (value) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: 'e.g. Medicine out of stock, closed today...',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: reasonController.text.trim().isEmpty
+                  ? null
+                  : () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.error,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: AppTheme.error.withOpacity(0.3),
+              ),
+              child: const Text('Reject & Reassign'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Reject & Reassign'),
-          ),
-        ],
       ),
     );
 
@@ -351,12 +358,17 @@ class _CountdownTimer extends StatefulWidget {
 class _CountdownTimerState extends State<_CountdownTimer> {
   Timer? _timer;
   late Duration _remaining;
+  bool _hasCalledTimeout = false;
 
   @override
   void initState() {
     super.initState();
     _calculateRemaining();
-    _startTimer();
+    if (_remaining.inSeconds > 0) {
+      _startTimer();
+    } else {
+      _remaining = Duration.zero;
+    }
   }
 
   void _calculateRemaining() {
@@ -373,7 +385,8 @@ class _CountdownTimerState extends State<_CountdownTimer> {
       if (mounted) {
         setState(() {
           _calculateRemaining();
-          if (_remaining.inSeconds <= 0) {
+          if (_remaining.inSeconds <= 0 && !_hasCalledTimeout) {
+            _hasCalledTimeout = true;
             timer.cancel();
             widget.onTimeout();
           }
