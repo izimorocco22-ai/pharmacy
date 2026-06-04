@@ -17,6 +17,10 @@ export interface IQuote extends Document {
   commissionAmount: number;
   deliveryFee: number;
   totalAmount: number;
+  paymentMethod?: {
+    name: string;
+    details: string;
+  };
   status: 'pending' | 'accepted' | 'rejected' | 'expired';
   rejectionReason?: string;
   expiresAt: Date;
@@ -69,6 +73,10 @@ const QuoteSchema = new Schema<IQuote>(
     totalAmount: {
       type: Number,
       default: 0,
+    },
+    paymentMethod: {
+      name: { type: String },
+      details: { type: String },
     },
     rejectionReason: {
       type: String,

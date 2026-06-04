@@ -57,6 +57,7 @@ class PrescriptionProvider with ChangeNotifier {
     required String prescriptionId,
     required List<Map<String, dynamic>> items,
     required double deliveryFee,
+    Map<String, String>? paymentMethod,
   }) async {
     _isLoading = true;
     _error = null;
@@ -67,6 +68,7 @@ class PrescriptionProvider with ChangeNotifier {
         prescriptionId: prescriptionId,
         items: items,
         deliveryFee: deliveryFee,
+        paymentMethod: paymentMethod,
       );
 
       _isLoading = false;

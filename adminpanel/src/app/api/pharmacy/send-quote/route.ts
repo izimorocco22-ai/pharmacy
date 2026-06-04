@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { prescriptionId, items: rawItems, directTotal } = body;
+    const { prescriptionId, items: rawItems, directTotal, paymentMethod } = body;
 
     // Support direct total mode: pharmacy sends a single total amount
     const items = directTotal != null
@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
       existingQuote.commissionAmount = commissionAmount;
       existingQuote.deliveryFee = deliveryFee;
       existingQuote.totalAmount = totalAmount;
+      existingQuote.paymentMethod = paymentMethod;
       existingQuote.status = 'pending';
       await existingQuote.save();
       quote = existingQuote;
@@ -137,6 +138,7 @@ export async function POST(request: NextRequest) {
         commissionAmount,
         deliveryFee,
         totalAmount,
+        paymentMethod,
         status: 'pending',
       });
 

@@ -95,6 +95,7 @@ class AppLocalizations {
       'payment_details': 'Payment Details (e.g. ID, Number)',
       'no_payment_methods': 'No payment methods added',
       'delete_payment_confirm': 'Delete this payment method?',
+      'select_payment_method': 'Select Payment Method',
 
       // Dashboard & Navigation
       'dashboard': 'Dashboard',
@@ -244,6 +245,7 @@ class AppLocalizations {
       'payment_details': 'Détails du paiement (ex: ID, Numéro)',
       'no_payment_methods': 'Aucun mode de paiement ajouté',
       'delete_payment_confirm': 'Supprimer ce mode de paiement ?',
+      'select_payment_method': 'Sélectionner le mode de paiement',
 
       // Dashboard & Navigation
       'dashboard': 'Tableau de bord',
@@ -393,6 +395,7 @@ class AppLocalizations {
       'payment_details': 'تفاصيل الدفع (مثال: معرف، رقم)',
       'no_payment_methods': 'لم يتم إضافة طرق دفع',
       'delete_payment_confirm': 'هل تريد حذف طريقة الدفع هذه؟',
+      'select_payment_method': 'اختر طريقة الدفع',
 
       // Dashboard & Navigation
       'dashboard': 'لوحة التحكم',

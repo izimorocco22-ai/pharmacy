@@ -9,6 +9,7 @@ class PrescriptionService {
     required String prescriptionId,
     required List<Map<String, dynamic>> items,
     required double deliveryFee,
+    Map<String, String>? paymentMethod,
   }) async {
     final subtotal = items.fold<double>(
       0,
@@ -21,6 +22,7 @@ class PrescriptionService {
       'deliveryFee': deliveryFee,
       'subtotal': subtotal,
       'totalAmount': subtotal + deliveryFee,
+      'paymentMethod': paymentMethod,
     });
   }
 }
