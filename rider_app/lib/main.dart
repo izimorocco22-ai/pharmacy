@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'core/theme/app_theme.dart';
+import 'core/localization/app_localizations.dart';
 import 'providers/auth_provider.dart';
 import 'providers/delivery_provider.dart';
+import 'providers/language_provider.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
@@ -27,15 +31,30 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => DeliveryProvider()),
       ],
-      child: MaterialApp(
-        title: 'Ordo Rider',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        initialRoute: '/',
-        routes: {
+      child: Consumer<LanguageProvider>(
+        builder: (context, languageProvider, child) {
+          return MaterialApp(
+            title: 'Ordo Rider',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            locale: languageProvider.locale,
+            supportedLocales: const [
+              Locale('en'),
+              Locale('fr'),
+              Locale('ar'),
+            ],
+            localizationsDelegates: const [
+              AppLocalizationsDelegate(),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            initialRoute: '/',
+            routes: {
           '/': (context) => const SplashScreen(),
           '/login': (context) => const LoginScreen(),
           '/home': (context) => const MainScreen(),
@@ -69,7 +88,9 @@ class MyApp extends StatelessWidget {
           }
           return null;
         },
-      ),
-    );
+      );
+    },
+  ),
+);
   }
 }

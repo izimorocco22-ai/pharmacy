@@ -5,6 +5,8 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/input_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/language_provider.dart';
+import '../../core/localization/app_localizations.dart';
 import 'wallet_screen.dart';
 import 'pharmacy_info_screen.dart';
 
@@ -14,9 +16,10 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile'), automaticallyImplyLeading: false),
+      appBar: AppBar(title: Text(l10n.translate('profile')), automaticallyImplyLeading: false),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacing16),
         child: Column(
@@ -60,28 +63,34 @@ class ProfileScreen extends StatelessWidget {
             _buildMenuItem(
               context,
               Icons.edit,
-              'Edit Profile',
+              l10n.translate('edit_profile'),
               () => _showEditProfile(context, user),
             ),
             _buildMenuItem(
               context,
+              Icons.language,
+              l10n.translate('language'),
+              () => _showLanguageDialog(context),
+            ),
+            _buildMenuItem(
+              context,
               Icons.account_balance_wallet_outlined,
-              'Wallet',
+              l10n.translate('wallet'),
               () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PharmacyWalletScreen())),
             ),
             _buildMenuItem(
               context,
               Icons.store,
-              'Pharmacy Info',
+              l10n.translate('pharmacy_info'),
               () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PharmacyInfoScreen())),
             ),
             _buildMenuItem(
               context,
               Icons.lock,
-              'Change Password',
+              l10n.translate('change_password'),
               () => _showChangePassword(context),
             ),
-            _buildMenuItem(context, Icons.help, 'Help & Support', () {
+            _buildMenuItem(context, Icons.help, l10n.translate('help_support'), () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Contact: support@mediexpress.com')),
               );
@@ -103,7 +112,7 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                       const Icon(Icons.logout, color: AppTheme.error),
                       const SizedBox(width: AppTheme.spacing8),
-                      Text('Logout',
+                      Text(l10n.translate('logout'),
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
@@ -112,6 +121,53 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final languageProvider = context.read<LanguageProvider>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.translate('select_language')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(l10n.translate('english')),
+              onTap: () {
+                languageProvider.setLanguage('en');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'en'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
+            ),
+            ListTile(
+              title: Text(l10n.translate('french')),
+              onTap: () {
+                languageProvider.setLanguage('fr');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'fr'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
+            ),
+            ListTile(
+              title: Text(l10n.translate('arabic')),
+              onTap: () {
+                languageProvider.setLanguage('ar');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'ar'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
             ),
           ],
         ),
@@ -149,6 +205,7 @@ class ProfileScreen extends StatelessWidget {
   void _showEditProfile(BuildContext context, dynamic user) {
     final nameCtrl = TextEditingController(text: user?.fullName ?? '');
     final phoneCtrl = TextEditingController(text: user?.phone ?? '');
+    final l10n = AppLocalizations.of(context)!;
 
     showModalBottomSheet(
       context: context,
@@ -165,22 +222,22 @@ class ProfileScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Edit Profile',
+            Text(l10n.translate('edit_profile'),
                 style: Theme.of(ctx).textTheme.titleLarge),
             const SizedBox(height: 16),
             InputField(
                 controller: nameCtrl,
-                label: 'Full Name',
+                label: l10n.translate('full_name'),
                 prefixIcon: Icons.person),
             const SizedBox(height: 12),
             InputField(
                 controller: phoneCtrl,
-                label: 'Phone',
+                label: l10n.translate('phone'),
                 prefixIcon: Icons.phone,
                 keyboardType: TextInputType.phone),
             const SizedBox(height: 20),
             PrimaryButton(
-              text: 'Save Changes',
+              text: l10n.translate('save_changes'),
               onPressed: () async {
                 Navigator.pop(ctx);
                 final ok = await context.read<AuthProvider>().updateProfile(
@@ -206,6 +263,7 @@ class ProfileScreen extends StatelessWidget {
   void _showChangePassword(BuildContext context) {
     final currentCtrl = TextEditingController();
     final newCtrl = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
 
     showModalBottomSheet(
       context: context,
@@ -221,23 +279,23 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Change Password',
+            Text(l10n.translate('change_password'),
                 style: Theme.of(ctx).textTheme.titleLarge),
             const SizedBox(height: 16),
             InputField(
                 controller: currentCtrl,
-                label: 'Current Password',
+                label: l10n.translate('current_password'),
                 prefixIcon: Icons.lock,
                 isPassword: true),
             const SizedBox(height: 12),
             InputField(
                 controller: newCtrl,
-                label: 'New Password',
+                label: l10n.translate('new_password'),
                 prefixIcon: Icons.lock_outline,
                 isPassword: true),
             const SizedBox(height: 20),
             PrimaryButton(
-              text: 'Update Password',
+              text: l10n.translate('update_password'),
               onPressed: () async {
                 if (newCtrl.text.length < 6) {
                   ScaffoldMessenger.of(context).showSnackBar(

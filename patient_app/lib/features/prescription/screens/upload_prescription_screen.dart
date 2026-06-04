@@ -6,6 +6,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../services/media_service.dart';
 import '../../../services/prescription_service.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class UploadPrescriptionScreen extends StatefulWidget {
   const UploadPrescriptionScreen({super.key});
@@ -45,6 +46,7 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
   }
 
   void _showImageSourceDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -61,7 +63,7 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
                 decoration: BoxDecoration(color: AppTheme.divider, borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(height: AppTheme.spacing24),
-              Text('Upload Prescription', style: Theme.of(context).textTheme.titleLarge),
+              Text(l10n.translate('upload_prescription'), style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: AppTheme.spacing16),
               ListTile(
                 leading: Container(
@@ -72,7 +74,7 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
                   ),
                   child: const Icon(Icons.camera_alt, color: AppTheme.primary),
                 ),
-                title: const Text('Take Photo'),
+                title: Text(l10n.translate('take_photo')),
                 onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); },
               ),
               ListTile(
@@ -84,7 +86,7 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
                   ),
                   child: const Icon(Icons.photo_library, color: AppTheme.primary),
                 ),
-                title: const Text('Choose from Gallery'),
+                title: Text(l10n.translate('choose_gallery')),
                 onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); },
               ),
             ],
@@ -176,8 +178,9 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Upload Prescription')),
+      appBar: AppBar(title: Text(l10n.translate('upload_prescription'))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacing20),
         child: Column(
@@ -191,12 +194,12 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
                   Icon(Icons.description_outlined, size: 64,
                       color: AppTheme.primary.withOpacity(0.5)),
                   const SizedBox(height: AppTheme.spacing16),
-                  Text('Upload Your Prescription',
+                  Text(l10n.translate('upload_prescription'),
                       style: Theme.of(context).textTheme.titleLarge,
                       textAlign: TextAlign.center),
                   const SizedBox(height: AppTheme.spacing8),
                   Text(
-                    'Take a photo of your prescription or enter medicine names manually',
+                    l10n.translate('prescription_desc'),
                     style: Theme.of(context).textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),
@@ -216,13 +219,13 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
               ),
               const SizedBox(height: AppTheme.spacing12),
               SecondaryButton(
-                text: 'Change Image',
+                text: 'Change Image', // Could add this to l10n
                 icon: Icons.refresh,
                 onPressed: _showImageSourceDialog,
               ),
             ] else ...[
               PrimaryButton(
-                text: 'Take Photo',
+                text: l10n.translate('take_photo'),
                 icon: Icons.camera_alt,
                 onPressed: _showImageSourceDialog,
               ),
@@ -267,7 +270,7 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Medicine List',
+                  Text(l10n.translate('requested_medicines'),
                       style: Theme.of(context).textTheme.titleMedium),
                   TextButton.icon(
                     onPressed: () => setState(() {
@@ -278,18 +281,18 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
                       }
                     }),
                     icon: const Icon(Icons.close, size: 16),
-                    label: const Text('Cancel'),
+                    label: Text(l10n.translate('cancel')),
                   ),
                 ],
               ),
               const SizedBox(height: AppTheme.spacing8),
-              ...List.generate(_medicines.length, (i) => _buildMedicineRow(i)),
+              ...List.generate(_medicines.length, (i) => _buildMedicineRow(i, l10n)),
               const SizedBox(height: AppTheme.spacing8),
               TextButton.icon(
                 onPressed: _addMedicine,
                 icon: const Icon(Icons.add_circle_outline, color: AppTheme.primary),
-                label: const Text('Add Another Medicine',
-                    style: TextStyle(color: AppTheme.primary)),
+                label: Text(l10n.translate('medicine_name'), // or add another medicine
+                    style: const TextStyle(color: AppTheme.primary)),
               ),
             ],
 
@@ -298,7 +301,7 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
             // Continue button
             if (_imageFile != null || _showMedicineEntry)
               PrimaryButton(
-                text: 'Continue',
+                text: l10n.translate('confirm'),
                 onPressed: _canContinue ? _submit : null,
                 isLoading: _isUploading,
               ),
@@ -308,7 +311,7 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
     );
   }
 
-  Widget _buildMedicineRow(int index) {
+  Widget _buildMedicineRow(int index, AppLocalizations l10n) {
     final entry = _medicines[index];
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spacing12),
@@ -339,11 +342,11 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
             flex: 3,
             child: TextField(
               controller: entry.nameController,
-              decoration: const InputDecoration(
-                hintText: 'Medicine name',
+              decoration: InputDecoration(
+                hintText: l10n.translate('medicine_name'),
                 isDense: true,
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -354,11 +357,11 @@ class _UploadPrescriptionScreenState extends State<UploadPrescriptionScreen> {
             child: TextField(
               controller: entry.qtyController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: 'Qty',
+              decoration: InputDecoration(
+                hintText: l10n.translate('quantity'),
                 isDense: true,
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               ),
             ),
           ),

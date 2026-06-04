@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/language_provider.dart';
+import '../../../core/localization/app_localizations.dart';
 import 'edit_profile_screen.dart';
 import 'wallet_screen.dart';
 import 'order_history_screen.dart';
@@ -28,28 +30,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(l10n.translate('profile'))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacing16),
         child: Column(
           children: [
             _buildProfileHeader(context, user),
             const SizedBox(height: AppTheme.spacing24),
-            _buildMenuItem(context, icon: Icons.person, title: 'Edit Profile',
+            _buildMenuItem(context, icon: Icons.person, title: l10n.translate('edit_profile'),
               onTap: () async {
                 await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
                 if (mounted) context.read<AuthProvider>().refreshProfile();
               },
             ),
-            _buildMenuItem(context, icon: Icons.account_balance_wallet_outlined, title: 'Wallet',
+            _buildMenuItem(context, icon: Icons.language, title: l10n.translate('language'),
+              onTap: () => _showLanguageDialog(context),
+            ),
+            _buildMenuItem(context, icon: Icons.account_balance_wallet_outlined, title: l10n.translate('wallet'),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletScreen())),
             ),
-            _buildMenuItem(context, icon: Icons.history, title: 'Order History',
+            _buildMenuItem(context, icon: Icons.history, title: l10n.translate('history'),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryScreen())),
             ),
-            _buildMenuItem(context, icon: Icons.privacy_tip_outlined, title: 'Privacy Policy',
+            _buildMenuItem(context, icon: Icons.privacy_tip_outlined, title: l10n.translate('privacy_policy'),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen())),
             ),
             const SizedBox(height: AppTheme.spacing16),
@@ -133,14 +139,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showLanguageDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final languageProvider = context.read<LanguageProvider>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.translate('select_language')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(l10n.translate('english')),
+              onTap: () {
+                languageProvider.setLanguage('en');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'en'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
+            ),
+            ListTile(
+              title: Text(l10n.translate('french')),
+              onTap: () {
+                languageProvider.setLanguage('fr');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'fr'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
+            ),
+            ListTile(
+              title: Text(l10n.translate('arabic')),
+              onTap: () {
+                languageProvider.setLanguage('ar');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'ar'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLogoutButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton.icon(
         onPressed: () => _showLogoutDialog(context),
         icon: const Icon(Icons.logout),
-        label: const Text('Logout'),
+        label: Text(l10n.translate('logout')),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.error,
           foregroundColor: Colors.white,
@@ -152,20 +206,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showLogoutDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        title: Text(l10n.translate('logout')),
+        content: Text(l10n.translate('logout_confirm')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.translate('cancel'))),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
               await context.read<AuthProvider>().logout();
               if (mounted) Navigator.pushReplacementNamed(context, '/login');
             },
-            child: const Text('Logout', style: TextStyle(color: AppTheme.error)),
+            child: Text(l10n.translate('logout'), style: const TextStyle(color: AppTheme.error)),
           ),
         ],
       ),

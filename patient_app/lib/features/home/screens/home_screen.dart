@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/order_provider.dart';
+import '../../../providers/language_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: _buildBody(),
       bottomNavigationBar: BottomNavigationBar(
@@ -35,10 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: (i) => setState(() => _selectedIndex = i),
         selectedItemColor: AppTheme.primary,
         unselectedItemColor: AppTheme.textSecondary,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long), label: 'Orders'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+        items: [
+          BottomNavigationBarItem(icon: const Icon(Icons.home_outlined), activeIcon: const Icon(Icons.home), label: l10n.translate('home')),
+          BottomNavigationBarItem(icon: const Icon(Icons.receipt_long_outlined), activeIcon: const Icon(Icons.receipt_long), label: l10n.translate('orders')),
+          BottomNavigationBarItem(icon: const Icon(Icons.person_outline), activeIcon: const Icon(Icons.person), label: l10n.translate('profile')),
         ],
       ),
     );
@@ -58,9 +61,9 @@ class _HomeTab extends StatelessWidget {
   final ValueChanged<int> onTabChange;
   const _HomeTab({required this.onTabChange});
 
-  String _greeting() {
+  String _greeting(AppLocalizations l10n) {
     final h = DateTime.now().hour;
-    if (h < 12) return 'Good Morning';
+    if (h < 12) return 'Good Morning'; // Could add these to l10n later
     if (h < 17) return 'Good Afternoon';
     return 'Good Evening';
   }
@@ -74,16 +77,16 @@ class _HomeTab extends StatelessWidget {
     }
   }
 
-  String _statusLabel(String s) {
+  String _statusLabel(String s, AppLocalizations l10n) {
     switch (s) {
-      case 'delivered': return 'Delivered';
-      case 'in_transit': return 'On the way';
-      case 'picked_up': return 'Picked up';
-      case 'assigned': return 'Rider assigned';
-      case 'confirmed': return 'Confirmed';
-      case 'searching': return 'Finding pharmacy';
-      case 'quote_pending': return 'Quote received';
-      default: return 'Pending';
+      case 'delivered': return l10n.translate('order_delivered');
+      case 'in_transit': return l10n.translate('order_on_way');
+      case 'picked_up': return l10n.translate('order_picked_up');
+      case 'assigned': return l10n.translate('order_ready'); // or rider assigned
+      case 'confirmed': return l10n.translate('order_confirmed');
+      case 'searching': return l10n.translate('searching_pharmacy');
+      case 'quote_pending': return l10n.translate('quote_received');
+      default: return l10n.translate('status');
     }
   }
 
@@ -101,6 +104,7 @@ class _HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final l10n = AppLocalizations.of(context)!;
 
     return Consumer<OrderProvider>(
       builder: (context, orderProvider, _) {
@@ -130,7 +134,7 @@ class _HomeTab extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(_greeting(), style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                              Text(_greeting(l10n), style: const TextStyle(color: Colors.white70, fontSize: 14)),
                               const SizedBox(height: 2),
                               Text(user?.fullName ?? 'User',
                                   style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
@@ -155,11 +159,11 @@ class _HomeTab extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            _headerStat('Active', '$active', Icons.local_shipping_outlined),
+                            _headerStat(l10n.translate('active_orders'), '$active', Icons.local_shipping_outlined),
                             Container(width: 1, height: 40, color: Colors.white30),
-                            _headerStat('Completed', '$completed', Icons.check_circle_outline),
+                            _headerStat(l10n.translate('order_delivered'), '$completed', Icons.check_circle_outline),
                             Container(width: 1, height: 40, color: Colors.white30),
-                            _headerStat('Quotes', '$pending', Icons.receipt_outlined),
+                            _headerStat(l10n.translate('my_quotes'), '$pending', Icons.receipt_outlined),
                           ],
                         ),
                       ),
@@ -195,13 +199,13 @@ class _HomeTab extends StatelessWidget {
                               child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
                             ),
                             const SizedBox(width: 16),
-                            const Expanded(
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Upload Prescription', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                                  SizedBox(height: 2),
-                                  Text('Get quotes from nearby pharmacies', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                  Text(l10n.translate('upload_prescription'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                  const SizedBox(height: 2),
+                                  const Text('Get quotes from nearby pharmacies', style: TextStyle(color: Colors.white70, fontSize: 13)),
                                 ],
                               ),
                             ),
@@ -213,19 +217,19 @@ class _HomeTab extends StatelessWidget {
                     const SizedBox(height: 20),
 
                     // Quick actions
-                    const Text('Quick Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(l10n.translate('how_can_we_help'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(child: _actionTile(context, Icons.receipt_long, 'My Orders', AppTheme.info,
+                        Expanded(child: _actionTile(context, Icons.receipt_long, l10n.translate('orders'), AppTheme.info,
                             badge: active > 0 ? '$active' : null,
                             onTap: () => onTabChange(1))),
                         const SizedBox(width: 12),
-                        Expanded(child: _actionTile(context, Icons.local_pharmacy, 'Quotes', AppTheme.warning,
+                        Expanded(child: _actionTile(context, Icons.local_pharmacy, l10n.translate('my_quotes'), AppTheme.warning,
                             badge: pending > 0 ? '$pending' : null,
                             onTap: () => Navigator.pushNamed(context, '/my-quotes'))),
                         const SizedBox(width: 12),
-                        Expanded(child: _actionTile(context, Icons.history, 'History', AppTheme.success,
+                        Expanded(child: _actionTile(context, Icons.history, l10n.translate('order_history'), AppTheme.success,
                             onTap: () => Navigator.pushNamed(context, '/order-history'))),
                       ],
                     ),
@@ -235,8 +239,8 @@ class _HomeTab extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Recent Orders', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        TextButton(onPressed: () => onTabChange(1), child: const Text('See All')),
+                        Text(l10n.translate('active_orders'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        TextButton(onPressed: () => onTabChange(1), child: Text(l10n.translate('view_all'))),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -255,9 +259,9 @@ class _HomeTab extends StatelessWidget {
                           children: [
                             Icon(Icons.receipt_long_outlined, size: 48, color: AppTheme.textSecondary.withOpacity(0.4)),
                             const SizedBox(height: 8),
-                            const Text('No orders yet', style: TextStyle(fontWeight: FontWeight.w600)),
+                            Text(l10n.translate('no_active_orders'), style: const TextStyle(fontWeight: FontWeight.w600)),
                             const SizedBox(height: 4),
-                            Text('Upload a prescription to get started',
+                            Text(l10n.translate('prescription_desc'),
                                 style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
                           ],
                         ),
@@ -288,9 +292,9 @@ class _HomeTab extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(o.orderNumber.isNotEmpty ? o.orderNumber : 'Pending Quote',
+                                    Text(o.orderNumber.isNotEmpty ? o.orderNumber : l10n.translate('quote_received'),
                                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                                    Text(_statusLabel(o.status),
+                                    Text(_statusLabel(o.status, l10n),
                                         style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                                   ],
                                 ),
@@ -306,7 +310,7 @@ class _HomeTab extends StatelessWidget {
                                       color: _statusColor(o.status).withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: Text(_statusLabel(o.status),
+                                    child: Text(_statusLabel(o.status, l10n),
                                         style: TextStyle(fontSize: 10, color: _statusColor(o.status), fontWeight: FontWeight.w600)),
                                   ),
                                 ],
@@ -390,24 +394,25 @@ class _OrdersTab extends StatelessWidget {
     }
   }
 
-  String _statusLabel(String s) {
+  String _statusLabel(String s, AppLocalizations l10n) {
     switch (s) {
-      case 'delivered': return 'Delivered';
-      case 'in_transit': return 'On the way';
-      case 'picked_up': return 'Picked up';
-      case 'assigned': return 'Rider assigned';
-      case 'confirmed': return 'Confirmed';
-      case 'searching': return 'Finding pharmacy';
-      case 'quote_pending': return 'Quote received';
-      default: return 'Pending';
+      case 'delivered': return l10n.translate('order_delivered');
+      case 'in_transit': return l10n.translate('order_on_way');
+      case 'picked_up': return l10n.translate('order_picked_up');
+      case 'assigned': return l10n.translate('order_ready');
+      case 'confirmed': return l10n.translate('order_confirmed');
+      case 'searching': return l10n.translate('searching_pharmacy');
+      case 'quote_pending': return l10n.translate('quote_received');
+      default: return l10n.translate('status');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Orders'),
+        title: Text(l10n.translate('orders')),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -425,9 +430,9 @@ class _OrdersTab extends StatelessWidget {
                 children: [
                   Icon(Icons.shopping_bag_outlined, size: 80, color: AppTheme.textSecondary.withOpacity(0.4)),
                   const SizedBox(height: 16),
-                  const Text('No orders yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(l10n.translate('no_active_orders'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text('Upload a prescription to get started',
+                  Text(l10n.translate('prescription_desc'),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary)),
                 ],
               ),
@@ -458,7 +463,7 @@ class _OrdersTab extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(o.orderNumber.isNotEmpty ? o.orderNumber : 'Pending Quote',
+                              Text(o.orderNumber.isNotEmpty ? o.orderNumber : l10n.translate('quote_received'),
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -466,7 +471,7 @@ class _OrdersTab extends StatelessWidget {
                                   color: color.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                                 ),
-                                child: Text(_statusLabel(o.status),
+                                child: Text(_statusLabel(o.status, l10n),
                                     style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
                               ),
                             ],
@@ -501,8 +506,10 @@ class _ProfileTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(l10n.translate('profile'))),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -533,28 +540,29 @@ class _ProfileTab extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(user?.fullName ?? '', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
-                  Text(user?.email ?? '', style: const TextStyle(color: AppTheme.textSecondary)),
+                  if (user?.email != null) Text(user!.email!, style: const TextStyle(color: AppTheme.textSecondary)),
                   Text(user?.phone ?? '', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                 ],
               ),
             ),
             const SizedBox(height: 8),
-            _menuItem(context, Icons.person_outline, 'Edit Profile', () => Navigator.pushNamed(context, '/edit-profile')),
-            _menuItem(context, Icons.location_on_outlined, 'Saved Addresses', () => Navigator.pushNamed(context, '/saved-addresses')),
-            _menuItem(context, Icons.history, 'Order History', () => Navigator.pushNamed(context, '/order-history')),
-            _menuItem(context, Icons.receipt_long_outlined, 'My Quotes', () => Navigator.pushNamed(context, '/my-quotes')),
-            _menuItem(context, Icons.help_outline, 'Help & Support', () => Navigator.pushNamed(context, '/help-support')),
+            _menuItem(context, Icons.person_outline, l10n.translate('edit_profile'), () => Navigator.pushNamed(context, '/edit-profile')),
+            _menuItem(context, Icons.language_outlined, l10n.translate('language'), () => _showLanguageDialog(context)),
+            _menuItem(context, Icons.location_on_outlined, l10n.translate('saved_addresses'), () => Navigator.pushNamed(context, '/saved-addresses')),
+            _menuItem(context, Icons.history, l10n.translate('order_history'), () => Navigator.pushNamed(context, '/order-history')),
+            _menuItem(context, Icons.receipt_long_outlined, l10n.translate('my_quotes'), () => Navigator.pushNamed(context, '/my-quotes')),
+            _menuItem(context, Icons.help_outline, l10n.translate('help_support'), () => Navigator.pushNamed(context, '/help-support')),
             const Divider(height: 1),
-            _menuItem(context, Icons.logout, 'Logout', () async {
+            _menuItem(context, Icons.logout, l10n.translate('logout'), () async {
               final ok = await showDialog<bool>(
                 context: context,
                 builder: (_) => AlertDialog(
-                  title: const Text('Logout'),
-                  content: const Text('Are you sure you want to logout?'),
+                  title: Text(l10n.translate('logout')),
+                  content: Text(l10n.translate('logout_confirm')),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.translate('cancel'))),
                     TextButton(onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Logout', style: TextStyle(color: AppTheme.error))),
+                        child: Text(l10n.translate('logout'), style: const TextStyle(color: AppTheme.error))),
                   ],
                 ),
               );
@@ -563,6 +571,53 @@ class _ProfileTab extends StatelessWidget {
                 Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
               }
             }, color: AppTheme.error),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final languageProvider = context.read<LanguageProvider>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.translate('select_language')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(l10n.translate('english')),
+              onTap: () {
+                languageProvider.setLanguage('en');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'en'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
+            ),
+            ListTile(
+              title: Text(l10n.translate('french')),
+              onTap: () {
+                languageProvider.setLanguage('fr');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'fr'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
+            ),
+            ListTile(
+              title: Text(l10n.translate('arabic')),
+              onTap: () {
+                languageProvider.setLanguage('ar');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'ar'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
+            ),
           ],
         ),
       ),

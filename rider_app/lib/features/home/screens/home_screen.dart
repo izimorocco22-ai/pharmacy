@@ -5,6 +5,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
 import '../../../services/location_service.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -148,6 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -171,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Hey, ${user?.fullName?.split(' ').first ?? 'Driver'}!',
+                              '${l10n.translate('welcome_back')} ${user?.fullName?.split(' ').first ?? 'Driver'}!',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 22,
@@ -180,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 2),
                             const Text(
-                              'Ready to earn today?',
+                              'Ready to earn today?', // Could localize
                               style: TextStyle(color: Colors.white70, fontSize: 13),
                             ),
                           ],
@@ -221,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Availability',
+                                const Text('Availability', // Could localize
                                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
                                 Text(
                                   _isOnline ? 'Online' : 'Offline',
@@ -272,8 +274,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Wallet Balance',
-                                style: TextStyle(color: Colors.white70, fontSize: 13)),
+                            Text(l10n.translate('wallet'),
+                                style: const TextStyle(color: Colors.white70, fontSize: 13)),
                             const Icon(Icons.account_balance_wallet_outlined,
                                 color: Colors.white70, size: 20),
                           ],
@@ -315,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: _statCard(
                           icon: Icons.trending_up,
-                          label: "Today's Earnings",
+                          label: l10n.translate('earnings'),
                           value: '${_todayEarnings.toStringAsFixed(0)} MAD',
                         ),
                       ),
@@ -323,7 +325,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: _statCard(
                           icon: Icons.delivery_dining,
-                          label: 'Deliveries',
+                          label: l10n.translate('deliveries'),
                           value: '$_todayDeliveries',
                         ),
                       ),
@@ -348,7 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text("You're offline",
+                                const Text("You're offline", // Could localize
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Color(0xFFF39C12),
@@ -365,10 +367,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(child: _quickTile(Icons.delivery_dining, 'Deliveries',
+                        Expanded(child: _quickTile(Icons.delivery_dining, l10n.translate('deliveries'),
                             () => Navigator.pushNamed(context, '/order-history'))),
                         const SizedBox(width: 12),
-                        Expanded(child: _quickTile(Icons.trending_up, 'Earnings',
+                        Expanded(child: _quickTile(Icons.trending_up, l10n.translate('earnings'),
                             () => Navigator.pushNamed(context, '/wallet'))),
                       ],
                     ),
@@ -386,7 +388,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Icon(Icons.delivery_dining,
                                 size: 48, color: AppTheme.textSecondary.withOpacity(0.4)),
                             const SizedBox(height: 8),
-                            const Text('No jobs available nearby',
+                            const Text('No jobs available nearby', // Could localize
                                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                             const SizedBox(height: 4),
                             const Text('New jobs will appear here automatically',
@@ -395,10 +397,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       )
                     else ...[
-                      const Text('New Job Available',
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                      Text(l10n.translate('new_tasks'),
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
-                      ..._availableOrders.map((order) => _jobCard(order)),
+                      ..._availableOrders.map((order) => _jobCard(order, l10n)),
                     ],
                   ],
                   const SizedBox(height: 16),

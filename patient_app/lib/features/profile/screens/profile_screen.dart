@@ -4,6 +4,8 @@ import 'dart:convert';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/language_provider.dart';
+import '../../../core/localization/app_localizations.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -26,10 +28,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(l10n.translate('profile')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -44,7 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildMenuItem(
               context,
               icon: Icons.person,
-              title: 'Edit Profile',
+              title: l10n.translate('edit_profile'),
               onTap: () async {
                 await Navigator.push(
                   context,
@@ -58,32 +61,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             _buildMenuItem(
               context,
+              icon: Icons.language,
+              title: l10n.translate('language'),
+              onTap: () => _showLanguageDialog(context),
+            ),
+            _buildMenuItem(
+              context,
               icon: Icons.location_on,
-              title: 'Saved Addresses',
+              title: l10n.translate('saved_addresses'),
               onTap: () {},
             ),
             _buildMenuItem(
               context,
               icon: Icons.payment,
-              title: 'Payment Methods',
+              title: l10n.translate('payment_methods'),
               onTap: () {},
             ),
             _buildMenuItem(
               context,
               icon: Icons.notifications,
-              title: 'Notifications',
+              title: l10n.translate('notifications'),
               onTap: () {},
             ),
             _buildMenuItem(
               context,
               icon: Icons.help,
-              title: 'Help & Support',
+              title: l10n.translate('help_support'),
               onTap: () {},
             ),
             _buildMenuItem(
               context,
               icon: Icons.info,
-              title: 'About',
+              title: l10n.translate('about'),
               onTap: () {},
             ),
             const SizedBox(height: AppTheme.spacing16),
@@ -185,7 +194,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showLanguageDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final languageProvider = context.read<LanguageProvider>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.translate('select_language')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(l10n.translate('english')),
+              onTap: () {
+                languageProvider.setLanguage('en');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'en'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
+            ),
+            ListTile(
+              title: Text(l10n.translate('french')),
+              onTap: () {
+                languageProvider.setLanguage('fr');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'fr'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
+            ),
+            ListTile(
+              title: Text(l10n.translate('arabic')),
+              onTap: () {
+                languageProvider.setLanguage('ar');
+                Navigator.pop(context);
+              },
+              trailing: languageProvider.locale.languageCode == 'ar'
+                  ? const Icon(Icons.check, color: AppTheme.primary)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLogoutButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AppCard(
       child: InkWell(
         onTap: () => _showLogoutDialog(context),
@@ -198,7 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Icon(Icons.logout, color: AppTheme.error),
               const SizedBox(width: AppTheme.spacing8),
               Text(
-                'Logout',
+                l10n.translate('logout'),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: AppTheme.error,
                     ),
@@ -211,15 +268,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showLogoutDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        title: Text(l10n.translate('logout')),
+        content: Text(l10n.translate('logout_confirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.translate('cancel')),
           ),
           TextButton(
             onPressed: () async {
@@ -232,7 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               }
             },
-            child: const Text('Logout', style: TextStyle(color: AppTheme.error)),
+            child: Text(l10n.translate('logout'), style: const TextStyle(color: AppTheme.error)),
           ),
         ],
       ),

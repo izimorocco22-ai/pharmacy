@@ -4,6 +4,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/prescription_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../orders/orders_screen.dart';
 import '../../profile/profile_screen.dart';
 import '../../requests/screens/prescription_requests_screen.dart';
@@ -50,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
@@ -58,11 +60,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppTheme.primary,
         unselectedItemColor: AppTheme.textSecondary,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long), label: 'Requests'),
-          BottomNavigationBarItem(icon: Icon(Icons.history_outlined), activeIcon: Icon(Icons.history), label: 'Orders'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+        items: [
+          BottomNavigationBarItem(icon: const Icon(Icons.dashboard_outlined), activeIcon: const Icon(Icons.dashboard), label: l10n.translate('dashboard')),
+          BottomNavigationBarItem(icon: const Icon(Icons.receipt_long_outlined), activeIcon: const Icon(Icons.receipt_long), label: l10n.translate('requests')),
+          BottomNavigationBarItem(icon: const Icon(Icons.history_outlined), activeIcon: const Icon(Icons.history), label: l10n.translate('orders')),
+          BottomNavigationBarItem(icon: const Icon(Icons.person_outline), activeIcon: const Icon(Icons.person), label: l10n.translate('profile')),
         ],
       ),
     );
@@ -117,7 +119,7 @@ class _DashboardTabState extends State<_DashboardTab> {
     }
   }
 
-  String _greeting() {
+  String _greeting(AppLocalizations l10n) {
     final h = DateTime.now().hour;
     if (h < 12) return 'Good Morning';
     if (h < 17) return 'Good Afternoon';
@@ -133,16 +135,16 @@ class _DashboardTabState extends State<_DashboardTab> {
     }
   }
 
-  String _statusLabel(String s) {
+  String _statusLabel(String s, AppLocalizations l10n) {
     switch (s) {
-      case 'delivered': return 'Delivered';
-      case 'confirmed': return 'Confirmed';
-      case 'preparing': return 'Preparing';
-      case 'ready': return 'Ready';
+      case 'delivered': return l10n.translate('delivered');
+      case 'confirmed': return l10n.translate('confirm');
+      case 'preparing': return l10n.translate('preparing');
+      case 'ready': return l10n.translate('ready_for_pickup');
       case 'assigned': return 'Rider Assigned';
-      case 'in_transit': return 'In Transit';
-      case 'cancelled': return 'Cancelled';
-      default: return 'Pending';
+      case 'in_transit': return l10n.translate('on_the_way');
+      case 'cancelled': return l10n.translate('cancelled');
+      default: return l10n.translate('pending');
     }
   }
 
@@ -157,6 +159,7 @@ class _DashboardTabState extends State<_DashboardTab> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final l10n = AppLocalizations.of(context)!;
 
     return Consumer<PrescriptionProvider>(
       builder: (context, provider, _) {
@@ -187,7 +190,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(_greeting(), style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                              Text(_greeting(l10n), style: const TextStyle(color: Colors.white70, fontSize: 14)),
                               const SizedBox(height: 2),
                               Text(user?.fullName ?? 'Pharmacy',
                                   style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
@@ -212,11 +215,11 @@ class _DashboardTabState extends State<_DashboardTab> {
                         ),
                         child: Row(
                           children: [
-                            _headerStat('Pending', '$pending', Icons.pending_actions_outlined),
+                            _headerStat(l10n.translate('pending'), '$pending', Icons.pending_actions_outlined),
                             Container(width: 1, height: 40, color: Colors.white30),
-                            _headerStat('Active', '$confirmed', Icons.local_shipping_outlined),
+                            _headerStat(l10n.translate('active_requests'), '$confirmed', Icons.local_shipping_outlined),
                             Container(width: 1, height: 40, color: Colors.white30),
-                            _headerStat('Completed', '$completed', Icons.check_circle_outline),
+                            _headerStat(l10n.translate('completed_orders'), '$completed', Icons.check_circle_outline),
                           ],
                         ),
                       ),
@@ -231,22 +234,22 @@ class _DashboardTabState extends State<_DashboardTab> {
                     // Stats row
                     Row(
                       children: [
-                        Expanded(child: _statCard(Icons.today, "Today's Revenue",
+                        Expanded(child: _statCard(Icons.today, l10n.translate('total_sales'),
                             '${_todayRevenue.toStringAsFixed(0)} MAD', AppTheme.success)),
                         const SizedBox(width: 12),
-                        Expanded(child: _statCard(Icons.check_circle_outline, 'Total Completed',
+                        Expanded(child: _statCard(Icons.check_circle_outline, l10n.translate('completed_orders'),
                             '$completed', AppTheme.primary)),
                       ],
                     ),
                     const SizedBox(height: 20),
 
                     // Quick actions
-                    const Text('Quick Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(l10n.translate('dashboard'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(child: _actionTile(
-                          Icons.receipt_long, 'Requests', AppTheme.warning,
+                          Icons.receipt_long, l10n.translate('requests'), AppTheme.warning,
                           badge: pending > 0 ? '$pending' : null,
                           onTap: () {
                             final s = context.findAncestorStateOfType<_HomeScreenState>();
@@ -255,7 +258,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                         )),
                         const SizedBox(width: 12),
                         Expanded(child: _actionTile(
-                          Icons.history, 'Orders', AppTheme.info,
+                          Icons.history, l10n.translate('orders'), AppTheme.info,
                           badge: confirmed > 0 ? '$confirmed' : null,
                           onTap: () {
                             final s = context.findAncestorStateOfType<_HomeScreenState>();
@@ -264,7 +267,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                         )),
                         const SizedBox(width: 12),
                         Expanded(child: _actionTile(
-                          Icons.person_outline, 'Profile', AppTheme.textSecondary,
+                          Icons.person_outline, l10n.translate('profile'), AppTheme.textSecondary,
                           onTap: () {
                             final s = context.findAncestorStateOfType<_HomeScreenState>();
                             s?.setState(() => s._currentIndex = 3);
@@ -278,13 +281,13 @@ class _DashboardTabState extends State<_DashboardTab> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Recent Orders', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(l10n.translate('orders'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         TextButton(
                           onPressed: () {
                             final s = context.findAncestorStateOfType<_HomeScreenState>();
                             s?.setState(() => s._currentIndex = 2);
                           },
-                          child: const Text('See All'),
+                          child: Text(l10n.translate('view_all')),
                         ),
                       ],
                     ),
@@ -304,9 +307,9 @@ class _DashboardTabState extends State<_DashboardTab> {
                           children: [
                             Icon(Icons.inbox_outlined, size: 48, color: AppTheme.textSecondary.withOpacity(0.4)),
                             const SizedBox(height: 8),
-                            const Text('No orders yet', style: TextStyle(fontWeight: FontWeight.w600)),
+                            Text(l10n.translate('no_requests'), style: const TextStyle(fontWeight: FontWeight.w600)),
                             const SizedBox(height: 4),
-                            Text('Orders from patients will appear here',
+                            Text(l10n.translate('requests'),
                                 style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
                           ],
                         ),
@@ -328,7 +331,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                               Container(
                                 width: 40, height: 40,
                                 decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-                                child: Icon(Icons.receipt_long, color: color, size: 20),
+                                child: const Icon(Icons.receipt_long, color: color, size: 20),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -353,7 +356,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                                       color: color.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: Text(_statusLabel(status),
+                                    child: Text(_statusLabel(status, l10n),
                                         style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
                                   ),
                                 ],
@@ -363,6 +366,15 @@ class _DashboardTabState extends State<_DashboardTab> {
                         );
                       }),
                     const SizedBox(height: 16),
+                  ]),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
                     // Tips
                     Container(

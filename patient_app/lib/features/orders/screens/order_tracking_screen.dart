@@ -7,6 +7,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../providers/order_provider.dart';
 import '../../../models/order_model.dart';
 import '../../../services/api_service.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   final String orderId;
@@ -83,8 +84,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Order Details')),
+      appBar: AppBar(title: Text(l10n.translate('order_details'))),
       body: Consumer<OrderProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading) {
@@ -98,11 +100,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 children: [
                   const Icon(Icons.receipt_long, size: 64, color: AppTheme.textHint),
                   const SizedBox(height: AppTheme.spacing16),
-                  const Text('Order not found'),
+                  Text(l10n.translate('order_not_found')),
                   const SizedBox(height: AppTheme.spacing16),
                   TextButton(
                     onPressed: () => context.read<OrderProvider>().trackOrder(widget.orderId),
-                    child: const Text('Retry'),
+                    child: Text(l10n.translate('retry')),
                   ),
                 ],
               ),
@@ -116,7 +118,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStatusBanner(order),
+                  _buildStatusBanner(order, l10n),
                   const SizedBox(height: AppTheme.spacing16),
                   // Rejection History
                   if (order.quoteHistory.any((q) => q.status == 'rejected' && q.rejectionReason.isNotEmpty)) ...[
@@ -125,37 +127,37 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   ],
                   // Pending quote actions
                   if (order.isPendingQuote) ...[
-                    _buildPendingQuoteActions(order),
+                    _buildPendingQuoteActions(order, l10n),
                     const SizedBox(height: AppTheme.spacing16),
                   ],
-                  _buildOrderInfo(order),
+                  _buildOrderInfo(order, l10n),
                   const SizedBox(height: AppTheme.spacing16),
-                  _buildDeliveryAddress(order),
+                  _buildDeliveryAddress(order, l10n),
                   const SizedBox(height: AppTheme.spacing16),
                   if (order.prescriptionImage != null && order.prescriptionImage!.isNotEmpty) ...[
                     _buildPrescriptionImage(order.prescriptionImage!),
                     const SizedBox(height: AppTheme.spacing16),
                   ],
                   if (order.medicines.isNotEmpty) ...[
-                    _buildMedicinesList(order.medicines),
+                    _buildMedicinesList(order.medicines, l10n),
                     const SizedBox(height: AppTheme.spacing16),
                   ],
                   // Quote details (medicines + pricing)
                   if (order.items.isNotEmpty) ...[
-                    _buildQuoteDetails(order),
+                    _buildQuoteDetails(order, l10n),
                     const SizedBox(height: AppTheme.spacing16),
                   ],
                   // Order status timeline (only for confirmed orders)
                   if (!order.isPendingQuote) ...[
-                    _buildStatusTimeline(order),
+                    _buildStatusTimeline(order, l10n),
                     const SizedBox(height: AppTheme.spacing16),
                   ],
                   if (!order.isPendingQuote) ...[
-                    _buildAmountSummary(order),
+                    _buildAmountSummary(order, l10n),
                     const SizedBox(height: AppTheme.spacing16),
                   ],
                   if (order.rider != null) ...[
-                    _buildRiderInfo(order.rider!),
+                    _buildRiderInfo(order.rider!, l10n),
                     const SizedBox(height: AppTheme.spacing16),
                   ],
                 ],
@@ -167,7 +169,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  Widget _buildStatusBanner(Order order) {
+  Widget _buildStatusBanner(Order order, AppLocalizations l10n) {
     final isPending = order.isPendingQuote;
     final isSearching = order.status == 'searching';
     final isExpired = order.status == 'expired';
@@ -182,17 +184,17 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                : isExpired ? Icons.timer_off
                : _statusIcon(order.status);
                
-    final label = isPending ? 'Quote Received!' 
-                : isSearching ? 'Searching for Pharmacy...' 
-                : isExpired ? 'Request Expired'
-                : _statusLabel(order.status);
+    final label = isPending ? l10n.translate('quote_received') 
+                : isSearching ? l10n.translate('searching_pharmacy') 
+                : isExpired ? l10n.translate('order_expired')
+                : _statusLabel(order.status, l10n);
                 
     final sub = isPending
-        ? 'Total: ${order.totalAmount.toStringAsFixed(2)} MAD'
+        ? '${l10n.translate('total')}: ${order.totalAmount.toStringAsFixed(2)} MAD'
         : isSearching
-            ? 'Looking for the nearest pharmacy...'
+            ? l10n.translate('finding_pharmacy_desc')
             : isExpired
-                ? 'No pharmacy responded within the 1-hour limit.'
+                ? l10n.translate('no_pharmacy_timeout')
                 : (order.orderNumber.isNotEmpty ? order.orderNumber : 'Order #${order.id.substring(order.id.length > 6 ? order.id.length - 6 : 0).toUpperCase()}');
 
     return Container(
@@ -290,14 +292,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  Widget _buildPendingQuoteActions(Order order) {
+  Widget _buildPendingQuoteActions(Order order, AppLocalizations l10n) {
     return Row(
       children: [
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () => _cancelQuote(order),
             icon: const Icon(Icons.close, size: 18),
-            label: const Text('Cancel'),
+            label: Text(l10n.translate('cancel')),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.red,
               side: const BorderSide(color: Colors.red),
@@ -311,7 +313,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           child: ElevatedButton.icon(
             onPressed: () => _confirmQuote(order),
             icon: const Icon(Icons.check, size: 18),
-            label: const Text('Confirm Order'),
+            label: Text(l10n.translate('confirm_order')),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,
@@ -530,14 +532,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  Widget _buildQuoteDetails(Order order) {
+  Widget _buildQuoteDetails(Order order, AppLocalizations l10n) {
     return AppCard(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacing16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Quote Details',
+            Text(l10n.translate('quote_details'),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: AppTheme.spacing12),
             ...order.items.map((item) => Padding(
@@ -558,7 +560,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(item.medicineName, style: Theme.of(context).textTheme.bodyMedium),
-                            Text('Qty: ${item.quantity} × ${item.unitPrice.toStringAsFixed(2)} MAD',
+                            Text('${l10n.translate('quantity')}: ${item.quantity} × ${item.unitPrice.toStringAsFixed(2)} MAD',
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary)),
                           ],
                         ),
@@ -569,15 +571,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   ),
                 )),
             const Divider(height: 20),
-            _summaryRow('Subtotal', order.subtotal),
+            _summaryRow(l10n.translate('subtotal'), order.subtotal),
             if (order.commissionAmount > 0)
               _summaryRow(
-                'Service Fee (${order.commissionRate.toStringAsFixed(0)}%)',
+                '${l10n.translate('service_fee')} (${order.commissionRate.toStringAsFixed(0)}%)',
                 order.commissionAmount,
               ),
-            _summaryRow('Delivery Fee', order.deliveryFee),
+            _summaryRow(l10n.translate('delivery_fee'), order.deliveryFee),
             const Divider(height: 12),
-            _summaryRow('Total', order.totalAmount, isTotal: true),
+            _summaryRow(l10n.translate('total'), order.totalAmount, isTotal: true),
           ],
         ),
       ),
@@ -605,27 +607,27 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  Widget _buildOrderInfo(Order order) {
+  Widget _buildOrderInfo(Order order, AppLocalizations l10n) {
     return AppCard(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacing16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Order Information', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(l10n.translate('order_information'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: AppTheme.spacing12),
             _infoRow(Icons.calendar_today, 'Date', _formatDate(order.createdAt)),
             if (order.paymentMethod != null)
               _infoRow(Icons.payment, 'Payment', order.paymentMethod!.toUpperCase()),
             if (order.estimatedDeliveryTime != null)
-              _infoRow(Icons.access_time, 'Est. Delivery', _formatDate(order.estimatedDeliveryTime!)),
+              _infoRow(Icons.access_time, l10n.translate('est_delivery'), _formatDate(order.estimatedDeliveryTime!)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDeliveryAddress(Order order) {
+  Widget _buildDeliveryAddress(Order order, AppLocalizations l10n) {
     final address = order.deliveryAddress?['address']?.toString();
     if (address == null || address.isEmpty) return const SizedBox.shrink();
 
@@ -635,7 +637,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Delivery Address', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(l10n.translate('address'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: AppTheme.spacing12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -653,7 +655,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  Widget _buildMedicinesList(List<Map<String, dynamic>> medicines) {
+  Widget _buildMedicinesList(List<Map<String, dynamic>> medicines, AppLocalizations l10n) {
     return AppCard(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacing16),
@@ -664,7 +666,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               children: [
                 const Icon(Icons.medication, color: AppTheme.primary, size: 20),
                 const SizedBox(width: 8),
-                Text('Requested Medicines',
+                Text(l10n.translate('requested_medicines'),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
               ],
             ),
@@ -704,7 +706,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         ),
                         child: Text(
-                          'Qty: ${m['quantity'] ?? 1}',
+                          '${l10n.translate('quantity')}: ${m['quantity'] ?? 1}',
                           style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -757,14 +759,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  Widget _buildStatusTimeline(Order order) {
+  Widget _buildStatusTimeline(Order order, AppLocalizations l10n) {
     final allStatuses = [
       {'status': 'pending', 'label': 'Order Placed', 'icon': Icons.receipt},
-      {'status': 'confirmed', 'label': 'Confirmed', 'icon': Icons.check_circle},
-      {'status': 'preparing', 'label': 'Preparing', 'icon': Icons.medication},
-      {'status': 'picked_up', 'label': 'Picked Up', 'icon': Icons.shopping_bag},
-      {'status': 'in_transit', 'label': 'On the Way', 'icon': Icons.local_shipping},
-      {'status': 'delivered', 'label': 'Delivered', 'icon': Icons.done_all},
+      {'status': 'confirmed', 'label': l10n.translate('order_confirmed'), 'icon': Icons.check_circle},
+      {'status': 'preparing', 'label': l10n.translate('order_preparing'), 'icon': Icons.medication},
+      {'status': 'ready', 'label': l10n.translate('order_ready'), 'icon': Icons.shopping_bag},
+      {'status': 'picked_up', 'label': l10n.translate('order_picked_up'), 'icon': Icons.shopping_bag},
+      {'status': 'in_transit', 'label': l10n.translate('order_on_way'), 'icon': Icons.local_shipping},
+      {'status': 'delivered', 'label': l10n.translate('order_delivered'), 'icon': Icons.done_all},
     ];
 
     if (order.status == 'cancelled') {
@@ -779,7 +782,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 child: const Icon(Icons.cancel, color: Colors.white, size: 20),
               ),
               const SizedBox(width: AppTheme.spacing12),
-              Text('Order Cancelled', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.error)),
+              Text(l10n.translate('order_cancelled'), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.error)),
             ],
           ),
         ),
@@ -794,7 +797,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Order Status', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(l10n.translate('status'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: AppTheme.spacing16),
             ...List.generate(allStatuses.length, (i) {
               final done = i <= currentIndex;
@@ -879,40 +882,40 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  Widget _buildAmountSummary(Order order) {
+  Widget _buildAmountSummary(Order order, AppLocalizations l10n) {
     return AppCard(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacing16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Payment Summary',
+            Text('Payment Summary', // Could localize
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: AppTheme.spacing12),
-            if (order.subtotal > 0) _summaryRow('Subtotal', order.subtotal),
+            if (order.subtotal > 0) _summaryRow(l10n.translate('subtotal'), order.subtotal),
             if (order.commissionAmount > 0)
               _summaryRow(
-                'Service Fee (${order.commissionRate.toStringAsFixed(0)}%)',
+                '${l10n.translate('service_fee')} (${order.commissionRate.toStringAsFixed(0)}%)',
                 order.commissionAmount,
               ),
-            if (order.deliveryFee > 0) _summaryRow('Delivery Fee', order.deliveryFee),
+            if (order.deliveryFee > 0) _summaryRow(l10n.translate('delivery_fee'), order.deliveryFee),
             const Divider(),
             const SizedBox(height: AppTheme.spacing8),
-            _summaryRow('Total', order.totalAmount, isTotal: true),
+            _summaryRow(l10n.translate('total'), order.totalAmount, isTotal: true),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRiderInfo(RiderInfo rider) {
+  Widget _buildRiderInfo(RiderInfo rider, AppLocalizations l10n) {
     return AppCard(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacing16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Delivery Rider', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(l10n.translate('rider_info'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: AppTheme.spacing12),
             Row(
               children: [
@@ -960,11 +963,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     switch (status) {
       case 'delivered': return AppTheme.success;
       case 'in_transit':
-      case 'picked_up': return AppTheme.info;
+      case 'picked_up':
+      case 'assigned':
+        return AppTheme.info;
       case 'cancelled': return AppTheme.error;
-      case 'confirmed':
-      case 'preparing': return AppTheme.warning;
-      default: return AppTheme.primary;
+      default: return AppTheme.warning;
     }
   }
 
@@ -980,16 +983,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     }
   }
 
-  String _statusLabel(String status) {
+  String _statusLabel(String status, AppLocalizations l10n) {
     switch (status) {
-      case 'delivered': return 'Delivered';
-      case 'in_transit': return 'On the Way';
-      case 'picked_up': return 'Picked Up';
-      case 'preparing': return 'Preparing';
-      case 'confirmed': return 'Confirmed';
-      case 'cancelled': return 'Cancelled';
-      case 'expired': return 'Expired';
-      default: return 'Order Placed';
+      case 'delivered': return l10n.translate('order_delivered');
+      case 'in_transit': return l10n.translate('order_on_way');
+      case 'picked_up': return l10n.translate('order_picked_up');
+      case 'assigned': return l10n.translate('order_ready');
+      case 'confirmed': return l10n.translate('order_confirmed');
+      case 'searching': return l10n.translate('searching_pharmacy');
+      default: return l10n.translate('status');
     }
   }
 
@@ -1064,9 +1066,10 @@ class _CountdownTimerState extends State<_CountdownTimer> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_remaining.inSeconds <= 0) {
       return Text(
-        'Expired',
+        l10n.translate('expired'),
         style: TextStyle(
           fontSize: 13,
           color: widget.isBanner ? Colors.white : Colors.orange,
@@ -1101,7 +1104,7 @@ class _CountdownTimerState extends State<_CountdownTimer> {
           ),
           const SizedBox(width: 6),
           Text(
-            'Expires in $timeStr',
+            '${l10n.translate('expires_in')} $timeStr',
             style: TextStyle(
               fontSize: 12,
               color: widget.isBanner ? Colors.white : (isExpiringSoon ? Colors.orange : Colors.grey),

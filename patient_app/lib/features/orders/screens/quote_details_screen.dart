@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../models/quote_model.dart';
+import '../../../services/api_service.dart';
+import '../../../providers/order_provider.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class QuoteDetailsScreen extends StatelessWidget {
   final Quote quote;
@@ -11,9 +15,10 @@ class QuoteDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quote Details'),
+        title: Text(l10n.translate('quote_details')),
       ),
       body: Column(
         children: [
@@ -48,12 +53,12 @@ class QuoteDetailsScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Pharmacy Quote',
+                                    l10n.translate('pharmacy_quote'),
                                     style: Theme.of(context).textTheme.titleLarge,
                                   ),
                                   const SizedBox(height: AppTheme.spacing4),
                                   Text(
-                                    'Quote expires in ${_getTimeRemaining(quote.expiresAt)}',
+                                    '${l10n.translate('quote_expires_in')} ${_getTimeRemaining(quote.expiresAt, l10n)}',
                                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                           color: AppTheme.warning,
                                         ),
@@ -72,32 +77,33 @@ class QuoteDetailsScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Medicine Breakdown',
+                          l10n.translate('medicine_breakdown'),
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: AppTheme.spacing16),
                         ...quote.items.map((item) => _buildMedicineItem(
                               context,
                               item,
+                              l10n,
                             )),
                         const Divider(height: AppTheme.spacing24),
                         _buildPriceRow(
                           context,
-                          'Subtotal',
+                          l10n.translate('subtotal'),
                           quote.subtotal,
                           false,
                         ),
                         const SizedBox(height: AppTheme.spacing8),
                         _buildPriceRow(
                           context,
-                          'Delivery Fee',
+                          l10n.translate('delivery_fee'),
                           quote.deliveryFee,
                           false,
                         ),
                         const Divider(height: AppTheme.spacing24),
                         _buildPriceRow(
                           context,
-                          'Total',
+                          l10n.translate('total'),
                           quote.totalAmount,
                           true,
                         ),
@@ -125,14 +131,14 @@ class QuoteDetailsScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: SecondaryButton(
-                      text: 'Decline',
+                      text: l10n.translate('decline'),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
                   const SizedBox(width: AppTheme.spacing12),
                   Expanded(
                     child: PrimaryButton(
-                      text: 'Accept',
+                      text: l10n.translate('accept'),
                       onPressed: () {
                         Navigator.pushNamed(context, '/payment-selection');
                       },
@@ -147,7 +153,7 @@ class QuoteDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMedicineItem(BuildContext context, QuoteItem item) {
+  Widget _buildMedicineItem(BuildContext context, QuoteItem item, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTheme.spacing12),
       child: Row(
@@ -163,7 +169,7 @@ class QuoteDetailsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppTheme.spacing4),
                 Text(
-                  'Qty: ${item.quantity} × ${item.unitPrice.toStringAsFixed(2)} MAD',
+                  '${l10n.translate('quantity')}: ${item.quantity} × ${item.unitPrice.toStringAsFixed(2)} MAD',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -206,10 +212,10 @@ class QuoteDetailsScreen extends StatelessWidget {
     );
   }
 
-  String _getTimeRemaining(DateTime expiresAt) {
+  String _getTimeRemaining(DateTime expiresAt, AppLocalizations l10n) {
     final remaining = expiresAt.difference(DateTime.now());
-    if (remaining.isNegative) return 'Expired';
-    if (remaining.inMinutes < 60) return '${remaining.inMinutes} minutes';
-    return '${remaining.inHours} hours';
+    if (remaining.isNegative) return l10n.translate('expired');
+    if (remaining.inMinutes < 60) return '${remaining.inMinutes} ${l10n.translate('minutes')}';
+    return '${remaining.inHours} ${l10n.translate('hours')}';
   }
 }

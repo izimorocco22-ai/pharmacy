@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/location_service.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../home/screens/home_screen.dart';
 import '../../orders/screens/orders_screen.dart';
 import '../../profile/screens/profile_screen.dart';
@@ -57,6 +58,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: Column(
         children: [
@@ -65,18 +67,18 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               color: AppTheme.warning,
               child: InkWell(
                 onTap: _initLocation,
-                child: const SafeArea(
+                child: SafeArea(
                   bottom: false,
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     child: Row(
                       children: [
-                        Icon(Icons.location_off, color: Colors.white, size: 18),
-                        SizedBox(width: 8),
+                        const Icon(Icons.location_off, color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Location permission required to receive nearby orders. Tap to enable.',
-                            style: TextStyle(color: Colors.white, fontSize: 12),
+                            'Location permission required to receive nearby orders. Tap to enable.', // Could localize later
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ),
                       ],
@@ -100,21 +102,21 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         unselectedItemColor: AppTheme.textSecondary,
         backgroundColor: AppTheme.surface,
         elevation: 8,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.delivery_dining_outlined),
-            activeIcon: Icon(Icons.delivery_dining),
-            label: 'Home',
+            icon: const Icon(Icons.delivery_dining_outlined),
+            activeIcon: const Icon(Icons.delivery_dining),
+            label: l10n.translate('deliveries'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long_outlined),
-            activeIcon: Icon(Icons.receipt_long),
-            label: 'Active',
+            icon: const Icon(Icons.receipt_long_outlined),
+            activeIcon: const Icon(Icons.receipt_long),
+            label: l10n.translate('status'), // or active
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline),
+            activeIcon: const Icon(Icons.person),
+            label: l10n.translate('profile'),
           ),
         ],
       ),

@@ -6,6 +6,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../providers/order_provider.dart';
 import '../../../services/api_service.dart';
+import '../../../core/localization/app_localizations.dart';
+import 'quote_details_screen.dart';
 
 class MyQuotesScreen extends StatefulWidget {
   const MyQuotesScreen({super.key});
@@ -57,7 +59,8 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
 
   void _onPaymentSuccess(PaymentSuccessResponse response) async {
     if (_pendingQuote == null || !mounted) return;
-    _showLoading('Confirming order...');
+    final l10n = AppLocalizations.of(context)!;
+    _showLoading(l10n.translate('confirming_order'));
     try {
       final res = await context.read<OrderProvider>().confirmQuote(
         quoteId: _pendingQuote['id'].toString(),
@@ -65,7 +68,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
       );
       if (mounted) Navigator.pop(context); // close loading
       if (res && mounted) {
-        _showSuccess('Payment successful! Order confirmed 🎉');
+        _showSuccess(l10n.translate('payment_success'));
         _fetchQuotes();
       }
     } catch (_) {
@@ -77,7 +80,8 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
   void _onPaymentError(PaymentFailureResponse response) {
     _pendingQuote = null;
     if (!mounted) return;
-    _showError('Payment failed: ${response.message ?? 'Try again'}');
+    final l10n = AppLocalizations.of(context)!;
+    _showError('${l10n.translate('payment_failed')}: ${response.message ?? 'Try again'}');
   }
 
   void _onExternalWallet(ExternalWalletResponse response) {
@@ -88,6 +92,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
 
   Future<void> _confirmQuote(dynamic quote) async {
     final totalAmount = (quote['totalAmount'] as num?)?.toDouble() ?? 0;
+    final l10n = AppLocalizations.of(context)!;
 
     final method = await showDialog<String>(
       context: context,
@@ -97,7 +102,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Confirm Order'),
+            Text(l10n.translate('confirm_order')),
             IconButton(
               icon: const Icon(Icons.close, size: 20),
               onPressed: () => Navigator.pop(_, null),
@@ -106,21 +111,21 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
             ),
           ],
         ),
-        content: Text('Confirm this order for ${totalAmount.toStringAsFixed(2)} MAD?'),
+        content: Text('${l10n.translate('confirm_order_desc')} ${totalAmount.toStringAsFixed(2)} MAD?'),
         actions: [
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => Navigator.pop(_, 'cash'),
-                  child: const Text('COD'),
+                  child: Text(l10n.translate('cod')),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(_, 'online'),
-                  child: const Text('Pay Now'),
+                  child: Text(l10n.translate('pay_now')),
                 ),
               ),
             ],
@@ -132,7 +137,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
     if (method == null || !mounted) return;
 
     if (method == 'cash') {
-      _showLoading('Confirming order...');
+      _showLoading(l10n.translate('confirming_order'));
       try {
         final res = await context.read<OrderProvider>().confirmQuote(
           quoteId: quote['id'].toString(),
@@ -141,10 +146,10 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
         if (mounted) Navigator.pop(context);
         if (mounted) {
           if (res) {
-            _showSuccess('Order confirmed! Cash on delivery 🎉');
+            _showSuccess(l10n.translate('payment_success'));
             _fetchQuotes();
           } else {
-            _showError('Failed to confirm order');
+            _showError(l10n.translate('payment_failed'));
           }
         }
       } catch (_) {
@@ -233,29 +238,30 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
   // ── Cancel flow (same as order_tracking_screen) ───────────────────────────
 
   Future<void> _cancelQuote(dynamic quote) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Cancel Quote'),
-        content: const Text("Cancel this quote? We'll send your request to the next nearest pharmacy."),
+        title: Text(l10n.translate('cancel')),
+        content: Text(l10n.translate('quote_cancelled_success')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.translate('cancel'))), // or 'Keep'
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Cancel Quote', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.translate('cancel'), style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
     if (confirm != true || !mounted) return;
 
-    _showLoading('Cancelling...');
+    _showLoading(l10n.translate('confirming_order')); // or 'Cancelling...'
     try {
       final res = await context.read<OrderProvider>().cancelQuote(quoteId: quote['id'].toString());
       if (mounted) Navigator.pop(context); // close loading
       if (mounted) {
-        _showSuccess(res ? 'Quote cancelled. Request sent to next pharmacy!' : 'Quote cancelled.');
+        _showSuccess(res ? l10n.translate('quote_cancelled_success') : l10n.translate('quote_cancelled_generic'));
         _fetchQuotes();
       }
     } catch (_) {
@@ -295,9 +301,10 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Quotes'),
+        title: Text(l10n.translate('my_quotes')),
         actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchQuotes)],
       ),
       body: _loading
@@ -311,7 +318,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                       const SizedBox(height: 12),
                       Text(_error!, style: const TextStyle(color: AppTheme.error)),
                       const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _fetchQuotes, child: const Text('Retry')),
+                      ElevatedButton(onPressed: _fetchQuotes, child: Text(l10n.translate('retry'))),
                     ],
                   ),
                 )
@@ -322,9 +329,9 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                         children: [
                           Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey.shade300),
                           const SizedBox(height: 16),
-                          Text('No quotes yet', style: Theme.of(context).textTheme.titleLarge),
+                          Text(l10n.translate('no_quotes_yet'), style: Theme.of(context).textTheme.titleLarge),
                           const SizedBox(height: 8),
-                          Text('Quotes from pharmacies will appear here',
+                          Text(l10n.translate('no_quotes_desc'),
                               style: TextStyle(color: Colors.grey.shade500), textAlign: TextAlign.center),
                         ],
                       ),
@@ -335,13 +342,13 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                         padding: const EdgeInsets.all(16),
                         itemCount: _quotes.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (_, i) => _buildQuoteCard(_quotes[i]),
+                        itemBuilder: (_, i) => _buildQuoteCard(_quotes[i], l10n),
                       ),
                     ),
     );
   }
 
-  Widget _buildQuoteCard(dynamic quote) {
+  Widget _buildQuoteCard(dynamic quote, AppLocalizations l10n) {
     final items = List<dynamic>.from(quote['items'] ?? []);
     final totalAmount = (quote['totalAmount'] as num?)?.toDouble() ?? 0;
     final deliveryFee = (quote['deliveryFee'] as num?)?.toDouble() ?? 0;
@@ -376,8 +383,8 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Quote Received',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(l10n.translate('quote_received'),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       if (expiresAt != null)
                         _CountdownTimer(
                           expiresAt: expiresAt,
@@ -405,7 +412,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
             const Divider(height: 20),
 
             // Medicine items
-            ...items.map((item) => Padding(
+            ...items.take(2).map((item) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
@@ -434,19 +441,27 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                     ],
                   ),
                 )),
+            if (items.length > 2)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 8),
+                child: Text(
+                  '+ ${items.length - 2} ${l10n.translate('more_items')}',
+                  style: const TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w500),
+                ),
+              ),
 
             const Divider(height: 16),
 
             // Price breakdown with service fee
-            _priceRow('Subtotal', subtotal),
+            _priceRow(l10n.translate('subtotal'), subtotal),
             if (commissionAmount > 0)
               _priceRow(
-                'Service Fee (${commissionRate.toStringAsFixed(0)}%)',
+                '${l10n.translate('service_fee')} (${commissionRate.toStringAsFixed(0)}%)',
                 commissionAmount,
               ),
-            _priceRow('Delivery Fee', deliveryFee),
+            _priceRow(l10n.translate('delivery_fee'), deliveryFee),
             const SizedBox(height: 4),
-            _priceRow('Total', totalAmount, isTotal: true),
+            _priceRow(l10n.translate('total'), totalAmount, isTotal: true),
 
             const SizedBox(height: 16),
 
@@ -458,7 +473,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                     child: OutlinedButton.icon(
                       onPressed: () => _cancelQuote(quote),
                       icon: const Icon(Icons.close, size: 18),
-                      label: const Text('Cancel'),
+                      label: Text(l10n.translate('cancel')),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
                         side: const BorderSide(color: Colors.red),
@@ -472,7 +487,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () => _confirmQuote(quote),
                       icon: const Icon(Icons.payment, size: 18),
-                      label: const Text('Pay Now'),
+                      label: Text(l10n.translate('pay_now')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
@@ -568,10 +583,11 @@ class _CountdownTimerState extends State<_CountdownTimer> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_remaining.inSeconds <= 0) {
-      return const Text(
-        'Expired',
-        style: TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold),
+      return Text(
+        l10n.translate('expired'),
+        style: const TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold),
       );
     }
 
@@ -583,7 +599,7 @@ class _CountdownTimerState extends State<_CountdownTimer> {
     String timeStr = hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
 
     return Text(
-      'Expires in $timeStr',
+      '${l10n.translate('expires_in')} $timeStr',
       style: TextStyle(
         fontSize: 12,
         color: isExpiringSoon ? Colors.orange : Colors.grey,
