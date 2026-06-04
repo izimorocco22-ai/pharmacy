@@ -175,20 +175,24 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final isPending = order.isPendingQuote;
     final isSearching = order.status == 'searching';
     final isExpired = order.status == 'expired';
+    final isPaymentVerification = order.status == 'payment_verification';
     
     final color = isPending ? Colors.orange 
                 : isSearching ? AppTheme.primary 
                 : isExpired ? AppTheme.error
+                : isPaymentVerification ? Colors.blueGrey
                 : _statusColor(order.status);
                 
     final icon = isPending ? Icons.local_pharmacy 
                : isSearching ? Icons.search 
                : isExpired ? Icons.timer_off
+               : isPaymentVerification ? Icons.hourglass_top
                : _statusIcon(order.status);
                
     final label = isPending ? l10n.translate('quote_received') 
                 : isSearching ? l10n.translate('searching_pharmacy') 
                 : isExpired ? l10n.translate('order_expired')
+                : isPaymentVerification ? 'Payment Verification'
                 : _statusLabel(order.status, l10n);
                 
     final sub = isPending
@@ -197,7 +201,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             ? l10n.translate('finding_pharmacy_desc')
             : isExpired
                 ? l10n.translate('no_pharmacy_timeout')
-                : (order.orderNumber.isNotEmpty ? order.orderNumber : 'Order #${order.id.substring(order.id.length > 6 ? order.id.length - 6 : 0).toUpperCase()}');
+                : isPaymentVerification
+                    ? 'Your payment proof is being reviewed by the pharmacy'
+                    : (order.orderNumber.isNotEmpty ? order.orderNumber : 'Order #${order.id.substring(order.id.length > 6 ? order.id.length - 6 : 0).toUpperCase()}');
 
     return Container(
       width: double.infinity,
@@ -714,6 +720,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   Widget _buildStatusTimeline(Order order, AppLocalizations l10n) {
     final allStatuses = [
       {'status': 'pending', 'label': 'Order Placed', 'icon': Icons.receipt},
+      {'status': 'payment_verification', 'label': 'Payment Verification', 'icon': Icons.hourglass_top},
       {'status': 'confirmed', 'label': l10n.translate('order_confirmed'), 'icon': Icons.check_circle},
       {'status': 'preparing', 'label': l10n.translate('order_preparing'), 'icon': Icons.medication},
       {'status': 'ready', 'label': l10n.translate('order_ready'), 'icon': Icons.shopping_bag},
@@ -942,6 +949,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       case 'picked_up': return l10n.translate('order_picked_up');
       case 'assigned': return l10n.translate('order_ready');
       case 'confirmed': return l10n.translate('order_confirmed');
+      case 'payment_verification': return 'Payment Verification';
       case 'searching': return l10n.translate('searching_pharmacy');
       default: return l10n.translate('status');
     }

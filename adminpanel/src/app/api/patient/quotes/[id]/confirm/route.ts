@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       paymentMethodDetails: quote.paymentMethod,
       paymentProofUrl: quote.paymentProofUrl,
       paymentStatus: 'pending',
-      status: 'confirmed',
+      status: 'payment_verification',
       deliveryAddress: prescription.deliveryAddress,
       pharmacyAddress: { address: pharmacy.address, location: pharmacy.location },
       estimatedDeliveryTime: new Date(Date.now() + 60 * 60 * 1000),
@@ -72,9 +72,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     try {
       await sendNotificationToUser(
         pharmacy.userId.toString(),
-        'Order Confirmed!',
-        `Patient confirmed your quote. Order ${orderNumber} is ready to prepare.`,
-        { orderId: order._id.toString(), type: 'order_confirmed' }
+        'Payment Proof Received!',
+        `Patient submitted payment proof for order ${orderNumber}. Please verify and confirm.`,
+        { orderId: order._id.toString(), type: 'payment_proof_received' }
       );
     } catch (_) {}
 

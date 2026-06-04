@@ -136,15 +136,15 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(confirmed
-              ? 'Order confirmed! Payment proof submitted 🎉'
-              : 'Failed to confirm order'),
+              ? 'Payment proof submitted! Waiting for pharmacy verification 🕐'
+              : 'Failed to submit order'),
           backgroundColor: confirmed ? AppTheme.success : AppTheme.error,
         ),
       );
       if (confirmed) {
         await provider.fetchOrders();
         if (mounted) {
-          Navigator.pop(context);
+          // Pop back to tracking screen — it will show payment_verification status
           Navigator.pop(context);
         }
       }
@@ -190,7 +190,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
                   const Text(
                     '1. Transfer the amount using the payment details below\n'
                     '2. Take a screenshot or photo of the receipt\n'
-                    '3. Upload it here to confirm your order',
+                    '3. Upload it here — pharmacy will verify and confirm your order',
                     style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.6),
                   ),
                 ],

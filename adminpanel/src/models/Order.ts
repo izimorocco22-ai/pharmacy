@@ -25,7 +25,7 @@ export interface IOrder extends Document {
   };
   paymentProofUrl?: string;
   paymentStatus: 'pending' | 'paid' | 'failed';
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  status: 'pending' | 'payment_verification' | 'confirmed' | 'preparing' | 'ready' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
   deliveryAddress: {
     address: string;
     location?: {
@@ -123,7 +123,7 @@ const OrderSchema = new Schema<IOrder>(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'preparing', 'ready', 'assigned', 'picked_up', 'in_transit', 'delivered', 'cancelled'],
+      enum: ['pending', 'payment_verification', 'confirmed', 'preparing', 'ready', 'assigned', 'picked_up', 'in_transit', 'delivered', 'cancelled'],
       default: 'pending',
     },
     deliveryAddress: {
