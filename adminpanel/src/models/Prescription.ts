@@ -14,6 +14,7 @@ export interface IPrescription extends Document {
     };
   };
   nearbyPharmacies: mongoose.Types.ObjectId[];
+  assignedAt?: Date;
   expiresAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -57,6 +58,9 @@ const PrescriptionSchema = new Schema<IPrescription>(
         ref: 'Pharmacy',
       },
     ],
+    assignedAt: {
+      type: Date,
+    },
     expiresAt: {
       type: Date,
       required: true,

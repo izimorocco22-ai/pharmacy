@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
 
     if (nextPharmacy) {
       prescription.nearbyPharmacies = [nextPharmacy._id];
+      prescription.assignedAt = new Date();
       prescription.status = 'pending';
       await prescription.save();
 

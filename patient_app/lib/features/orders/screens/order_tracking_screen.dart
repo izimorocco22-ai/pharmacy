@@ -169,14 +169,30 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   Widget _buildStatusBanner(Order order) {
     final isPending = order.isPendingQuote;
     final isSearching = order.status == 'searching';
-    final color = isPending ? Colors.orange : isSearching ? AppTheme.primary : _statusColor(order.status);
-    final icon = isPending ? Icons.local_pharmacy : isSearching ? Icons.search : _statusIcon(order.status);
-    final label = isPending ? 'Quote Received!' : isSearching ? 'Searching for Pharmacy...' : _statusLabel(order.status);
+    final isExpired = order.status == 'expired';
+    
+    final color = isPending ? Colors.orange 
+                : isSearching ? AppTheme.primary 
+                : isExpired ? AppTheme.error
+                : _statusColor(order.status);
+                
+    final icon = isPending ? Icons.local_pharmacy 
+               : isSearching ? Icons.search 
+               : isExpired ? Icons.timer_off
+               : _statusIcon(order.status);
+               
+    final label = isPending ? 'Quote Received!' 
+                : isSearching ? 'Searching for Pharmacy...' 
+                : isExpired ? 'Request Expired'
+                : _statusLabel(order.status);
+                
     final sub = isPending
         ? 'Total: ${order.totalAmount.toStringAsFixed(2)} MAD'
         : isSearching
             ? 'Looking for the nearest pharmacy...'
-            : (order.orderNumber.isNotEmpty ? order.orderNumber : 'Order #${order.id.substring(order.id.length > 6 ? order.id.length - 6 : 0).toUpperCase()}');
+            : isExpired
+                ? 'No pharmacy responded within the 1-hour limit.'
+                : (order.orderNumber.isNotEmpty ? order.orderNumber : 'Order #${order.id.substring(order.id.length > 6 ? order.id.length - 6 : 0).toUpperCase()}');
 
     return Container(
       width: double.infinity,
@@ -963,6 +979,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       case 'preparing': return 'Preparing';
       case 'confirmed': return 'Confirmed';
       case 'cancelled': return 'Cancelled';
+      case 'expired': return 'Expired';
       default: return 'Order Placed';
     }
   }

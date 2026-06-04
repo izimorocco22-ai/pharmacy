@@ -24,6 +24,67 @@ export async function GET(request: NextRequest) {
       return errorResponse('Pharmacy profile not found', 404);
     }
 
+    // Auto-check for timeouts before returning requests
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+    const timedOutPrescriptions = await Prescription.find({
+      nearbyPharmacies: pharmacy._id,
+      status: 'pending',
+      assignedAt: { $lt: oneHourAgo },
+    });
+
+    if (timedOutPrescriptions.length > 0) {
+      for (const p of timedOutPrescriptions) {
+        // Exclude this pharmacy by creating a rejected quote
+        await Quote.create({
+          prescriptionId: p._id,
+          patientId: p.patientId,
+          pharmacyId: pharmacy._id,
+          items: [],
+          subtotal: 0,
+          deliveryFee: 0,
+          totalAmount: 0,
+          status: 'rejected',
+          rejectionReason: 'Auto-cancelled: Request timed out (1 hour limit)',
+        });
+
+        // Try to reassign to next pharmacy
+        const triedQuotes = await Quote.find({
+          prescriptionId: p._id,
+          status: { $in: ['rejected', 'accepted'] },
+        }).lean() as any[];
+        const triedIds = triedQuotes.map((q: any) => q.pharmacyId.toString());
+
+        let nextPharmacy = null;
+        if (p.deliveryAddress?.location?.coordinates?.length === 2) {
+          nextPharmacy = await Pharmacy.findOne({
+            _id: { $nin: triedIds },
+            approvalStatus: 'approved',
+            location: {
+              $near: {
+                $geometry: { type: 'Point', coordinates: p.deliveryAddress.location.coordinates },
+              },
+            },
+          }).lean() as any;
+        } else {
+          nextPharmacy = await Pharmacy.findOne({
+            _id: { $nin: triedIds },
+            approvalStatus: 'approved',
+          }).lean() as any;
+        }
+
+        if (nextPharmacy) {
+          p.nearbyPharmacies = [nextPharmacy._id];
+          p.assignedAt = new Date();
+        } else {
+          p.nearbyPharmacies = [];
+          p.status = 'expired'; // Or keep pending but empty
+        }
+        await p.save();
+      }
+    }
+
     // Show pending, quoted and confirmed prescriptions assigned to this pharmacy
     const prescriptions = await Prescription.find({
       nearbyPharmacies: pharmacy._id,
@@ -104,6 +165,7 @@ export async function GET(request: NextRequest) {
           status: p.status,
           existingQuote,
           createdAt: p.createdAt,
+          assignedAt: p.assignedAt || p.createdAt,
           expiresAt: p.expiresAt,
         };
       })

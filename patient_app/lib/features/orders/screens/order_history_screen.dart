@@ -167,18 +167,18 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'delivered':
-        return AppTheme.success;
+        return Colors.green;
       case 'in_transit':
       case 'picked_up':
         return AppTheme.info;
       case 'cancelled':
-        return AppTheme.error;
+      case 'expired':
+        return Colors.red;
       case 'searching':
-        return AppTheme.primary;
       case 'quote_pending':
         return Colors.orange;
       default:
-        return AppTheme.warning;
+        return AppTheme.primary;
     }
   }
 
@@ -195,11 +195,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       case 'cancelled':
         return 'Cancelled';
       case 'searching':
-        return 'Searching Pharmacy';
+        return 'Finding pharmacy';
       case 'quote_pending':
-        return 'Quote Received';
+        return 'Quote received';
+      case 'expired':
+        return 'Cancelled (No Pharmacy)';
       default:
-        return 'Pending';
+        return status;
     }
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../providers/prescription_provider.dart';
@@ -104,9 +105,11 @@ class _PrescriptionRequestsScreenState
 
   Widget _buildRequestCard(BuildContext context, dynamic request) {
     final imageUrl = request['imageUrl']?.toString() ?? '';
-    final createdAt = request['createdAt'] != null
-        ? DateTime.tryParse(request['createdAt'].toString()) ?? DateTime.now()
-        : DateTime.now();
+    final assignedAt = request['assignedAt'] != null
+        ? DateTime.tryParse(request['assignedAt'].toString()) ?? DateTime.now()
+        : (request['createdAt'] != null 
+            ? DateTime.tryParse(request['createdAt'].toString()) ?? DateTime.now()
+            : DateTime.now());
 
     return Card(
       elevation: 2,
@@ -149,24 +152,12 @@ class _PrescriptionRequestsScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Time badge
+                  // Countdown Timer
                   Align(
                     alignment: Alignment.centerRight,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: AppTheme.warning.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        _getTimeAgo(createdAt),
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.warning),
-                      ),
-                    ),
+                    child: _CountdownTimer(assignedAt: assignedAt, onTimeout: () {
+                      context.read<PrescriptionProvider>().fetchPrescriptionRequests();
+                    }),
                   ),
 
                   const SizedBox(height: AppTheme.spacing12),
@@ -344,5 +335,87 @@ class _PrescriptionRequestsScreenState
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
+  }
+}
+
+class _CountdownTimer extends StatefulWidget {
+  final DateTime assignedAt;
+  final VoidCallback onTimeout;
+
+  const _CountdownTimer({required this.assignedAt, required this.onTimeout});
+
+  @override
+  State<_CountdownTimer> createState() => _CountdownTimerState();
+}
+
+class _CountdownTimerState extends State<_CountdownTimer> {
+  Timer? _timer;
+  late Duration _remaining;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateRemaining();
+    _startTimer();
+  }
+
+  void _calculateRemaining() {
+    final now = DateTime.now();
+    final expiry = widget.assignedAt.add(const Duration(hours: 1));
+    _remaining = expiry.difference(now);
+    if (_remaining.isNegative) {
+      _remaining = Duration.zero;
+    }
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _calculateRemaining();
+          if (_remaining.inSeconds <= 0) {
+            timer.cancel();
+            widget.onTimeout();
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final minutes = _remaining.inMinutes.toString().padLeft(2, '0');
+    final seconds = (_remaining.inSeconds % 60).toString().padLeft(2, '0');
+    final isExpiringSoon = _remaining.inMinutes < 10;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: (isExpiringSoon ? AppTheme.error : AppTheme.warning).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.timer_outlined, 
+               size: 14, 
+               color: isExpiringSoon ? AppTheme.error : AppTheme.warning),
+          const SizedBox(width: 4),
+          Text(
+            '$minutes:$seconds',
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isExpiringSoon ? AppTheme.error : AppTheme.warning),
+          ),
+        ],
+      ),
+    );
   }
 }
