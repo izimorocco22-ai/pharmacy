@@ -9,6 +9,7 @@ import '../../../providers/order_provider.dart';
 import '../../../models/order_model.dart';
 import '../../../services/api_service.dart';
 import '../../../core/localization/app_localizations.dart';
+import 'payment_proof_screen.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   final String orderId;
@@ -330,8 +331,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   Future<void> _confirmQuote(Order order) async {
     final l10n = AppLocalizations.of(context)!;
     final paymentMethod = order.paymentMethodDetails;
-    
-    final method = await showDialog<String>(
+
+    final proceed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -342,7 +343,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             Text(l10n.translate('confirm_order')),
             IconButton(
               icon: const Icon(Icons.close, size: 20),
-              onPressed: () => Navigator.pop(_, null),
+              onPressed: () => Navigator.pop(_, false),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
@@ -363,7 +364,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(_, 'online'),
+              onPressed: () => Navigator.pop(_, true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
@@ -376,32 +377,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         ],
       ),
     );
-    if (method == null || !mounted) return;
 
-    // Direct confirmation flow for now as requested
-    _showLoading('Confirming order...');
-    try {
-      final provider = context.read<OrderProvider>();
-      final res = await provider.confirmQuote(
-        quoteId: order.quoteId!,
-        paymentMethod: 'online',
-      );
-      if (mounted) Navigator.pop(context); // hide loading
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(res ? 'Order confirmed! Payment pending 🎉' : 'Failed to confirm order'),
-            backgroundColor: res ? AppTheme.success : AppTheme.error,
-          ),
-        );
-        if (res) {
-          await provider.fetchOrders();
-          if (mounted) Navigator.pop(context); // return to home
-        }
-      }
-    } catch (_) {
-      if (mounted) Navigator.pop(context);
-    }
+    if (proceed != true || !mounted) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentProofScreen(order: order),
+      ),
+    );
   }
 
   Widget _paymentOption({

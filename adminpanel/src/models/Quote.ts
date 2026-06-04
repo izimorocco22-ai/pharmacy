@@ -21,6 +21,7 @@ export interface IQuote extends Document {
     name: string;
     details: string;
   };
+  paymentProofUrl?: string;
   status: 'pending' | 'accepted' | 'rejected' | 'expired';
   rejectionReason?: string;
   expiresAt: Date;
@@ -77,6 +78,10 @@ const QuoteSchema = new Schema<IQuote>(
     paymentMethod: {
       name: { type: String },
       details: { type: String },
+    },
+    paymentProofUrl: {
+      type: String,
+      default: null,
     },
     rejectionReason: {
       type: String,

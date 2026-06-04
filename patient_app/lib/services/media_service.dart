@@ -6,15 +6,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/app_constants.dart';
 
 class MediaService {
-  static Future<MediaUploadResult> uploadImage(File imageFile) async {
-    return _uploadFile(imageFile, 'image');
+  static Future<MediaUploadResult> uploadImage(File imageFile, {String folder = 'mediexpress/images'}) async {
+    return _uploadFile(imageFile, 'image', folder: folder);
   }
 
   static Future<MediaUploadResult> uploadVideo(File videoFile) async {
     return _uploadFile(videoFile, 'video');
   }
 
-  static Future<MediaUploadResult> _uploadFile(File file, String type) async {
+  static Future<MediaUploadResult> _uploadFile(File file, String type, {String? folder}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString(AppConstants.tokenKey);
@@ -59,6 +59,7 @@ class MediaService {
 
       request.headers['Authorization'] = 'Bearer $token';
       request.fields['type'] = type;
+      if (folder != null) request.fields['folder'] = folder;
       request.files.add(await http.MultipartFile.fromPath(
         'file',
         file.path,

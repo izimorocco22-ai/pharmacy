@@ -28,6 +28,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return errorResponse('Quote has expired and is no longer available');
     }
 
+    if (!quote.paymentProofUrl) {
+      return errorResponse('Payment proof is required before confirming the order', 400);
+    }
+
     const prescription = await Prescription.findById(quote.prescriptionId);
     if (!prescription) return errorResponse('Prescription not found', 404);
 
@@ -50,6 +54,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       totalAmount: quote.totalAmount,
       paymentMethod,
       paymentMethodDetails: quote.paymentMethod,
+      paymentProofUrl: quote.paymentProofUrl,
       paymentStatus: 'pending',
       status: 'confirmed',
       deliveryAddress: prescription.deliveryAddress,

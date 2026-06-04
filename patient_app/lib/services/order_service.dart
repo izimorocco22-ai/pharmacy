@@ -122,6 +122,19 @@ class OrderService {
     }
   }
 
+  static Future<String?> uploadPaymentProof(String quoteId, String imageUrl) async {
+    try {
+      final response = await ApiService.post(
+        '/patient/quotes/$quoteId/upload-proof',
+        {'paymentProofUrl': imageUrl},
+      );
+      if (response.success) return imageUrl;
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<bool> cancelQuote(String quoteId) async {
     try {
       final response = await ApiService.post('/patient/quotes/$quoteId/cancel', {});

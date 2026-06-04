@@ -23,6 +23,7 @@ export interface IOrder extends Document {
     name: string;
     details: string;
   };
+  paymentProofUrl?: string;
   paymentStatus: 'pending' | 'paid' | 'failed';
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
   deliveryAddress: {
@@ -110,6 +111,10 @@ const OrderSchema = new Schema<IOrder>(
     paymentMethodDetails: {
       name: { type: String },
       details: { type: String },
+    },
+    paymentProofUrl: {
+      type: String,
+      default: null,
     },
     paymentStatus: {
       type: String,

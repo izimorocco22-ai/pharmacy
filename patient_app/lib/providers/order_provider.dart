@@ -159,6 +159,14 @@ class OrderProvider with ChangeNotifier {
     }
   }
 
+  Future<String?> uploadPaymentProof({required String quoteId, required String imageUrl}) async {
+    try {
+      return await OrderService.uploadPaymentProof(quoteId, imageUrl);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<bool> cancelQuote({required String quoteId}) async {
     try {
       return await OrderService.cancelQuote(quoteId);
