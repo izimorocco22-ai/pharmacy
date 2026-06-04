@@ -138,6 +138,7 @@ export async function GET(request: NextRequest) {
           commissionAmount: q.commissionAmount || 0,
           deliveryFee: q.deliveryFee || 0,
           totalAmount: q.totalAmount || 0,
+          paymentMethodDetails: q.paymentMethod || null,
           status: 'quote_pending',
           orderNumber: 'Pending Quote',
           createdAt: q.createdAt,
