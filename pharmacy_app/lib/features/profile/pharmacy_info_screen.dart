@@ -92,7 +92,6 @@ class _PharmacyInfoScreenState extends State<PharmacyInfoScreen> {
                         // Account details
                         _buildSection('Account Details', Icons.person_outline, [
                           _buildRow(Icons.person_outline, 'Owner Name', _user?['fullName']),
-                          _buildRow(Icons.email_outlined, 'Email', _user?['email']),
                           _buildRow(Icons.phone_outlined, 'Phone', _user?['phone']),
                           _buildRow(Icons.verified_outlined, 'Verified', _user?['isVerified'] == true ? 'Yes' : 'No'),
                         ]),

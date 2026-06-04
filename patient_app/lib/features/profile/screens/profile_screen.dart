@@ -136,11 +136,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: AppTheme.spacing4),
                   Text(
-                    user?.email ?? '',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: AppTheme.spacing4),
-                  Text(
                     user?.phone ?? '',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),

@@ -23,7 +23,6 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
-  late TextEditingController _emailController;
   late TextEditingController _phoneController;
   bool _isLoading = false;
   File? _selectedImage;
@@ -34,14 +33,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     final user = context.read<AuthProvider>().user;
     _nameController = TextEditingController(text: user?.fullName ?? '');
-    _emailController = TextEditingController(text: user?.email ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
@@ -149,13 +146,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 label: 'Full Name',
                 prefixIcon: const Icon(Icons.person_outline),
                 validator: (v) => v == null || v.isEmpty ? 'Name is required' : null,
-              ),
-              const SizedBox(height: AppTheme.spacing16),
-              InputField(
-                controller: _emailController,
-                label: 'Email',
-                prefixIcon: const Icon(Icons.email_outlined),
-                enabled: false,
               ),
               const SizedBox(height: AppTheme.spacing16),
               InputField(

@@ -93,8 +93,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(user?.fullName ?? 'Rider', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: AppTheme.spacing4),
-                Text(user?.email ?? '', style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: AppTheme.spacing4),
                 Text(user?.phone ?? '', style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
