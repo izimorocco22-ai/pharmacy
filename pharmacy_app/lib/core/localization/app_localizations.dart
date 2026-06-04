@@ -88,6 +88,13 @@ class AppLocalizations {
       'new_password': 'New Password',
       'update_password': 'Update Password',
       'logout_confirm': 'Are you sure you want to logout?',
+      'payment_settings': 'Payment Settings',
+      'add_payment_method': 'Add Payment Method',
+      'edit_payment_method': 'Edit Payment Method',
+      'payment_method_name': 'Method Name (e.g. UPI, Bank)',
+      'payment_details': 'Payment Details (e.g. ID, Number)',
+      'no_payment_methods': 'No payment methods added',
+      'delete_payment_confirm': 'Delete this payment method?',
 
       // Dashboard & Navigation
       'dashboard': 'Dashboard',
@@ -230,6 +237,13 @@ class AppLocalizations {
       'new_password': 'Nouveau mot de passe',
       'update_password': 'Mettre à jour le mot de passe',
       'logout_confirm': 'Êtes-vous sûr de vouloir vous déconnecter ?',
+      'payment_settings': 'Paramètres de paiement',
+      'add_payment_method': 'Ajouter un mode de paiement',
+      'edit_payment_method': 'Modifier le mode de paiement',
+      'payment_method_name': 'Nom de la méthode (ex: UPI, Banque)',
+      'payment_details': 'Détails du paiement (ex: ID, Numéro)',
+      'no_payment_methods': 'Aucun mode de paiement ajouté',
+      'delete_payment_confirm': 'Supprimer ce mode de paiement ?',
 
       // Dashboard & Navigation
       'dashboard': 'Tableau de bord',
@@ -372,6 +386,13 @@ class AppLocalizations {
       'new_password': 'كلمة المرور الجديدة',
       'update_password': 'تحديث كلمة المرور',
       'logout_confirm': 'هل أنت متأكد أنك تريد تسجيل الخروج؟',
+      'payment_settings': 'إعدادات الدفع',
+      'add_payment_method': 'إضافة طريقة دفع',
+      'edit_payment_method': 'تعديل طريقة الدفع',
+      'payment_method_name': 'اسم الطريقة (مثال: UPI، بنك)',
+      'payment_details': 'تفاصيل الدفع (مثال: معرف، رقم)',
+      'no_payment_methods': 'لم يتم إضافة طرق دفع',
+      'delete_payment_confirm': 'هل تريد حذف طريقة الدفع هذه؟',
 
       // Dashboard & Navigation
       'dashboard': 'لوحة التحكم',

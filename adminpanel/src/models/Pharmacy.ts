@@ -19,6 +19,10 @@ export interface IPharmacy extends Document {
   acceptanceRate: number;
   approvalStatus: 'pending' | 'approved' | 'rejected';
   adminNote?: string;
+  paymentSettings?: Array<{
+    name: string;
+    details: string;
+  }>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -84,6 +88,12 @@ const PharmacySchema = new Schema<IPharmacy>(
       type: String,
       default: '',
     },
+    paymentSettings: [
+      {
+        name: { type: String, required: true },
+        details: { type: String, required: true },
+      },
+    ],
   },
   {
     timestamps: true,
