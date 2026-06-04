@@ -19,7 +19,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const quote = await Quote.findById(params.id);
     if (!quote) return errorResponse('Quote not found', 404);
-    if (quote.status !== 'pending') return errorResponse('Quote is no longer available');
+    
+    if (quote.status !== 'pending' || (quote.expiresAt && new Date() > new Date(quote.expiresAt))) {
+      if (quote.status === 'pending') {
+        quote.status = 'expired';
+        await quote.save();
+      }
+      return errorResponse('Quote has expired and is no longer available');
+    }
 
     const prescription = await Prescription.findById(quote.prescriptionId);
     if (!prescription) return errorResponse('Prescription not found', 404);

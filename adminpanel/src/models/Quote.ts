@@ -82,7 +82,7 @@ const QuoteSchema = new Schema<IQuote>(
     expiresAt: {
       type: Date,
       required: true,
-      default: () => new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+      default: () => new Date(Date.now() + 60 * 60 * 1000), // 1 hour
     },
   },
   {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../core/theme/app_theme.dart';
@@ -290,16 +291,6 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
     );
   }
 
-  String _expiryText(DateTime expiresAt) {
-    final diff = expiresAt.difference(DateTime.now());
-    if (diff.isNegative) return 'Expired';
-    if (diff.inMinutes < 60) return 'Expires in ${diff.inMinutes}m';
-    return 'Expires in ${diff.inHours}h';
-  }
-
-  bool _isExpiringSoon(DateTime expiresAt) =>
-      expiresAt.difference(DateTime.now()).inMinutes < 30;
-
   // ── UI ────────────────────────────────────────────────────────────────────
 
   @override
@@ -360,6 +351,8 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
     final expiresAt = quote['expiresAt'] != null
         ? DateTime.tryParse(quote['expiresAt'].toString())
         : null;
+    final isExpired = quote['status'] == 'expired' || 
+                     (expiresAt != null && expiresAt.isBefore(DateTime.now()));
 
     return AppCard(
       child: Padding(
@@ -386,12 +379,9 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                       const Text('Quote Received',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       if (expiresAt != null)
-                        Text(
-                          _expiryText(expiresAt),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: _isExpiringSoon(expiresAt) ? Colors.orange : Colors.grey,
-                          ),
+                        _CountdownTimer(
+                          expiresAt: expiresAt,
+                          onTimeout: _fetchQuotes,
                         ),
                     ],
                   ),
@@ -461,37 +451,38 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
             const SizedBox(height: 16),
 
             // Action buttons — same as order_tracking_screen
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _cancelQuote(quote),
-                    icon: const Icon(Icons.close, size: 18),
-                    label: const Text('Cancel'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            if (!isExpired)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _cancelQuote(quote),
+                      icon: const Icon(Icons.close, size: 18),
+                      label: const Text('Cancel'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _confirmQuote(quote),
-                    icon: const Icon(Icons.payment, size: 18),
-                    label: const Text('Pay Now'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _confirmQuote(quote),
+                      icon: const Icon(Icons.payment, size: 18),
+                      label: const Text('Pay Now'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
       ),
@@ -515,6 +506,88 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                   fontSize: isTotal ? 15 : 13,
                   color: isTotal ? AppTheme.primary : AppTheme.textSecondary)),
         ],
+      ),
+    );
+  }
+}
+
+class _CountdownTimer extends StatefulWidget {
+  final DateTime expiresAt;
+  final VoidCallback onTimeout;
+
+  const _CountdownTimer({required this.expiresAt, required this.onTimeout});
+
+  @override
+  State<_CountdownTimer> createState() => _CountdownTimerState();
+}
+
+class _CountdownTimerState extends State<_CountdownTimer> {
+  Timer? _timer;
+  late Duration _remaining;
+  bool _hasCalledTimeout = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateRemaining();
+    if (_remaining.inSeconds > 0) {
+      _startTimer();
+    } else {
+      _remaining = Duration.zero;
+    }
+  }
+
+  void _calculateRemaining() {
+    final now = DateTime.now();
+    _remaining = widget.expiresAt.difference(now);
+    if (_remaining.isNegative) {
+      _remaining = Duration.zero;
+    }
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _calculateRemaining();
+          if (_remaining.inSeconds <= 0 && !_hasCalledTimeout) {
+            _hasCalledTimeout = true;
+            timer.cancel();
+            widget.onTimeout();
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_remaining.inSeconds <= 0) {
+      return const Text(
+        'Expired',
+        style: TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold),
+      );
+    }
+
+    final hours = _remaining.inHours;
+    final minutes = (_remaining.inMinutes % 60).toString().padLeft(2, '0');
+    final seconds = (_remaining.inSeconds % 60).toString().padLeft(2, '0');
+    final isExpiringSoon = _remaining.inMinutes < 15;
+
+    String timeStr = hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+
+    return Text(
+      'Expires in $timeStr',
+      style: TextStyle(
+        fontSize: 12,
+        color: isExpiringSoon ? Colors.orange : Colors.grey,
+        fontWeight: isExpiringSoon ? FontWeight.bold : FontWeight.normal,
       ),
     );
   }
