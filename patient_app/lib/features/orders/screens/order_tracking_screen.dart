@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../core/theme/app_theme.dart';
@@ -213,6 +214,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white.withValues(alpha: 0.85)),
               textAlign: TextAlign.center),
+          if (isPending && order.expiresAt != null) ...[
+            const SizedBox(height: AppTheme.spacing8),
+            _CountdownTimer(
+              expiresAt: order.expiresAt!,
+              onTimeout: () => context.read<OrderProvider>().trackOrder(widget.orderId),
+              isBanner: true,
+            ),
+          ],
         ],
       ),
     );
@@ -990,5 +999,117 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final ampm = date.hour >= 12 ? 'PM' : 'AM';
     final min = date.minute.toString().padLeft(2, '0');
     return '${date.day} ${months[date.month - 1]} ${date.year}, $hour:$min $ampm';
+  }
+}
+
+class _CountdownTimer extends StatefulWidget {
+  final DateTime expiresAt;
+  final VoidCallback onTimeout;
+  final bool isBanner;
+
+  const _CountdownTimer({
+    required this.expiresAt,
+    required this.onTimeout,
+    this.isBanner = false,
+  });
+
+  @override
+  State<_CountdownTimer> createState() => _CountdownTimerState();
+}
+
+class _CountdownTimerState extends State<_CountdownTimer> {
+  Timer? _timer;
+  late Duration _remaining;
+  bool _hasCalledTimeout = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateRemaining();
+    if (_remaining.inSeconds > 0) {
+      _startTimer();
+    } else {
+      _remaining = Duration.zero;
+    }
+  }
+
+  void _calculateRemaining() {
+    final now = DateTime.now();
+    _remaining = widget.expiresAt.difference(now);
+    if (_remaining.isNegative) {
+      _remaining = Duration.zero;
+    }
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _calculateRemaining();
+          if (_remaining.inSeconds <= 0 && !_hasCalledTimeout) {
+            _hasCalledTimeout = true;
+            timer.cancel();
+            widget.onTimeout();
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_remaining.inSeconds <= 0) {
+      return Text(
+        'Expired',
+        style: TextStyle(
+          fontSize: 13,
+          color: widget.isBanner ? Colors.white : Colors.orange,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    }
+
+    final hours = _remaining.inHours;
+    final minutes = (_remaining.inMinutes % 60).toString().padLeft(2, '0');
+    final seconds = (_remaining.inSeconds % 60).toString().padLeft(2, '0');
+    final isExpiringSoon = _remaining.inMinutes < 15;
+
+    String timeStr = hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: widget.isBanner 
+            ? Colors.black.withValues(alpha: 0.1) 
+            : (isExpiringSoon ? Colors.orange.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(20),
+        border: widget.isBanner ? Border.all(color: Colors.white.withValues(alpha: 0.3)) : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.timer_outlined,
+            size: 14,
+            color: widget.isBanner ? Colors.white : (isExpiringSoon ? Colors.orange : Colors.grey),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Expires in $timeStr',
+            style: TextStyle(
+              fontSize: 12,
+              color: widget.isBanner ? Colors.white : (isExpiringSoon ? Colors.orange : Colors.grey),
+              fontWeight: isExpiringSoon || widget.isBanner ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

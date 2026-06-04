@@ -116,26 +116,37 @@ export async function GET(
 
     const prescription = order.prescriptionId as any;
 
+    // Check if there's a pending quote to show confirmation UI in patient app
+    let pendingQuote = null;
+    if (prescription && order.status === 'searching') {
+      pendingQuote = await Quote.findOne({
+        prescriptionId: prescription._id || prescription,
+        status: 'pending'
+      }).lean() as any;
+    }
+
     const result = {
       id: order._id?.toString(),
       orderNumber: order.orderNumber || '',
-      status: order.status,
+      status: pendingQuote ? 'quoted' : order.status,
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,
-      subtotal: order.subtotal || 0,
-      commissionAmount: order.commissionAmount || 0,
-      deliveryFee: order.deliveryFee || 0,
-      totalAmount: order.totalAmount || 0,
+      subtotal: pendingQuote?.subtotal || order.subtotal || 0,
+      commissionAmount: pendingQuote?.commissionAmount || order.commissionAmount || 0,
+      commissionRate: pendingQuote?.commissionRate || order.commissionRate || 0,
+      deliveryFee: pendingQuote?.deliveryFee || order.deliveryFee || 0,
+      totalAmount: pendingQuote?.totalAmount || order.totalAmount || 0,
       createdAt: order.createdAt,
       deliveredAt: order.deliveredAt,
       estimatedDeliveryTime: order.estimatedDeliveryTime,
+      expiresAt: pendingQuote?.expiresAt || prescription?.assignedAt ? new Date(new Date(prescription.assignedAt).getTime() + 60 * 60 * 1000) : null,
       // Patient
       patient: patientInfo,
       // Pharmacy
       pharmacy: order.pharmacyId ? {
         name: (order.pharmacyId as any).pharmacyName || '',
         address: (order.pharmacyId as any).address || '',
-      } : null,
+      } : (pendingQuote ? { name: 'Quote Received', address: '' } : null),
       // Rider
       rider: riderInfo,
       // Addresses
@@ -148,8 +159,10 @@ export async function GET(
         imageUrl: prescription.imageUrl || '',
         medicines: prescription.medicines || [],
       } : null,
-      // Items from confirmed quote
-      items: order.items || [],
+      // Items from confirmed quote or pending quote
+      items: pendingQuote?.items || order.items || [],
+      quoteId: pendingQuote?._id?.toString(),
+      _isPendingQuote: !!pendingQuote,
       // Full quote history
       quoteHistory,
     };

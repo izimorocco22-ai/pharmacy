@@ -153,12 +153,13 @@ class _PrescriptionRequestsScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Countdown Timer
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: _CountdownTimer(assignedAt: assignedAt, onTimeout: () {
-                      context.read<PrescriptionProvider>().fetchPrescriptionRequests(silent: true);
-                    }),
-                  ),
+                  if (request['existingQuote'] == null && request['status'] == 'pending')
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _CountdownTimer(assignedAt: assignedAt, onTimeout: () {
+                        context.read<PrescriptionProvider>().fetchPrescriptionRequests(silent: true);
+                      }),
+                    ),
 
                   const SizedBox(height: AppTheme.spacing12),
 
