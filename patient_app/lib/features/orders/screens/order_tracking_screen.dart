@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../core/theme/app_theme.dart';
@@ -10,6 +11,7 @@ import '../../../models/order_model.dart';
 import '../../../services/api_service.dart';
 import '../../../core/localization/app_localizations.dart';
 import 'payment_proof_screen.dart';
+import 'rider_tracking_screen.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   final String orderId;
@@ -122,6 +124,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 children: [
                   _buildStatusBanner(order, l10n),
                   const SizedBox(height: AppTheme.spacing16),
+                  // Track Rider button
+                  if (order.status == 'in_transit' || order.status == 'picked_up') ...[
+                    _buildTrackRiderButton(order),
+                    const SizedBox(height: AppTheme.spacing16),
+                  ],
                   // Rejection History
                   if (order.quoteHistory.any((q) => q.status == 'rejected' && q.rejectionReason.isNotEmpty)) ...[
                     _buildRejectionHistory(order.quoteHistory),
@@ -172,6 +179,49 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildTrackRiderButton(Order order) {
+    // Parse delivery coords from deliveryAddress
+    LatLng? deliveryLatLng;
+    try {
+      final loc = order.deliveryAddress?['location'];
+      if (loc != null) {
+        final coords = loc['coordinates'] as List?;
+        if (coords != null && coords.length == 2) {
+          deliveryLatLng = LatLng(
+            (coords[1] as num).toDouble(),
+            (coords[0] as num).toDouble(),
+          );
+        }
+      }
+    } catch (_) {}
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RiderTrackingScreen(
+              orderId: order.id,
+              deliveryAddress:
+                  order.deliveryAddress?['address']?.toString() ?? '',
+              deliveryLocation: deliveryLatLng,
+            ),
+          ),
+        ),
+        icon: const Icon(Icons.delivery_dining, size: 20),
+        label: const Text('Track Rider'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+        ),
       ),
     );
   }
