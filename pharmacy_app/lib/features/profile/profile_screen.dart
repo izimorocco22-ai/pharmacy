@@ -9,7 +9,6 @@ import '../../providers/language_provider.dart';
 import '../../core/localization/app_localizations.dart';
 import 'wallet_screen.dart';
 import 'pharmacy_info_screen.dart';
-import 'payment_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -84,12 +83,6 @@ class ProfileScreen extends StatelessWidget {
               Icons.store,
               l10n.translate('pharmacy_info'),
               () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PharmacyInfoScreen())),
-            ),
-            _buildMenuItem(
-              context,
-              Icons.payment,
-              l10n.translate('payment_settings'),
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentSettingsScreen())),
             ),
             _buildMenuItem(
               context,
