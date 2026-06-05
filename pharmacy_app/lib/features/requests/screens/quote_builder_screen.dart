@@ -5,8 +5,6 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/input_field.dart';
 import '../../../providers/prescription_provider.dart';
-import '../../../services/pharmacy_service.dart';
-import '../../../core/localization/app_localizations.dart';
 
 class QuoteBuilderScreen extends StatefulWidget {
   final dynamic prescription;
@@ -28,32 +26,12 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
   bool _isLoading = false;
   bool _isDirectMode = false;
 
-  List<Map<String, String>> _paymentMethods = [];
-  Map<String, String>? _selectedPaymentMethod;
-  bool _isLoadingPayments = false;
+  final TextEditingController _paymentDetailsController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadExistingQuote();
-    _loadPaymentMethods();
-  }
-
-  Future<void> _loadPaymentMethods() async {
-    setState(() => _isLoadingPayments = true);
-    final response = await PharmacyService.getPaymentSettings();
-    if (response.success && response.data != null) {
-      setState(() {
-        _paymentMethods = List<Map<String, dynamic>>.from(response.data)
-            .map((e) => e.map((key, value) => MapEntry(key, value.toString())))
-            .toList();
-        
-        if (_paymentMethods.isNotEmpty) {
-          _selectedPaymentMethod = _paymentMethods.first;
-        }
-      });
-    }
-    setState(() => _isLoadingPayments = false);
   }
 
   @override
@@ -62,6 +40,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
     for (final c in _qtyControllers) c.dispose();
     for (final c in _priceControllers) c.dispose();
     _directTotalController.dispose();
+    _paymentDetailsController.dispose();
     super.dispose();
   }
 
@@ -186,7 +165,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
           prescriptionId: prescriptionId,
           items: itemsToSend,
           deliveryFee: 0,
-          paymentMethod: _selectedPaymentMethod!,
+          paymentMethod: {'name': '', 'details': _paymentDetailsController.text.trim()},
         );
 
     setState(() => _isLoading = false);
@@ -338,7 +317,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
             PrimaryButton(
               text: _isEdit ? 'Update Quote' : 'Send Quote',
               icon: _isEdit ? Icons.update : Icons.send,
-              onPressed: (_isLoading || _selectedPaymentMethod == null) ? null : _submit,
+              onPressed: (_isLoading || _paymentDetailsController.text.trim().isEmpty) ? null : _submit,
               isLoading: _isLoading,
             ),
             const SizedBox(height: AppTheme.spacing16),
@@ -511,85 +490,18 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
   }
 
   Widget _buildPaymentSelection() {
-    final l10n = AppLocalizations.of(context)!;
-    if (_isLoadingPayments) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_paymentMethods.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.warning.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppTheme.warning.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            const Icon(Icons.warning_amber_rounded, color: AppTheme.warning),
-            const SizedBox(height: 8),
-            Text(
-              l10n.translate('no_payment_methods'),
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextButton(
-              onPressed: () async {
-                await Navigator.pushNamed(context, '/payment-settings');
-                _loadPaymentMethods();
-              },
-              child: Text(l10n.translate('payment_settings')),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.translate('select_payment_method'),
+        Text('Payment Details',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        ..._paymentMethods.map((method) {
-          final isSelected = _selectedPaymentMethod == method;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: InkWell(
-              onTap: () => setState(() => _selectedPaymentMethod = method),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.primary.withOpacity(0.05) : AppTheme.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected ? AppTheme.primary : AppTheme.divider,
-                    width: isSelected ? 2 : 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                      color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(method['name'] ?? '',
-                              style: const TextStyle(fontWeight: FontWeight.bold)),
-                          Text(method['details'] ?? '',
-                              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
+        InputField(
+          controller: _paymentDetailsController,
+          label: 'Payment Details',
+          prefixIcon: Icons.info_outline,
+          onChanged: (_) => setState(() {}),
+        ),
       ],
     );
   }
