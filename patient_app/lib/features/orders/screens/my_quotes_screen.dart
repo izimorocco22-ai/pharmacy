@@ -422,7 +422,6 @@ class _QuotePaymentCardState extends State<_QuotePaymentCard> {
 
   @override
   Widget build(BuildContext context) {
-    final name = widget.paymentMethod['name']?.toString() ?? '';
     final details = widget.paymentMethod['details']?.toString() ?? '';
     return Container(
       padding: const EdgeInsets.all(12),
@@ -436,15 +435,8 @@ class _QuotePaymentCardState extends State<_QuotePaymentCard> {
           const Icon(Icons.payment, color: AppTheme.primary, size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                Text(details,
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-              ],
-            ),
+            child: Text(details,
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
           ),
           if (details.isNotEmpty)
             GestureDetector(

@@ -362,7 +362,6 @@ class _ProofPaymentCardState extends State<_ProofPaymentCard> {
 
   @override
   Widget build(BuildContext context) {
-    final name = widget.paymentMethod['name']?.toString() ?? '';
     final details = widget.paymentMethod['details']?.toString() ?? '';
     return Container(
       padding: const EdgeInsets.all(14),
@@ -383,16 +382,8 @@ class _ProofPaymentCardState extends State<_ProofPaymentCard> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 2),
-                Text(details,
-                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
-              ],
-            ),
+            child: Text(details,
+                style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
           ),
           if (details.isNotEmpty)
             GestureDetector(
