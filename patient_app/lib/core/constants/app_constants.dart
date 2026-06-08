@@ -2,7 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConstants {
   // API Configuration
-  static String get baseUrl => dotenv.env['API_BASE_URL'] ?? 'https://pharmacy-five-eosin.vercel.app/api';
+  static String get baseUrl => dotenv.env['API_BASE_URL'] ?? 'https://pharmacy-zeta-seven.vercel.app/api';
   
   // Timeouts
   static const Duration connectionTimeout = Duration(seconds: 30);
