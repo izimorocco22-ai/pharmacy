@@ -174,4 +174,30 @@ class OrderProvider with ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> cancelOrder({required String orderId}) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final res = await OrderService.cancelOrder(orderId);
+      if (res) {
+        // Update local order status if it's the current one
+        if (_currentOrder?.id == orderId) {
+          _currentOrder = _currentOrder?.copyWith(status: 'cancelled');
+        }
+        // Update in history list
+        final index = _orders.indexWhere((o) => o.id == orderId);
+        if (index != -1) {
+          _orders[index] = _orders[index].copyWith(status: 'cancelled');
+        }
+      }
+      _isLoading = false;
+      notifyListeners();
+      return res;
+    } catch (_) {
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
 }

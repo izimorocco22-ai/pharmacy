@@ -287,9 +287,65 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               isBanner: true,
             ),
           ],
+          if (isSearching) ...[
+            const SizedBox(height: AppTheme.spacing16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _cancelOrder(order),
+                icon: const Icon(Icons.close, size: 18, color: Colors.white),
+                label: const Text('Cancel Request', style: TextStyle(color: Colors.white)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _cancelOrder(Order order) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Cancel Request'),
+        content: const Text('Are you sure you want to cancel this pharmacy search?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No, keep searching')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    _showLoading('Cancelling...');
+    try {
+      final provider = context.read<OrderProvider>();
+      final res = await provider.cancelOrder(orderId: order.id);
+      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res ? 'Request cancelled successfully' : 'Failed to cancel request'),
+            backgroundColor: res ? Colors.orange : Colors.red,
+          ),
+        );
+        if (res) {
+          await provider.fetchOrders();
+          if (mounted) Navigator.pop(context);
+        }
+      }
+    } catch (_) {
+      if (mounted) Navigator.pop(context);
+    }
   }
 
   Widget _buildRejectionHistory(List<QuoteHistoryItem> history) {

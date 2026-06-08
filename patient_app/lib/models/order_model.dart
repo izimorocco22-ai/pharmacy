@@ -122,6 +122,40 @@ class Order {
       quoteHistory: quoteHistoryRaw,
     );
   }
+
+  Order copyWith({
+    String? status,
+  }) {
+    return Order(
+      id: id,
+      orderNumber: orderNumber,
+      pharmacyName: pharmacyName,
+      pharmacyPhone: pharmacyPhone,
+      pharmacyAddress: pharmacyAddress,
+      riderName: riderName,
+      totalAmount: totalAmount,
+      subtotal: subtotal,
+      commissionRate: commissionRate,
+      commissionAmount: commissionAmount,
+      deliveryFee: deliveryFee,
+      status: status ?? this.status,
+      paymentMethod: paymentMethod,
+      paymentMethodDetails: paymentMethodDetails,
+      paymentProofUrl: paymentProofUrl,
+      createdAt: createdAt,
+      estimatedDeliveryTime: estimatedDeliveryTime,
+      expiresAt: expiresAt,
+      items: items,
+      rider: rider,
+      prescriptionId: prescriptionId,
+      quoteId: quoteId,
+      deliveryAddress: deliveryAddress,
+      prescriptionImage: prescriptionImage,
+      isPendingQuote: isPendingQuote,
+      medicines: medicines,
+      quoteHistory: quoteHistory,
+    );
+  }
 }
 
 class QuoteHistoryItem {
