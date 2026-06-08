@@ -247,7 +247,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final label = isPending ? l10n.translate('quote_received') 
                 : isSearching ? l10n.translate('searching_pharmacy') 
                 : isExpired ? l10n.translate('order_expired')
-                : isPaymentVerification ? 'Payment Verification'
+                : isPaymentVerification ? l10n.translate('payment_verification')
                 : _statusLabel(order.status, l10n);
                 
     final sub = isPending
@@ -912,14 +912,46 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   Widget _buildStatusTimeline(Order order, AppLocalizations l10n) {
     final allStatuses = [
-      {'status': 'pending', 'label': 'Order Placed', 'icon': Icons.receipt},
-      {'status': 'payment_verification', 'label': 'Payment Verification', 'icon': Icons.hourglass_top},
-      {'status': 'confirmed', 'label': l10n.translate('order_confirmed'), 'icon': Icons.check_circle},
-      {'status': 'preparing', 'label': l10n.translate('order_preparing'), 'icon': Icons.medication},
-      {'status': 'ready', 'label': l10n.translate('order_ready'), 'icon': Icons.shopping_bag},
-      {'status': 'picked_up', 'label': l10n.translate('order_picked_up'), 'icon': Icons.shopping_bag},
-      {'status': 'in_transit', 'label': l10n.translate('order_on_way'), 'icon': Icons.local_shipping},
-      {'status': 'delivered', 'label': l10n.translate('order_delivered'), 'icon': Icons.done_all},
+      {
+        'status': 'pending',
+        'label': l10n.translate('order_placed'),
+        'icon': Icons.receipt
+      },
+      {
+        'status': 'payment_verification',
+        'label': l10n.translate('payment_verification'),
+        'icon': Icons.hourglass_top
+      },
+      {
+        'status': 'confirmed',
+        'label': l10n.translate('order_confirmed'),
+        'icon': Icons.check_circle
+      },
+      {
+        'status': 'preparing',
+        'label': l10n.translate('order_preparing'),
+        'icon': Icons.medication
+      },
+      {
+        'status': 'ready',
+        'label': l10n.translate('order_ready'),
+        'icon': Icons.shopping_bag
+      },
+      {
+        'status': 'picked_up',
+        'label': l10n.translate('order_picked_up'),
+        'icon': Icons.shopping_bag
+      },
+      {
+        'status': 'in_transit',
+        'label': l10n.translate('order_on_way'),
+        'icon': Icons.local_shipping
+      },
+      {
+        'status': 'delivered',
+        'label': l10n.translate('order_delivered'),
+        'icon': Icons.done_all
+      },
     ];
 
     if (order.status == 'cancelled') {
@@ -941,7 +973,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       );
     }
 
-    final currentIndex = allStatuses.indexWhere((s) => s['status'] == order.status);
+    final statusMapping = {
+      'searching': 0,
+      'quoted': 0,
+      'pending': 0,
+      'payment_verification': 1,
+      'confirmed': 2,
+      'preparing': 3,
+      'ready': 4,
+      'assigned': 4, // Rider assigned but not yet picked up
+      'picked_up': 5,
+      'in_transit': 6,
+      'delivered': 7,
+    };
+
+    final currentIndex = statusMapping[order.status] ?? -1;
 
     return AppCard(
       child: Padding(
@@ -949,11 +995,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.translate('status'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(l10n.translate('status'),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: AppTheme.spacing16),
             ...List.generate(allStatuses.length, (i) {
-              final done = i <= currentIndex;
-              final active = i == currentIndex;
+              final done = currentIndex >= i;
+              final active = currentIndex == i;
               final isLast = i == allStatuses.length - 1;
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -965,12 +1015,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                         decoration: BoxDecoration(
                           color: done ? AppTheme.primary : AppTheme.background,
                           shape: BoxShape.circle,
-                          border: Border.all(color: done ? AppTheme.primary : AppTheme.divider, width: 2),
+                          border: Border.all(
+                              color: done ? AppTheme.primary : AppTheme.divider,
+                              width: 2),
                         ),
-                        child: Icon(allStatuses[i]['icon'] as IconData, size: 16, color: done ? Colors.white : AppTheme.textHint),
+                        child: Icon(allStatuses[i]['icon'] as IconData,
+                            size: 16,
+                            color: done ? Colors.white : AppTheme.textHint),
                       ),
                       if (!isLast)
-                        Container(width: 2, height: 32, color: done ? AppTheme.primary : AppTheme.divider),
+                        Container(
+                            width: 2,
+                            height: 32,
+                            color: done && (currentIndex > i)
+                                ? AppTheme.primary
+                                : AppTheme.divider),
                     ],
                   ),
                   const SizedBox(width: AppTheme.spacing12),
@@ -979,8 +1038,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     child: Text(
                       allStatuses[i]['label'] as String,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: active ? AppTheme.primary : done ? AppTheme.textPrimary : AppTheme.textHint,
-                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                            color: active
+                                ? AppTheme.primary
+                                : done
+                                    ? AppTheme.textPrimary
+                                    : AppTheme.textHint,
+                            fontWeight:
+                                active ? FontWeight.bold : FontWeight.normal,
                           ),
                     ),
                   ),
