@@ -11,6 +11,11 @@ export async function POST(request: NextRequest) {
       return errorResponse('Phone and OTP are required');
     }
 
+    // Google Play Console Review Bypass
+    if (phone === '+1234567890' && otp === '123456') {
+      return successResponse({ verified: true }, 'Test OTP verified successfully');
+    }
+
     const useTwilioVerify = !!process.env.TWILIO_VERIFY_SERVICE_SID;
     let result: { valid: boolean; message: string };
 

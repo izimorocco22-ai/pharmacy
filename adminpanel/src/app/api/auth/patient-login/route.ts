@@ -32,7 +32,10 @@ export async function POST(request: NextRequest) {
     const useTwilioVerify = !!process.env.TWILIO_VERIFY_SERVICE_SID;
     let isValid = false;
 
-    if (useTwilioVerify) {
+    // Google Play Console Review Bypass
+    if (phone === '+1234567890' && otp === '123456') {
+      isValid = true;
+    } else if (useTwilioVerify) {
       isValid = await verifyOTPSMS(phone, otp);
     } else {
       const result = await verifyOTP(phone, otp, true);
