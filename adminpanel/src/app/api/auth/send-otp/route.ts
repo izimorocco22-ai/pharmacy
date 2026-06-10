@@ -11,17 +11,10 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const { phone: rawPhone, role } = await request.json();
+    const { phone, role } = await request.json();
 
-    if (!rawPhone) {
+    if (!phone) {
       return errorResponse('Phone number is required');
-    }
-
-    const phone = rawPhone.trim();
-
-    // Google Play Console Review Bypass
-    if (phone === '+1234567890' || phone === '1234567890') {
-      return successResponse({}, 'OTP sent to your phone (Test Mode)');
     }
 
     const existingUser = await User.findOne({ phone, ...(role ? { role } : {}) });

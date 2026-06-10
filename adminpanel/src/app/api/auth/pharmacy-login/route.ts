@@ -13,13 +13,11 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const { phone: rawPhone, otp } = await request.json();
+    const { phone, otp } = await request.json();
 
-    if (!rawPhone || !otp) {
+    if (!phone || !otp) {
       return errorResponse('Phone and OTP are required');
     }
-
-    const phone = rawPhone.trim();
 
     const user = await User.findOne({ phone, role: 'pharmacy' });
     if (!user) {
@@ -31,9 +29,7 @@ export async function POST(request: NextRequest) {
     let isValid = false;
 
     // Google Play Console Review Bypass
-    const isTestAccount = (phone === '+1234567890' || phone === '1234567890') && otp === '123456';
-    
-    if (isTestAccount) {
+    if (phone === '+1234567890' && otp === '123456') {
       isValid = true;
     } else if (useTwilioVerify) {
       isValid = await verifyOTPSMS(phone, otp);

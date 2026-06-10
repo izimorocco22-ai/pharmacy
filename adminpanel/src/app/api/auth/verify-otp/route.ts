@@ -5,16 +5,14 @@ import { verifyOTPSMS } from '@/lib/sms';
 
 export async function POST(request: NextRequest) {
   try {
-    const { phone: rawPhone, otp } = await request.json();
+    const { phone, otp } = await request.json();
 
-    if (!rawPhone || !otp) {
+    if (!phone || !otp) {
       return errorResponse('Phone and OTP are required');
     }
 
-    const phone = rawPhone.trim();
-
     // Google Play Console Review Bypass
-    if ((phone === '+1234567890' || phone === '1234567890') && otp === '123456') {
+    if (phone === '+1234567890' && otp === '123456') {
       return successResponse({ verified: true }, 'Test OTP verified successfully');
     }
 
