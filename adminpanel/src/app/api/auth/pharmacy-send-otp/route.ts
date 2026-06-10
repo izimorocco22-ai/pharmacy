@@ -11,15 +11,22 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const { phone } = await request.json();
+    const { phone: rawPhone } = await request.json();
 
-    if (!phone) {
+    if (!rawPhone) {
       return errorResponse('Phone number is required');
     }
+
+    const phone = rawPhone.trim();
 
     const user = await User.findOne({ phone, role: 'pharmacy' });
     if (!user) {
       return errorResponse('No pharmacy account found with this phone number', 404);
+    }
+
+    // Google Play Console Review Bypass
+    if (phone === '+1234567890' || phone === '1234567890') {
+      return successResponse({}, 'OTP sent successfully (Test Mode)');
     }
 
     const otp = generateOTP();
