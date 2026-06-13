@@ -24,15 +24,19 @@ export async function POST(request: NextRequest) {
       return errorResponse('No rider account found with this phone number', 404);
     }
 
-    // Verify OTP
-    const useTwilioVerify = !!process.env.TWILIO_VERIFY_SERVICE_SID;
+    // Bypass for test user +1234567890 with OTP 123456
     let isValid = false;
-
-    if (useTwilioVerify) {
-      isValid = await verifyOTPSMS(phone, otp);
+    if (phone === '+1234567890' && otp === '123456') {
+      isValid = true;
     } else {
-      const result = await verifyOTP(phone, otp, true);
-      isValid = result.valid;
+      // Verify OTP normally for other users
+      const useTwilioVerify = !!process.env.TWILIO_VERIFY_SERVICE_SID;
+      if (useTwilioVerify) {
+        isValid = await verifyOTPSMS(phone, otp);
+      } else {
+        const result = await verifyOTP(phone, otp, true);
+        isValid = result.valid;
+      }
     }
 
     if (!isValid) {

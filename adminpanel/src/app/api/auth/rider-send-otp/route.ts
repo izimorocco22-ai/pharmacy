@@ -17,6 +17,17 @@ export async function POST(request: NextRequest) {
       return errorResponse('Phone number is required');
     }
 
+    // Bypass for test user +1234567890 - always return success with fixed OTP
+    if (phone === '+1234567890') {
+      const testUser = await User.findOne({ phone, role: 'rider' });
+      if (testUser) {
+        return successResponse(
+          { otp: '123456' },
+          'OTP sent successfully'
+        );
+      }
+    }
+
     const user = await User.findOne({ phone, role: 'rider' });
     if (!user) {
       return errorResponse('No rider account found with this phone number', 404);
