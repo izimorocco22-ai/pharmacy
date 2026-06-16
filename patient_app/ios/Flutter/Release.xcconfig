@@ -1,1 +1,3 @@
+#include? "Pods/Target Support Files/Pods-OrdoGo/Pods-OrdoGo.release.xcconfig"
+#include? "Pods/Target Support Files/Pods-OrdoGo/Pods-OrdoGo.profile.xcconfig"
 #include "Generated.xcconfig"

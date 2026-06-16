@@ -1,1 +1,2 @@
+#include? "Pods/Target Support Files/Pods-OrdoGo/Pods-OrdoGo.debug.xcconfig"
 #include "Generated.xcconfig"
