@@ -17,6 +17,8 @@ import 'features/auth/screens/rejected_screen.dart';
 import 'features/main/screens/main_screen.dart';
 import 'features/deliveries/screens/delivery_detail_screen.dart';
 import 'features/deliveries/screens/navigation_screen.dart';
+import 'features/profile/screens/wallet_screen.dart';
+import 'features/profile/screens/order_history_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +61,8 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/home': (context) => const MainScreen(),
           '/pending-approval': (context) => const PendingApprovalScreen(),
+          '/wallet': (context) => const WalletScreen(),
+          '/order-history': (context) => const OrderHistoryScreen(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/rejected') {

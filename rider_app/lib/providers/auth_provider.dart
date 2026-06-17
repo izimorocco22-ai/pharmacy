@@ -109,9 +109,9 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> refreshProfile() async {
     try {
-      final res = await ApiService.get('/patients/profile');
+      final res = await ApiService.get('/rider/profile');
       if (res.success && res.data != null) {
-        final userData = res.data['user'];
+        final userData = res.data['rider'];
         _user = User.fromJson(userData);
         AuthService.saveUserData(userData);
         notifyListeners();

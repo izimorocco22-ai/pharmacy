@@ -294,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
-                            onPressed: () {},
+                            onPressed: () => Navigator.pushNamed(context, '/wallet'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppTheme.primary,
                               backgroundColor: Colors.white,
