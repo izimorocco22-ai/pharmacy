@@ -161,6 +161,28 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Permanently deletes the pharmacy account on the backend, then clears the
+  /// local session. Returns true on success.
+  Future<bool> deleteAccount() async {
+    try {
+      final response = await ApiService.delete('/pharmacy/profile');
+      if (response.success) {
+        await AuthService.logout();
+        _user = null;
+        _error = null;
+        notifyListeners();
+        return true;
+      }
+      _error = response.message;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _error = 'Failed to delete account';
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> updateProfile({required String fullName, required String phone}) async {
     try {
       final response = await ApiService.put('/pharmacy/profile', {

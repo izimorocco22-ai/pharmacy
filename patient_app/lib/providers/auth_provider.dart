@@ -137,6 +137,28 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Permanently deletes the current account on the backend, then clears
+  /// local session. Returns true on success.
+  Future<bool> deleteAccount() async {
+    try {
+      final response = await ApiService.delete('/patients/profile');
+      if (response.success) {
+        await AuthService.logout();
+        _user = null;
+        _error = null;
+        notifyListeners();
+        return true;
+      }
+      _error = response.message;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _error = 'Failed to delete account';
+      notifyListeners();
+      return false;
+    }
+  }
+
   void clearError() {
     _error = null;
     notifyListeners();

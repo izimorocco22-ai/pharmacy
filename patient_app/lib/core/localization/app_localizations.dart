@@ -31,6 +31,11 @@ class AppLocalizations {
       'notifications': 'Notifications',
       'about': 'About',
       'logout_confirm': 'Are you sure you want to logout?',
+      'delete_account': 'Delete Account',
+      'delete': 'Delete',
+      'delete_account_confirm': 'This will permanently delete your account and all your data. This action cannot be undone. Are you sure?',
+      'account_deleted': 'Your account has been deleted',
+      'delete_account_failed': 'Failed to delete account',
       
       // Home & General
       'home': 'Home',
@@ -131,6 +136,11 @@ class AppLocalizations {
       'notifications': 'Notifications',
       'about': 'À propos',
       'logout_confirm': 'Êtes-vous sûr de vouloir vous déconnecter ?',
+      'delete_account': 'Supprimer le compte',
+      'delete': 'Supprimer',
+      'delete_account_confirm': 'Cela supprimera définitivement votre compte et toutes vos données. Cette action est irréversible. Êtes-vous sûr ?',
+      'account_deleted': 'Votre compte a été supprimé',
+      'delete_account_failed': 'Échec de la suppression du compte',
       
       // Home & General
       'home': 'Accueil',
@@ -231,6 +241,11 @@ class AppLocalizations {
       'notifications': 'التنبيهات',
       'about': 'حول',
       'logout_confirm': 'هل أنت متأكد أنك تريد تسجيل الخروج؟',
+      'delete_account': 'حذف الحساب',
+      'delete': 'حذف',
+      'delete_account_confirm': 'سيؤدي هذا إلى حذف حسابك وجميع بياناتك نهائيًا. لا يمكن التراجع عن هذا الإجراء. هل أنت متأكد؟',
+      'account_deleted': 'تم حذف حسابك',
+      'delete_account_failed': 'فشل حذف الحساب',
       
       // Home & General
       'home': 'الرئيسية',

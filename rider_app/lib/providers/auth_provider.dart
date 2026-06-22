@@ -101,6 +101,28 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Permanently deletes the rider account on the backend, then clears the
+  /// local session. Returns true on success.
+  Future<bool> deleteAccount() async {
+    try {
+      final response = await ApiService.delete('/rider/profile');
+      if (response.success) {
+        await AuthService.logout();
+        _user = null;
+        _error = null;
+        notifyListeners();
+        return true;
+      }
+      _error = response.message;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _error = 'Failed to delete account';
+      notifyListeners();
+      return false;
+    }
+  }
+
   void updateUser(Map<String, dynamic> userData) {
     _user = User.fromJson(userData);
     AuthService.saveUserData(userData);

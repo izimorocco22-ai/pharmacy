@@ -571,10 +571,59 @@ class _ProfileTab extends StatelessWidget {
                 Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
               }
             }, color: AppTheme.error),
+            _menuItem(context, Icons.delete_forever, l10n.translate('delete_account'),
+                () => _confirmDeleteAccount(context),
+                color: AppTheme.error),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l10n.translate('delete_account')),
+        content: Text(l10n.translate('delete_account_confirm')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.translate('cancel'))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.translate('delete'), style: const TextStyle(color: AppTheme.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    // Blocking loader while the account is deleted
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final ok = await context.read<AuthProvider>().deleteAccount();
+    if (!context.mounted) return;
+    Navigator.pop(context); // dismiss loader
+
+    if (ok) {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.translate('account_deleted'))),
+      );
+    } else {
+      final error = context.read<AuthProvider>().error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? l10n.translate('delete_account_failed')),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+    }
   }
 
   void _showLanguageDialog(BuildContext context) {

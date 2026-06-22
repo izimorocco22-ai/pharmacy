@@ -60,6 +60,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: AppTheme.spacing16),
             _buildLogoutButton(context),
+            const SizedBox(height: AppTheme.spacing12),
+            _buildDeleteAccountButton(context),
           ],
         ),
       ),
@@ -221,6 +223,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (mounted) Navigator.pushReplacementNamed(context, '/login');
             },
             child: Text(l10n.translate('logout'), style: const TextStyle(color: AppTheme.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeleteAccountButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: OutlinedButton.icon(
+        onPressed: () => _showDeleteAccountDialog(context),
+        icon: const Icon(Icons.delete_forever),
+        label: Text(l10n.translate('delete_account')),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppTheme.error,
+          side: const BorderSide(color: AppTheme.error),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.translate('delete_account')),
+        content: Text(l10n.translate('delete_account_confirm')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.translate('cancel'))),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const Center(child: CircularProgressIndicator()),
+              );
+              final ok = await context.read<AuthProvider>().deleteAccount();
+              if (!mounted) return;
+              Navigator.pop(context); // dismiss loader
+              if (ok) {
+                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.translate('account_deleted'))),
+                );
+              } else {
+                final error = context.read<AuthProvider>().error;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(error ?? l10n.translate('delete_account_failed')),
+                    backgroundColor: AppTheme.error,
+                  ),
+                );
+              }
+            },
+            child: Text(l10n.translate('delete'), style: const TextStyle(color: AppTheme.error)),
           ),
         ],
       ),

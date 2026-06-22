@@ -59,6 +59,18 @@ class ApiService {
     }
   }
 
+  static Future<ApiResponse> delete(String endpoint) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http
+          .delete(Uri.parse('$baseUrl$endpoint'), headers: headers)
+          .timeout(AppConstants.connectionTimeout);
+      return _handleResponse(response);
+    } catch (e) {
+      return ApiResponse(success: false, message: _getErrorMessage(e));
+    }
+  }
+
   static ApiResponse _handleResponse(http.Response response) {
     try {
       if (response.body.isEmpty) {
