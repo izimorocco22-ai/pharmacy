@@ -43,48 +43,72 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.translate('order_history'))),
+      appBar: AppBar(
+        title: Text(l10n.translate('order_history')),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: l10n.translate('refresh'),
+            onPressed: _isLoading ? null : _loadOrders,
+          ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!, style: const TextStyle(color: AppTheme.error)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _loadOrders, child: Text(l10n.translate('retry'))),
-                    ],
-                  ),
-                )
-              : _orders.isEmpty
-                  ? Center(
-                      child: Column(
+          : RefreshIndicator(
+              onRefresh: _loadOrders,
+              child: _error != null
+                  ? _buildScrollableCenter(
+                      Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.receipt_long_outlined,
-                              size: 80,
-                              color: AppTheme.textSecondary.withOpacity(0.4)),
+                          Text(_error!, style: const TextStyle(color: AppTheme.error)),
                           const SizedBox(height: 16),
-                          Text(l10n.translate('no_orders_yet'),
-                              style: Theme.of(context).textTheme.titleLarge),
-                          const SizedBox(height: 8),
-                          Text(l10n.translate('confirmed_orders_desc'),
-                              style: Theme.of(context).textTheme.bodyMedium),
+                          ElevatedButton(onPressed: _loadOrders, child: Text(l10n.translate('retry'))),
                         ],
                       ),
                     )
-                  : RefreshIndicator(
-                      onRefresh: _loadOrders,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.all(AppTheme.spacing16),
-                        itemCount: _orders.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: AppTheme.spacing12),
-                        itemBuilder: (context, i) =>
-                            _buildOrderCard(context, _orders[i]),
-                      ),
-                    ),
+                  : _orders.isEmpty
+                      ? _buildScrollableCenter(
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.receipt_long_outlined,
+                                  size: 80,
+                                  color: AppTheme.textSecondary.withOpacity(0.4)),
+                              const SizedBox(height: 16),
+                              Text(l10n.translate('no_orders_yet'),
+                                  style: Theme.of(context).textTheme.titleLarge),
+                              const SizedBox(height: 8),
+                              Text(l10n.translate('confirmed_orders_desc'),
+                                  style: Theme.of(context).textTheme.bodyMedium),
+                            ],
+                          ),
+                        )
+                      : ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(AppTheme.spacing16),
+                          itemCount: _orders.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: AppTheme.spacing12),
+                          itemBuilder: (context, i) =>
+                              _buildOrderCard(context, _orders[i]),
+                        ),
+            ),
+    );
+  }
+
+  /// Wraps a centered child in a scroll view that can always be over-scrolled,
+  /// so pull-to-refresh works even when the content is empty or short.
+  Widget _buildScrollableCenter(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(child: child),
+        ),
+      ),
     );
   }
 

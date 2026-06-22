@@ -46,49 +46,62 @@ class _PrescriptionRequestsScreenState
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (provider.error != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 60, color: AppTheme.error),
-                  const SizedBox(height: 16),
-                  Text(provider.error!,
-                      style: const TextStyle(color: AppTheme.error),
-                      textAlign: TextAlign.center),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => provider.fetchPrescriptionRequests(),
-                    child: Text(l10n.translate('retry')),
-                  ),
-                ],
-              ),
-            );
-          }
-          if (provider.prescriptions.isEmpty) {
-            return _buildEmptyState(l10n);
-          }
           return RefreshIndicator(
             onRefresh: () => provider.fetchPrescriptionRequests(),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(AppTheme.spacing16),
-              itemCount: provider.prescriptions.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: AppTheme.spacing12),
-              itemBuilder: (context, index) {
-                final request = provider.prescriptions[index];
-                return _buildRequestCard(context, request, l10n);
-              },
-            ),
+            child: provider.error != null
+                ? _buildScrollableCenter(
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 60, color: AppTheme.error),
+                        const SizedBox(height: 16),
+                        Text(provider.error!,
+                            style: const TextStyle(color: AppTheme.error),
+                            textAlign: TextAlign.center),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => provider.fetchPrescriptionRequests(),
+                          child: Text(l10n.translate('retry')),
+                        ),
+                      ],
+                    ),
+                  )
+                : provider.prescriptions.isEmpty
+                    ? _buildEmptyState(l10n)
+                    : ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(AppTheme.spacing16),
+                        itemCount: provider.prescriptions.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: AppTheme.spacing12),
+                        itemBuilder: (context, index) {
+                          final request = provider.prescriptions[index];
+                          return _buildRequestCard(context, request, l10n);
+                        },
+                      ),
           );
         },
       ),
     );
   }
 
+  /// Wraps a centered child in a scroll view that can always be over-scrolled,
+  /// so pull-to-refresh works even when the content is empty or short.
+  Widget _buildScrollableCenter(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(child: child),
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyState(AppLocalizations l10n) {
-    return Center(
-      child: Column(
+    return _buildScrollableCenter(
+      Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.inbox_outlined,
