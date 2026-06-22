@@ -9,6 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/input_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/language_selector.dart';
+import '../../../core/widgets/phone_number_field.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../services/api_service.dart';
 import 'otp_verification_screen.dart';
@@ -28,6 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _licenseController = TextEditingController();
+  String _completePhone = '';
 
   String _vehicleType = 'bike';
   File? _licenseImage;
@@ -39,7 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final p = widget.prefill;
     if (p != null) {
       _nameController.text = p['fullName'] ?? '';
-      _phoneController.text = p['phone'] ?? '';
+      // Phone is re-entered via the country-code field on re-registration.
       _licenseController.text = p['licenseNumber'] ?? '';
       if (p['vehicleType'] != null) _vehicleType = p['vehicleType'];
     }
@@ -135,7 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Send OTP first
       final otpRes = await ApiService.post(
         '/auth/send-otp',
-        {'phone': _phoneController.text.trim(), 'role': 'rider'},
+        {'phone': _completePhone.trim(), 'role': 'rider'},
         includeAuth: false,
       );
 
@@ -163,10 +165,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => OTPVerificationScreen(
-            phone: _phoneController.text.trim(),
+            phone: _completePhone.trim(),
             registrationData: {
               'fullName': _nameController.text.trim(),
-              'phone': _phoneController.text.trim(),
+              'phone': _completePhone.trim(),
               'password': _passwordController.text,
               'role': 'rider',
               'vehicleType': _vehicleType,
@@ -225,15 +227,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 validator: (v) => v!.isEmpty ? l10n.translate('required') : null,
               ),
               const SizedBox(height: AppTheme.spacing12),
-              InputField(
+              PhoneNumberField(
                 controller: _phoneController,
                 label: l10n.translate('phone_number'),
                 hint: l10n.translate('phone_hint'),
-                prefixIcon: const Icon(Icons.phone),
-                keyboardType: TextInputType.phone,
-                validator: (v) {
-                  if (v == null || v.isEmpty) return l10n.translate('required');
-                  if (!v.startsWith('+')) return l10n.translate('include_country_code');
+                onChanged: (phone) => _completePhone = phone.completeNumber,
+                validator: (phone) {
+                  if (phone == null || phone.number.trim().isEmpty) {
+                    return l10n.translate('required');
+                  }
                   return null;
                 },
               ),

@@ -3,6 +3,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/input_field.dart';
 import '../../../core/widgets/language_selector.dart';
+import '../../../core/widgets/phone_number_field.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../services/api_service.dart';
 import 'otp_verification_screen.dart';
@@ -20,6 +21,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  String _completePhone = '';
   bool _isLoading = false;
 
   @override
@@ -41,7 +43,7 @@ class _SignupScreenState extends State<SignupScreen> {
       final response = await ApiService.post(
         '/auth/send-otp',
         {
-          'phone': _phoneController.text.trim(),
+          'phone': _completePhone.trim(),
           'role': 'patient',
         },
         includeAuth: false,
@@ -57,10 +59,10 @@ class _SignupScreenState extends State<SignupScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => OTPVerificationScreen(
-              phone: _phoneController.text.trim(),
+              phone: _completePhone.trim(),
               signupData: {
                 'fullName': _fullNameController.text.trim(),
-                'phone': _phoneController.text.trim(),
+                'phone': _completePhone.trim(),
                 'password': _passwordController.text,
                 'role': 'patient',
               },
@@ -129,18 +131,14 @@ class _SignupScreenState extends State<SignupScreen> {
                   },
                 ),
                 const SizedBox(height: AppTheme.spacing16),
-                InputField(
-                  label: l10n.translate('phone_number'),
-                  hint: l10n.translate('include_country_code'),
+                PhoneNumberField(
                   controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  prefixIcon: const Icon(Icons.phone_outlined),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
+                  label: l10n.translate('phone_number'),
+                  hint: l10n.translate('phone_hint'),
+                  onChanged: (phone) => _completePhone = phone.completeNumber,
+                  validator: (phone) {
+                    if (phone == null || phone.number.trim().isEmpty) {
                       return l10n.translate('enter_phone');
-                    }
-                    if (!value.startsWith('+')) {
-                      return l10n.translate('include_country_code');
                     }
                     return null;
                   },

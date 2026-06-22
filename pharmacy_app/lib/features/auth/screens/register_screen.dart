@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/input_field.dart';
 import '../../../core/widgets/language_selector.dart';
+import '../../../core/widgets/phone_number_field.dart';
 import '../../../services/api_service.dart';
 import 'otp_verification_screen.dart';
 import 'map_picker_screen.dart';
@@ -27,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _pharmacyNameController = TextEditingController();
   final _licenseController = TextEditingController();
   final _addressController = TextEditingController();
+  String _completePhone = '';
 
   double _lat = 0.0;
   double _lng = 0.0;
@@ -39,7 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final d = widget.prefillData;
     if (d != null) {
       _nameController.text = d['fullName'] ?? '';
-      _phoneController.text = d['phone'] ?? '';
+      // Phone is re-entered via the country-code field on re-registration.
       _pharmacyNameController.text = d['pharmacyName'] ?? '';
       _licenseController.text = d['licenseNumber'] ?? '';
       _addressController.text = d['address'] ?? '';
@@ -91,7 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final response = await ApiService.post(
         '/auth/send-otp',
-        {'phone': _phoneController.text.trim(), 'role': 'pharmacy'},
+        {'phone': _completePhone.trim(), 'role': 'pharmacy'},
         includeAuth: false,
       );
 
@@ -104,10 +106,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           context,
           MaterialPageRoute(
             builder: (_) => OTPVerificationScreen(
-              phone: _phoneController.text.trim(),
+              phone: _completePhone.trim(),
               registrationData: {
                 'fullName': _nameController.text.trim(),
-                'phone': _phoneController.text.trim(),
+                'phone': _completePhone.trim(),
                 'password': _passwordController.text,
                 'role': 'pharmacy',
                 'pharmacyName': _pharmacyNameController.text.trim(),
@@ -174,15 +176,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 validator: (v) => v!.isEmpty ? l10n.translate('required') : null,
               ),
               const SizedBox(height: AppTheme.spacing12),
-              InputField(
+              PhoneNumberField(
                 controller: _phoneController,
                 label: l10n.translate('phone_number'),
-                hint: 'e.g. +212600000000',
-                prefixIcon: Icons.phone,
-                keyboardType: TextInputType.phone,
-                validator: (v) {
-                  if (v == null || v.isEmpty) return l10n.translate('required');
-                  if (!v.startsWith('+')) return l10n.translate('include_country_code');
+                hint: '612345678',
+                onChanged: (phone) => _completePhone = phone.completeNumber,
+                validator: (phone) {
+                  if (phone == null || phone.number.trim().isEmpty) {
+                    return l10n.translate('required');
+                  }
                   return null;
                 },
               ),

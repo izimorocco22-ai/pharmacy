@@ -6,6 +6,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/input_field.dart';
 import '../../../core/widgets/language_selector.dart';
+import '../../../core/widgets/phone_number_field.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
+  String _completePhone = '';
   bool _otpSent = false;
   bool _sendingOtp = false;
 
@@ -40,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _sendingOtp = true);
 
-    final success = await context.read<AuthProvider>().sendOtp(_phoneController.text.trim());
+    final success = await context.read<AuthProvider>().sendOtp(_completePhone.trim());
 
     setState(() => _sendingOtp = false);
 
@@ -66,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final result = await context.read<AuthProvider>().loginWithOtp(
-          _phoneController.text.trim(),
+          _completePhone.trim(),
           _otpController.text.trim(),
         );
 
@@ -131,18 +133,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Expanded(
-                      child: InputField(
+                      child: PhoneNumberField(
                         controller: _phoneController,
                         label: l10n.translate('phone_number'),
                         hint: l10n.translate('phone_hint'),
-                        prefixIcon: const Icon(Icons.phone_outlined),
-                        keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
+                        onChanged: (phone) => _completePhone = phone.completeNumber,
+                        validator: (phone) {
+                          if (phone == null || phone.number.trim().isEmpty) {
                             return l10n.translate('enter_phone');
-                          }
-                          if (!value.startsWith('+')) {
-                            return l10n.translate('include_country_code');
                           }
                           return null;
                         },
