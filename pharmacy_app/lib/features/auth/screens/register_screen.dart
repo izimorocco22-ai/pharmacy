@@ -6,6 +6,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/input_field.dart';
+import '../../../core/widgets/language_selector.dart';
 import '../../../services/api_service.dart';
 import 'otp_verification_screen.dart';
 import 'map_picker_screen.dart';
@@ -136,7 +137,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.translate('register_pharmacy'))),
+      appBar: AppBar(
+        title: Text(l10n.translate('register_pharmacy')),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: Center(child: LanguageSelector()),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacing24),
         child: Form(

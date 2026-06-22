@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/input_field.dart';
+import '../../../core/widgets/language_selector.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../services/api_service.dart';
 import 'otp_verification_screen.dart';
 
@@ -74,7 +76,7 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to send OTP')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.translate('failed_send_otp'))),
         );
       }
     }
@@ -82,6 +84,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -91,83 +94,87 @@ class _SignupScreenState extends State<SignupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: AppTheme.spacing32),
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: LanguageSelector(),
+                ),
+                const SizedBox(height: AppTheme.spacing16),
                 Center(
                   child: Image.asset('assets/images/logo.png', width: 120, height: 80),
                 ),
                 const SizedBox(height: AppTheme.spacing16),
                 Text(
-                  'Create Account',
+                  l10n.translate('create_account'),
                   style: Theme.of(context).textTheme.displayMedium,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppTheme.spacing8),
                 Text(
-                  'Sign up to get started',
+                  l10n.translate('signup_subtitle'),
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppTheme.spacing48),
                 InputField(
-                  label: 'Full Name',
-                  hint: 'Enter your full name',
+                  label: l10n.translate('full_name'),
+                  hint: l10n.translate('enter_full_name'),
                   controller: _fullNameController,
                   prefixIcon: const Icon(Icons.person_outline),
                   textCapitalization: TextCapitalization.words,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your name';
+                      return l10n.translate('enter_name');
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: AppTheme.spacing16),
                 InputField(
-                  label: 'Phone',
-                  hint: 'Include country code (e.g. +212)',
+                  label: l10n.translate('phone_number'),
+                  hint: l10n.translate('include_country_code'),
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   prefixIcon: const Icon(Icons.phone_outlined),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your phone number';
+                      return l10n.translate('enter_phone');
                     }
                     if (!value.startsWith('+')) {
-                      return 'Include country code (e.g. +212)';
+                      return l10n.translate('include_country_code');
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: AppTheme.spacing16),
                 PasswordField(
-                  label: 'Password',
-                  hint: 'Enter your password',
+                  label: l10n.translate('password'),
+                  hint: l10n.translate('enter_password'),
                   controller: _passwordController,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter a password';
+                      return l10n.translate('enter_a_password');
                     }
                     if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
+                      return l10n.translate('password_min');
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: AppTheme.spacing16),
                 PasswordField(
-                  label: 'Confirm Password',
-                  hint: 'Re-enter your password',
+                  label: l10n.translate('confirm_password'),
+                  hint: l10n.translate('reenter_password'),
                   controller: _confirmPasswordController,
                   validator: (value) {
                     if (value != _passwordController.text) {
-                      return 'Passwords do not match';
+                      return l10n.translate('passwords_no_match');
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: AppTheme.spacing32),
                 PrimaryButton(
-                  text: 'Sign Up',
+                  text: l10n.translate('sign_up'),
                   onPressed: _handleSignup,
                   isLoading: _isLoading,
                 ),
@@ -176,12 +183,12 @@ class _SignupScreenState extends State<SignupScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Already have an account? ',
+                      l10n.translate('already_have_account'),
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Login'),
+                      child: Text(l10n.translate('login')),
                     ),
                   ],
                 ),

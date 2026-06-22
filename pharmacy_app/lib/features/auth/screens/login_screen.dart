@@ -4,6 +4,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/input_field.dart';
+import '../../../core/widgets/language_selector.dart';
 import '../../../core/localization/app_localizations.dart';
 import 'register_screen.dart';
 import 'pending_approval_screen.dart';
@@ -114,7 +115,11 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: AppTheme.spacing48),
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: LanguageSelector(),
+                ),
+                const SizedBox(height: AppTheme.spacing16),
                 Center(
                   child: Image.asset('assets/images/logo.png', width: 120, height: 80),
                 ),

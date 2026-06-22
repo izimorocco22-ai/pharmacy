@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/input_field.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/language_selector.dart';
 import '../../../services/api_service.dart';
 import '../../../services/auth_service.dart';
 import '../../../core/localization/app_localizations.dart';
@@ -207,7 +208,15 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.translate('verify_phone'))),
+      appBar: AppBar(
+        title: Text(l10n.translate('verify_phone')),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: Center(child: LanguageSelector()),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacing24),
         child: Column(
