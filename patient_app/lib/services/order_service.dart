@@ -58,6 +58,8 @@ class OrderService {
         final data = response.data;
         if (data is List) {
           return data.map((json) => Order.fromJson(json)).toList();
+        } else if (data is Map && data['orders'] is List) {
+          return (data['orders'] as List).map((json) => Order.fromJson(json)).toList();
         }
       }
     } catch (e) {
