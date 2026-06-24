@@ -20,10 +20,25 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
+    const user = await User.findById(auth.userId).lean() as any;
     const rider = await Rider.findOne({ userId: auth.userId }).lean() as any;
     if (!rider) return errorResponse('Rider not found', 404);
 
-    return successResponse({ rider });
+    // fullName / phone / email / profileImage live on the User document, not on
+    // the Rider document — merge them in so the app can show the rider's name
+    // and number on the profile screen.
+    return successResponse({
+      rider: {
+        ...rider,
+        id: user?._id?.toString() ?? rider.userId?.toString(),
+        fullName: user?.fullName ?? '',
+        email: user?.email ?? '',
+        phone: user?.phone ?? '',
+        role: user?.role ?? 'rider',
+        isVerified: user?.isVerified ?? false,
+        profileImage: user?.profileImage ?? null,
+      },
+    });
   } catch (error) {
     console.error(error);
     return errorResponse('Failed to fetch rider profile', 500);

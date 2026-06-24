@@ -132,10 +132,23 @@ class AuthProvider with ChangeNotifier {
   Future<void> refreshProfile() async {
     try {
       final res = await ApiService.get('/rider/profile');
-      if (res.success && res.data != null) {
-        final userData = res.data['rider'];
-        _user = User.fromJson(userData);
-        AuthService.saveUserData(userData);
+      if (res.success && res.data != null && res.data['rider'] != null) {
+        final riderData = Map<String, dynamic>.from(res.data['rider'] as Map);
+        // fullName / phone live on the User document, not the rider document.
+        // Merge over the existing user so these are never blanked if the
+        // response doesn't carry them.
+        final merged = <String, dynamic>{
+          if (_user != null) ..._user!.toJson(),
+          ...riderData,
+        };
+        if ((merged['fullName'] ?? '').toString().isEmpty && _user != null) {
+          merged['fullName'] = _user!.fullName;
+        }
+        if ((merged['phone'] ?? '').toString().isEmpty && _user != null) {
+          merged['phone'] = _user!.phone;
+        }
+        _user = User.fromJson(merged);
+        AuthService.saveUserData(merged);
         notifyListeners();
       }
     } catch (_) {}
