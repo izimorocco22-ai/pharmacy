@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       .populate('pharmacyId', 'pharmacyName address phone')
       .populate({ path: 'riderId', model: Rider, select: 'userId vehicleType' })
       .populate('quoteId')
-      .populate({ path: 'prescriptionId', select: 'imageUrl deliveryAddress medicines' })
+      .populate({ path: 'prescriptionId', select: 'imageUrl deliveryAddress medicines name' })
       .lean() as any[];
 
     // Fetch pending prescriptions (order created, searching for pharmacy)
@@ -153,6 +153,7 @@ export async function GET(request: NextRequest) {
       _isPendingQuote: false,
       id: o._id?.toString(),
       orderNumber: o.orderNumber || '',
+      name: o.name || o.prescriptionId?.name || '',
       pharmacyName: o.pharmacyId?.pharmacyName || null,
       pharmacyPhone: o.pharmacyId?.phone || null,
       pharmacyAddress: o.pharmacyId?.address || null,

@@ -79,7 +79,7 @@ export default function RidersPage() {
               { label: 'Total Riders', value: riders.length, icon: '🏍️', color: 'bg-blue-500' },
               { label: 'Online Now', value: onlineCount, icon: '✅', color: 'bg-green-500' },
               { label: 'Avg Rating', value: avgRating, icon: '⭐', color: 'bg-yellow-500' },
-              { label: 'Total Earnings', value: `${totalEarnings.toLocaleString()} MAD`, icon: '💰', color: 'bg-purple-500' },
+              { label: 'Total Earnings', value: `${totalEarnings.toLocaleString()} MRO`, icon: '💰', color: 'bg-purple-500' },
             ].map(stat => (
               <div key={stat.label} className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                 <div className="flex items-center justify-between">
@@ -145,7 +145,7 @@ export default function RidersPage() {
                           <div className="text-xs text-gray-400">{rider.vehicleNumber || '—'}</div>
                         </td>
                         <td className="py-4 px-6 font-medium text-gray-800">{rider.totalDeliveries}</td>
-                        <td className="py-4 px-6 font-medium text-gray-800">{rider.totalEarnings.toLocaleString()} MAD</td>
+                        <td className="py-4 px-6 font-medium text-gray-800">{rider.totalEarnings.toLocaleString()} MRO</td>
                         <td className="py-4 px-6">
                           <div className="flex items-center">
                             <span className="text-yellow-500 mr-1">⭐</span>
@@ -203,7 +203,7 @@ export default function RidersPage() {
               <div className="grid grid-cols-3 gap-3 mb-5">
                 {[
                   { label: 'Total Deliveries', value: selectedRider.totalDeliveries, icon: '📦' },
-                  { label: 'Total Earnings', value: `${selectedRider.totalEarnings.toLocaleString()} MAD`, icon: '💰' },
+                  { label: 'Total Earnings', value: `${selectedRider.totalEarnings.toLocaleString()} MRO`, icon: '💰' },
                   { label: 'Rating', value: `${selectedRider.rating.toFixed(1)} ⭐`, icon: '⭐' },
                 ].map(s => (
                   <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">

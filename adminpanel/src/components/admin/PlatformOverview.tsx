@@ -101,7 +101,7 @@ export default function PlatformOverview() {
                 <div className="w-full bg-gray-100 rounded-full h-1.5">
                   <div className="bg-purple-500 h-1.5 rounded-full transition-all" style={{ width: `${(p.orders / maxPharmacyOrders) * 100}%` }} />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">{p.revenue.toLocaleString()} MAD revenue</p>
+                <p className="text-xs text-gray-400 mt-1">{p.revenue.toLocaleString()} MRO revenue</p>
               </div>
             ))}
           </div>
@@ -142,7 +142,7 @@ export default function PlatformOverview() {
                 <div className="w-full bg-gray-100 rounded-full h-1.5">
                   <div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${(r.deliveries / maxRiderDeliveries) * 100}%` }} />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">{r.earnings.toLocaleString()} MAD earned</p>
+                <p className="text-xs text-gray-400 mt-1">{r.earnings.toLocaleString()} MRO earned</p>
               </div>
             ))}
           </div>

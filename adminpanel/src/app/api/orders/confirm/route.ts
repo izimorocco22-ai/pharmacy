@@ -9,6 +9,18 @@ import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
 import { sendNotificationToUser } from '@/services/notification';
 
+// Build a human-friendly order name from the quoted medicine items, e.g.
+// "Paracetamol" or "Paracetamol +2 more". Falls back to "Medicine Order".
+function buildOrderName(items: Array<{ medicineName?: string }> = []): string {
+  const names = items
+    .map((i) => (i.medicineName || '').trim())
+    .filter((n) => n && n.toLowerCase() !== 'total');
+
+  if (names.length === 0) return 'Medicine Order';
+  if (names.length === 1) return names[0];
+  return `${names[0]} +${names.length - 1} more`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const auth = await authenticateRequest(request);
@@ -54,9 +66,14 @@ export async function POST(request: NextRequest) {
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
+    // Generate a meaningful, medicine-based name so the patient can recognise
+    // the order later (the order number/code remains the unique identifier).
+    const orderName = buildOrderName(quote.items);
+
     // Create order
     const order = await Order.create({
       orderNumber,
+      name: orderName,
       prescriptionId: quote.prescriptionId,
       quoteId: quote._id,
       patientId: quote.patientId,
@@ -80,8 +97,9 @@ export async function POST(request: NextRequest) {
     quote.status = 'accepted';
     await quote.save();
 
-    // Update prescription status
+    // Update prescription status (and name it after the medicines)
     prescription.status = 'accepted';
+    prescription.name = orderName;
     await prescription.save();
 
     // Notify pharmacy
@@ -113,7 +131,7 @@ export async function POST(request: NextRequest) {
         await sendNotificationToUser(
           rider.userId.toString(),
           'New Delivery Available',
-          `Delivery fee: ${order.deliveryFee} MAD`,
+          `Delivery fee: ${order.deliveryFee} MRO`,
           {
             orderId: order._id.toString(),
             type: 'delivery_available',

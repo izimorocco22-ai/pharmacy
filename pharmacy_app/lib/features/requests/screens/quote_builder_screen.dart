@@ -354,7 +354,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
               const SizedBox(height: AppTheme.spacing16),
               InputField(
                 controller: _directTotalController,
-                label: 'Total Amount (MAD)',
+                label: 'Total Amount (MRO)',
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 onChanged: (_) => setState(() {}),
               ),
@@ -368,7 +368,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
                       Text('Total',
                           style: Theme.of(context).textTheme.titleMedium),
                       Text(
-                        '${double.parse(_directTotalController.text.trim()).toStringAsFixed(2)} MAD',
+                        '${double.parse(_directTotalController.text.trim()).toStringAsFixed(2)} MRO',
                         style: Theme.of(context)
                             .textTheme
                             .titleMedium
@@ -438,7 +438,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
-                    'Total: ${(_items[index]['totalPrice'] as num).toStringAsFixed(2)} MAD',
+                    'Total: ${(_items[index]['totalPrice'] as num).toStringAsFixed(2)} MRO',
                     style: TextStyle(
                         color: AppTheme.primary,
                         fontWeight: FontWeight.w500,
@@ -476,7 +476,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
                   ? Theme.of(context).textTheme.titleMedium
                   : Theme.of(context).textTheme.bodyMedium),
           Text(
-            '${amount.toStringAsFixed(2)} MAD',
+            '${amount.toStringAsFixed(2)} MRO',
             style: isTotal
                 ? Theme.of(context)
                     .textTheme

@@ -118,7 +118,7 @@ export default function PharmacyDetailPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
                 {[
                   { label: 'Total Orders', value: data.stats.totalOrders, icon: '📦', color: 'bg-blue-500' },
-                  { label: 'Total Revenue', value: `${data.stats.totalRevenue.toLocaleString()} MAD`, icon: '💰', color: 'bg-green-500' },
+                  { label: 'Total Revenue', value: `${data.stats.totalRevenue.toLocaleString()} MRO`, icon: '💰', color: 'bg-green-500' },
                   { label: 'Delivered', value: data.stats.deliveredOrders, icon: '✅', color: 'bg-emerald-500' },
                   { label: 'Acceptance Rate', value: `${data.stats.acceptanceRate}%`, icon: '📊', color: 'bg-purple-500' },
                   { label: 'Pending Orders', value: data.stats.pendingOrders, icon: '⏳', color: 'bg-yellow-500' },
@@ -159,7 +159,7 @@ export default function PharmacyDetailPage() {
                               />
                             </div>
                             <span className="text-sm font-medium text-gray-800 w-24 text-right">
-                              {m.revenue.toLocaleString()} MAD
+                              {m.revenue.toLocaleString()} MRO
                             </span>
                             <span className="text-xs text-gray-400">{m.count} orders</span>
                           </div>
@@ -218,7 +218,7 @@ export default function PharmacyDetailPage() {
                         {data.recentOrders.map((o: any) => (
                           <tr key={o.id} className="border-b border-gray-100 hover:bg-gray-50">
                             <td className="py-3 px-6 font-medium text-gray-800 text-sm">{o.orderNumber}</td>
-                            <td className="py-3 px-6 font-medium text-gray-800">{o.totalAmount?.toLocaleString()} MAD</td>
+                            <td className="py-3 px-6 font-medium text-gray-800">{o.totalAmount?.toLocaleString()} MRO</td>
                             <td className="py-3 px-6 text-gray-600 capitalize text-sm">{o.paymentMethod || 'cash'}</td>
                             <td className="py-3 px-6">
                               <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusColor(o.status)}`}>

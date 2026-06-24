@@ -85,7 +85,7 @@ class _WalletScreenState extends State<WalletScreen> {
                             style: TextStyle(color: Colors.white70, fontSize: 14)),
                         const SizedBox(height: AppTheme.spacing8),
                         Text(
-                          '${_totalEarnings.toStringAsFixed(2)} MAD',
+                          '${_totalEarnings.toStringAsFixed(2)} MRO',
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 32,
@@ -181,7 +181,7 @@ class _WalletScreenState extends State<WalletScreen> {
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 trailing: Text(
-                                  '+${fee.toStringAsFixed(2)} MAD',
+                                  '+${fee.toStringAsFixed(2)} MRO',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: AppTheme.success,

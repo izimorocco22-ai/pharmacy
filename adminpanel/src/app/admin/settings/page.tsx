@@ -114,7 +114,7 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Delivery Fee (MAD/km)
+                      Delivery Fee (MRO/km)
                     </label>
                     <input
                       type="number"
@@ -138,7 +138,7 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Minimum Order Amount (MAD)
+                      Minimum Order Amount (MRO)
                     </label>
                     <input
                       type="number"
@@ -169,7 +169,7 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Minimum Withdrawal Amount (MAD)
+                      Minimum Withdrawal Amount (MRO)
                     </label>
                     <input
                       type="number"

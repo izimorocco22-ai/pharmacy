@@ -1,6 +1,7 @@
 class Order {
   final String id;
   final String orderNumber;
+  final String? name;
   final String? pharmacyName;
   final String? pharmacyPhone;
   final String? pharmacyAddress;
@@ -30,6 +31,7 @@ class Order {
   Order({
     required this.id,
     required this.orderNumber,
+    this.name,
     this.pharmacyName,
     this.pharmacyPhone,
     this.pharmacyAddress,
@@ -78,6 +80,7 @@ class Order {
     return Order(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       orderNumber: json['orderNumber'] ?? '',
+      name: json['name']?.toString(),
       pharmacyName: json['pharmacyName'] ?? (json['pharmacy'] is Map ? json['pharmacy']['name'] : null),
       pharmacyPhone: json['pharmacyPhone'],
       pharmacyAddress: json['pharmacyAddress'] ?? (json['pharmacy'] is Map ? json['pharmacy']['address'] : null),
@@ -123,12 +126,36 @@ class Order {
     );
   }
 
+  /// A meaningful, medicine-based title for the order so the patient can
+  /// recognise it later. Uses the backend-assigned [name] when present, then
+  /// derives one from the order items / prescription medicines, and finally
+  /// falls back to the order number/code.
+  String get displayTitle {
+    if (name != null && name!.trim().isNotEmpty) return name!.trim();
+
+    final itemNames = items
+        .map((i) => i.medicineName.trim())
+        .where((n) => n.isNotEmpty && n.toLowerCase() != 'total')
+        .toList();
+    final medNames = medicines
+        .map((m) => (m['name'] ?? '').toString().trim())
+        .where((n) => n.isNotEmpty)
+        .toList();
+    final names = itemNames.isNotEmpty ? itemNames : medNames;
+
+    if (names.isNotEmpty) {
+      return names.length == 1 ? names.first : '${names.first} +${names.length - 1} more';
+    }
+    return orderNumber.isNotEmpty ? orderNumber : 'Medicine Order';
+  }
+
   Order copyWith({
     String? status,
   }) {
     return Order(
       id: id,
       orderNumber: orderNumber,
+      name: name,
       pharmacyName: pharmacyName,
       pharmacyPhone: pharmacyPhone,
       pharmacyAddress: pharmacyAddress,

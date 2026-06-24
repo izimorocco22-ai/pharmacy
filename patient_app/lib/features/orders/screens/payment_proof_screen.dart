@@ -205,7 +205,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
                 const Text('Amount to pay',
                     style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
                 Text(
-                  '${widget.totalAmount.toStringAsFixed(2)} MAD',
+                  '${widget.totalAmount.toStringAsFixed(2)} MRO',
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primary),
                 ),

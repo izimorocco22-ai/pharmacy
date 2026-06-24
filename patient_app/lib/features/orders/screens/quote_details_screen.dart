@@ -169,14 +169,14 @@ class QuoteDetailsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppTheme.spacing4),
                 Text(
-                  '${l10n.translate('quantity')}: ${item.quantity} × ${item.unitPrice.toStringAsFixed(2)} MAD',
+                  '${l10n.translate('quantity')}: ${item.quantity} × ${item.unitPrice.toStringAsFixed(2)} MRO',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
             ),
           ),
           Text(
-            '${item.totalPrice.toStringAsFixed(2)} MAD',
+            '${item.totalPrice.toStringAsFixed(2)} MRO',
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
@@ -200,7 +200,7 @@ class QuoteDetailsScreen extends StatelessWidget {
               : Theme.of(context).textTheme.bodyLarge,
         ),
         Text(
-          '${amount.toStringAsFixed(2)} MAD',
+          '${amount.toStringAsFixed(2)} MRO',
           style: isTotal
               ? Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: AppTheme.primary,

@@ -416,7 +416,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                               .textTheme
                                               .bodyMedium),
                                       Text(
-                                        'Qty: ${item['quantity'] ?? 1} × ${(item['unitPrice'] ?? 0).toStringAsFixed(2)} MAD',
+                                        'Qty: ${item['quantity'] ?? 1} × ${(item['unitPrice'] ?? 0).toStringAsFixed(2)} MRO',
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
@@ -427,7 +427,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                   ),
                                 ),
                                 Text(
-                                  '${(item['totalPrice'] ?? 0).toStringAsFixed(2)} MAD',
+                                  '${(item['totalPrice'] ?? 0).toStringAsFixed(2)} MRO',
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodyMedium
@@ -438,7 +438,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           )),
                       const Divider(height: AppTheme.spacing24),
                       _summaryRow(context, 'Total',
-                          '${subtotal.toStringAsFixed(2)} MAD'),
+                          '${subtotal.toStringAsFixed(2)} MRO'),
                     ],
                   ),
                 ),

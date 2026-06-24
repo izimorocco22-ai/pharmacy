@@ -106,13 +106,13 @@ class _PharmacyWalletScreenState extends State<PharmacyWalletScreen> {
                         const Text('Total Revenue', style: TextStyle(color: Colors.white70, fontSize: 14)),
                         const SizedBox(height: AppTheme.spacing8),
                         Text(
-                          '${_totalRevenue.toStringAsFixed(2)} MAD',
+                          '${_totalRevenue.toStringAsFixed(2)} MRO',
                           style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: AppTheme.spacing16),
                         Row(
                           children: [
-                            Expanded(child: _miniStat('Today', '${_todayRevenue.toStringAsFixed(0)} MAD', Icons.today)),
+                            Expanded(child: _miniStat('Today', '${_todayRevenue.toStringAsFixed(0)} MRO', Icons.today)),
                             Container(width: 1, height: 32, color: Colors.white30),
                             Expanded(child: _miniStat('Total Orders', '$_totalOrders', Icons.check_circle_outline)),
                             Container(width: 1, height: 32, color: Colors.white30),
@@ -177,7 +177,7 @@ class _PharmacyWalletScreenState extends State<PharmacyWalletScreen> {
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 trailing: Text(
-                                  '+${amount.toStringAsFixed(2)} MAD',
+                                  '+${amount.toStringAsFixed(2)} MRO',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: AppTheme.success,

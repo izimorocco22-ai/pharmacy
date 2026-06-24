@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IPrescription extends Document {
   patientId: mongoose.Types.ObjectId;
+  name?: string;
   imageUrl: string;
   imagePublicId?: string;
   medicines?: Array<{ name: string; quantity: number }>;
@@ -26,6 +27,10 @@ const PrescriptionSchema = new Schema<IPrescription>(
       type: Schema.Types.ObjectId,
       ref: 'Patient',
       required: true,
+    },
+    name: {
+      type: String,
+      default: '',
     },
     imageUrl: {
       type: String,

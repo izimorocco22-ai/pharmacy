@@ -93,9 +93,9 @@ export default function AnalyticsPage() {
               {/* KPI Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: 'Total Revenue', value: `${(o?.totalRevenue || 0).toLocaleString()} MAD`, sub: `This month: ${(o?.thisMonthRevenue || 0).toLocaleString()} MAD`, growth: o?.revenueGrowth || 0, emoji: '💰', color: 'bg-green-500' },
+                  { label: 'Total Revenue', value: `${(o?.totalRevenue || 0).toLocaleString()} MRO`, sub: `This month: ${(o?.thisMonthRevenue || 0).toLocaleString()} MRO`, growth: o?.revenueGrowth || 0, emoji: '💰', color: 'bg-green-500' },
                   { label: 'Total Orders', value: `${o?.totalOrders || 0}`, sub: `This month: ${o?.thisMonthOrders || 0}`, growth: o?.ordersGrowth || 0, emoji: '📦', color: 'bg-blue-500' },
-                  { label: 'Avg Order Value', value: `${o?.avgOrderValue || 0} MAD`, sub: `${o?.completedOrders || 0} delivered`, growth: 0, emoji: '📊', color: 'bg-purple-500' },
+                  { label: 'Avg Order Value', value: `${o?.avgOrderValue || 0} MRO`, sub: `${o?.completedOrders || 0} delivered`, growth: 0, emoji: '📊', color: 'bg-purple-500' },
                   { label: 'Completion Rate', value: `${o?.completionRate || 0}%`, sub: `${o?.cancelledOrders || 0} cancelled`, growth: 0, emoji: '✅', color: 'bg-yellow-500' },
                 ].map(card => (
                   <div key={card.label} className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
@@ -191,7 +191,7 @@ export default function AnalyticsPage() {
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-base font-semibold text-gray-800">Revenue — Last 30 Days</h3>
-                  <span className="text-sm text-gray-500">Total: {(o?.totalRevenue || 0).toLocaleString()} MAD</span>
+                  <span className="text-sm text-gray-500">Total: {(o?.totalRevenue || 0).toLocaleString()} MRO</span>
                 </div>
                 {data?.charts.last30Stats.length === 0 ? (
                   <p className="text-gray-400 text-sm text-center py-8">No revenue data yet</p>
@@ -202,7 +202,7 @@ export default function AnalyticsPage() {
                       return (
                         <div key={i} className="flex-1 group relative" style={{ height: `${Math.max(pct, 4)}%` }}>
                           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10">
-                            {d._id}: {d.revenue.toLocaleString()} MAD
+                            {d._id}: {d.revenue.toLocaleString()} MRO
                           </div>
                           <div className="w-full h-full bg-blue-400 rounded-t" />
                         </div>
@@ -244,7 +244,7 @@ export default function AnalyticsPage() {
                               </div>
                             </td>
                             <td className="py-3 px-5 text-sm font-medium text-gray-800">{p.orders}</td>
-                            <td className="py-3 px-5 text-sm font-medium text-green-600">{p.revenue.toLocaleString()} MAD</td>
+                            <td className="py-3 px-5 text-sm font-medium text-green-600">{p.revenue.toLocaleString()} MRO</td>
                           </tr>
                         ))}
                       </tbody>
@@ -282,7 +282,7 @@ export default function AnalyticsPage() {
                               </div>
                             </td>
                             <td className="py-3 px-5 text-sm font-medium text-gray-800">{r.deliveries}</td>
-                            <td className="py-3 px-5 text-sm font-medium text-green-600">{r.earnings.toLocaleString()} MAD</td>
+                            <td className="py-3 px-5 text-sm font-medium text-green-600">{r.earnings.toLocaleString()} MRO</td>
                           </tr>
                         ))}
                       </tbody>

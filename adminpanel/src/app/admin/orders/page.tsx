@@ -205,7 +205,7 @@ export default function OrdersPage() {
                         <td className="py-4 px-6 text-gray-600">{getPatientName(order)}</td>
                         <td className="py-4 px-6 text-gray-600">{order.pharmacyId?.pharmacyName || '—'}</td>
                         <td className="py-4 px-6 text-gray-600">{(order as any).riderName || order.riderId?.fullName || 'Unassigned'}</td>
-                        <td className="py-4 px-6 font-medium text-gray-800">{order.totalAmount} MAD</td>
+                        <td className="py-4 px-6 font-medium text-gray-800">{order.totalAmount} MRO</td>
                         <td className="py-4 px-6">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(order.status)}`}>{statusLabel(order.status)}</span>
                         </td>
@@ -363,16 +363,16 @@ export default function OrdersPage() {
                           <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                             <div>
                               <p className="text-sm font-medium text-gray-800">{item.medicineName}</p>
-                              <p className="text-xs text-gray-500">Qty: {item.quantity} × {item.unitPrice} MAD</p>
+                              <p className="text-xs text-gray-500">Qty: {item.quantity} × {item.unitPrice} MRO</p>
                             </div>
-                            <p className="text-sm font-semibold text-gray-800">{item.totalPrice} MAD</p>
+                            <p className="text-sm font-semibold text-gray-800">{item.totalPrice} MRO</p>
                           </div>
                         ))}
                         <div className="pt-2 space-y-1">
-                          <div className="flex justify-between text-sm text-gray-500"><span>Subtotal</span><span>{selectedOrder.subtotal} MAD</span></div>
-                          {selectedOrder.commissionAmount > 0 && <div className="flex justify-between text-sm text-gray-500"><span>Service Fee</span><span>{selectedOrder.commissionAmount} MAD</span></div>}
-                          <div className="flex justify-between text-sm text-gray-500"><span>Delivery Fee</span><span>{selectedOrder.deliveryFee} MAD</span></div>
-                          <div className="flex justify-between text-base font-bold text-gray-800 pt-1 border-t border-gray-200"><span>Total</span><span>{selectedOrder.totalAmount} MAD</span></div>
+                          <div className="flex justify-between text-sm text-gray-500"><span>Subtotal</span><span>{selectedOrder.subtotal} MRO</span></div>
+                          {selectedOrder.commissionAmount > 0 && <div className="flex justify-between text-sm text-gray-500"><span>Service Fee</span><span>{selectedOrder.commissionAmount} MRO</span></div>}
+                          <div className="flex justify-between text-sm text-gray-500"><span>Delivery Fee</span><span>{selectedOrder.deliveryFee} MRO</span></div>
+                          <div className="flex justify-between text-base font-bold text-gray-800 pt-1 border-t border-gray-200"><span>Total</span><span>{selectedOrder.totalAmount} MRO</span></div>
                         </div>
                       </div>
                     </Section>
@@ -419,18 +419,18 @@ export default function OrdersPage() {
                                 {q.items.map((item, j) => (
                                   <div key={j} className="flex justify-between text-sm">
                                     <span className="text-gray-700">{item.medicineName} × {item.quantity}</span>
-                                    <span className="text-gray-600">{item.totalPrice} MAD</span>
+                                    <span className="text-gray-600">{item.totalPrice} MRO</span>
                                   </div>
                                 ))}
                                 <div className="flex justify-between text-sm font-semibold text-green-700 pt-1 border-t border-green-200 mt-1">
-                                  <span>Total</span><span>{q.totalAmount} MAD</span>
+                                  <span>Total</span><span>{q.totalAmount} MRO</span>
                                 </div>
                               </div>
                             )}
 
                             {/* Pending quote summary */}
                             {q.status === 'pending' && q.totalAmount > 0 && (
-                              <p className="text-sm text-gray-600 mt-1">Quote: <span className="font-medium">{q.totalAmount} MAD</span></p>
+                              <p className="text-sm text-gray-600 mt-1">Quote: <span className="font-medium">{q.totalAmount} MRO</span></p>
                             )}
                           </div>
                         ))}

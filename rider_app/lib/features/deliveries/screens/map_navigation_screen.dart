@@ -1,24 +1,25 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
 
-const _googleApiKey = 'AIzaSyDHdBdmN3SL-qm5GSHZ3yLgedq9cBmbpDg';
-
 class MapNavigationScreen extends StatefulWidget {
   final String title;
   final String address;
-  final LatLng destination;
+  final double destinationLat;
+  final double destinationLng;
 
   const MapNavigationScreen({
     super.key,
     required this.title,
     required this.address,
-    required this.destination,
+    required this.destinationLat,
+    required this.destinationLng,
   });
 
   @override
@@ -26,18 +27,20 @@ class MapNavigationScreen extends StatefulWidget {
 }
 
 class _MapNavigationScreenState extends State<MapNavigationScreen> {
-  GoogleMapController? _mapController;
+  final MapController _mapController = MapController();
   StreamSubscription<Position>? _locationSub;
 
   LatLng? _riderPos;
   bool _followRider = true;
   bool _loadingRoute = false;
+  bool _mapReady = false;
 
-  final Set<Polyline> _polylines = {};
-  final Set<Marker> _markers = {};
+  List<LatLng> _routePoints = [];
 
   String? _duration;
   String? _distance;
+
+  LatLng get _destination => LatLng(widget.destinationLat, widget.destinationLng);
 
   @override
   void initState() {
@@ -48,7 +51,6 @@ class _MapNavigationScreenState extends State<MapNavigationScreen> {
   @override
   void dispose() {
     _locationSub?.cancel();
-    _mapController?.dispose();
     super.dispose();
   }
 
@@ -71,7 +73,6 @@ class _MapNavigationScreenState extends State<MapNavigationScreen> {
       if (!mounted) return;
       final riderLatLng = LatLng(pos.latitude, pos.longitude);
       setState(() => _riderPos = riderLatLng);
-      _buildMarkers();
       await _fetchRoute(riderLatLng);
 
       _locationSub = Geolocator.getPositionStream(
@@ -83,9 +84,8 @@ class _MapNavigationScreenState extends State<MapNavigationScreen> {
         if (!mounted) return;
         final newPos = LatLng(pos.latitude, pos.longitude);
         setState(() => _riderPos = newPos);
-        _buildMarkers();
-        if (_followRider) {
-          _mapController?.animateCamera(CameraUpdate.newLatLng(newPos));
+        if (_followRider && _mapReady) {
+          _mapController.move(newPos, _mapController.camera.zoom);
         }
         // Update backend
         ApiService.put('/rider/update-location', {
@@ -93,59 +93,57 @@ class _MapNavigationScreenState extends State<MapNavigationScreen> {
           'lng': pos.longitude,
           'isOnline': true,
         });
-        // Refresh route every 15m movement
+        // Refresh route every ~15m of movement
         await _fetchRoute(newPos);
       });
     } catch (_) {}
   }
 
   Future<void> _fetchRoute(LatLng origin) async {
-    setState(() => _loadingRoute = true);
+    if (mounted) setState(() => _loadingRoute = true);
     try {
+      // OSRM public routing service — no API key required.
       final url = Uri.parse(
-        'https://maps.googleapis.com/maps/api/directions/json'
-        '?origin=${origin.latitude},${origin.longitude}'
-        '&destination=${widget.destination.latitude},${widget.destination.longitude}'
-        '&mode=driving'
-        '&key=$_googleApiKey',
+        'https://router.project-osrm.org/route/v1/driving/'
+        '${origin.longitude},${origin.latitude};'
+        '${widget.destinationLng},${widget.destinationLat}'
+        '?overview=full&geometries=polyline',
       );
 
-      final response = await http.get(url);
-      if (response.statusCode != 200) return;
+      final response = await http.get(url).timeout(const Duration(seconds: 12));
+      if (response.statusCode != 200) {
+        if (mounted) setState(() => _loadingRoute = false);
+        return;
+      }
 
       final data = json.decode(response.body);
-      if (data['status'] != 'OK') return;
+      if (data['code'] != 'Ok' ||
+          (data['routes'] as List?)?.isEmpty != false) {
+        if (mounted) setState(() => _loadingRoute = false);
+        return;
+      }
 
       final route = data['routes'][0];
-      final leg = route['legs'][0];
+      final points = _decodePolyline(route['geometry'] as String);
+      final coords = points.map((p) => LatLng(p[0], p[1])).toList();
 
-      // Decode polyline
-      final points = _decodePolyline(route['overview_polyline']['points']);
-      final polylineCoords = points.map((p) => LatLng(p[0], p[1])).toList();
+      final meters = (route['distance'] as num).toDouble();
+      final seconds = (route['duration'] as num).toDouble();
 
       if (!mounted) return;
       setState(() {
-        _duration = leg['duration']['text'];
-        _distance = leg['distance']['text'];
-        _polylines
-          ..clear()
-          ..add(Polyline(
-            polylineId: const PolylineId('route'),
-            points: polylineCoords,
-            color: AppTheme.primary,
-            width: 5,
-            jointType: JointType.round,
-            startCap: Cap.roundCap,
-            endCap: Cap.roundCap,
-          ));
+        _routePoints = coords;
+        _distance = _formatDistance(meters);
+        _duration = _formatDuration(seconds);
         _loadingRoute = false;
       });
 
-      // Fit map to show full route
-      if (_mapController != null && polylineCoords.isNotEmpty) {
-        final bounds = _boundsFromLatLngList(polylineCoords);
-        _mapController!.animateCamera(
-          CameraUpdate.newLatLngBounds(bounds, 80),
+      if (_mapReady && coords.isNotEmpty) {
+        _mapController.fitCamera(
+          CameraFit.coordinates(
+            coordinates: coords,
+            padding: const EdgeInsets.all(60),
+          ),
         );
       }
     } catch (_) {
@@ -153,78 +151,43 @@ class _MapNavigationScreenState extends State<MapNavigationScreen> {
     }
   }
 
-  void _buildMarkers() {
-    final markers = <Marker>{};
+  String _formatDistance(double meters) {
+    if (meters >= 1000) return '${(meters / 1000).toStringAsFixed(1)} km';
+    return '${meters.toStringAsFixed(0)} m';
+  }
 
-    // Destination marker
-    markers.add(Marker(
-      markerId: const MarkerId('destination'),
-      position: widget.destination,
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-      infoWindow: InfoWindow(title: widget.title, snippet: widget.address),
-    ));
-
-    // Rider marker
-    if (_riderPos != null) {
-      markers.add(Marker(
-        markerId: const MarkerId('rider'),
-        position: _riderPos!,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-        infoWindow: const InfoWindow(title: 'You'),
-      ));
-    }
-
-    setState(() => _markers
-      ..clear()
-      ..addAll(markers));
+  String _formatDuration(double seconds) {
+    final mins = (seconds / 60).round();
+    if (mins < 60) return '$mins min';
+    final h = mins ~/ 60;
+    final m = mins % 60;
+    return m == 0 ? '$h h' : '$h h $m min';
   }
 
   void _centerOnRider() {
-    if (_riderPos == null) return;
+    if (_riderPos == null || !_mapReady) return;
     setState(() => _followRider = true);
-    _mapController?.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(target: _riderPos!, zoom: 16),
-      ),
-    );
+    _mapController.move(_riderPos!, 16);
   }
 
   void _centerOnDestination() {
+    if (!_mapReady) return;
     setState(() => _followRider = false);
-    _mapController?.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(target: widget.destination, zoom: 16),
+    _mapController.move(_destination, 16);
+  }
+
+  void _fitRoute() {
+    if (!_mapReady || _routePoints.isEmpty) return;
+    setState(() => _followRider = false);
+    _mapController.fitCamera(
+      CameraFit.coordinates(
+        coordinates: _routePoints,
+        padding: const EdgeInsets.all(60),
       ),
     );
   }
 
-  void _fitRoute() {
-    setState(() => _followRider = false);
-    if (_polylines.isEmpty) return;
-    final all = _polylines.first.points;
-    if (all.isEmpty) return;
-    final bounds = _boundsFromLatLngList(all);
-    _mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80));
-  }
-
-  LatLngBounds _boundsFromLatLngList(List<LatLng> list) {
-    double minLat = list.first.latitude;
-    double maxLat = list.first.latitude;
-    double minLng = list.first.longitude;
-    double maxLng = list.first.longitude;
-    for (final p in list) {
-      if (p.latitude < minLat) minLat = p.latitude;
-      if (p.latitude > maxLat) maxLat = p.latitude;
-      if (p.longitude < minLng) minLng = p.longitude;
-      if (p.longitude > maxLng) maxLng = p.longitude;
-    }
-    return LatLngBounds(
-      southwest: LatLng(minLat, minLng),
-      northeast: LatLng(maxLat, maxLng),
-    );
-  }
-
-  // Google encoded polyline decoder
+  // Google/OSRM encoded polyline decoder
   List<List<double>> _decodePolyline(String encoded) {
     final result = <List<double>>[];
     int index = 0;
@@ -258,27 +221,84 @@ class _MapNavigationScreenState extends State<MapNavigationScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Google Map
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: widget.destination,
-              zoom: 14,
+          // Map
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _destination,
+              initialZoom: 14,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+              onMapReady: () {
+                setState(() => _mapReady = true);
+                if (_routePoints.isNotEmpty) {
+                  _mapController.fitCamera(
+                    CameraFit.coordinates(
+                      coordinates: _routePoints,
+                      padding: const EdgeInsets.all(60),
+                    ),
+                  );
+                }
+              },
+              onPositionChanged: (pos, hasGesture) {
+                if (hasGesture && _followRider) {
+                  setState(() => _followRider = false);
+                }
+              },
             ),
-            onMapCreated: (controller) {
-              _mapController = controller;
-              _buildMarkers();
-            },
-            onCameraMove: (_) {
-              if (_followRider) setState(() => _followRider = false);
-            },
-            markers: _markers,
-            polylines: _polylines,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            mapToolbarEnabled: false,
-            compassEnabled: true,
-            trafficEnabled: true,
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                subdomains: const ['a', 'b', 'c', 'd'],
+                userAgentPackageName: 'com.ordogo.rider_app',
+                maxZoom: 20,
+              ),
+              if (_routePoints.isNotEmpty)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _routePoints,
+                      color: AppTheme.primary,
+                      strokeWidth: 5,
+                    ),
+                  ],
+                ),
+              MarkerLayer(
+                markers: [
+                  // Destination
+                  Marker(
+                    point: _destination,
+                    width: 44,
+                    height: 44,
+                    child: const Icon(Icons.location_on,
+                        color: AppTheme.error, size: 44),
+                  ),
+                  // Rider
+                  if (_riderPos != null)
+                    Marker(
+                      point: _riderPos!,
+                      width: 40,
+                      height: 40,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.25),
+                                blurRadius: 6)
+                          ],
+                        ),
+                        child: const Icon(Icons.directions_bike,
+                            color: Colors.white, size: 18),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ),
 
           // Loading route indicator

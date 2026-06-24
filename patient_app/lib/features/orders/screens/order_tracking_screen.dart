@@ -251,7 +251,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 : _statusLabel(order.status, l10n);
                 
     final sub = isPending
-        ? '${l10n.translate('total')}: ${order.totalAmount.toStringAsFixed(2)} MAD'
+        ? '${l10n.translate('total')}: ${order.totalAmount.toStringAsFixed(2)} MRO'
         : isSearching
             ? l10n.translate('finding_pharmacy_desc')
             : isExpired
@@ -470,7 +470,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${l10n.translate('confirm_order_desc')} ${order.totalAmount.toStringAsFixed(2)} MAD?'),
+            Text('${l10n.translate('confirm_order_desc')} ${order.totalAmount.toStringAsFixed(2)} MRO?'),
             if (paymentMethod != null) ...[
               const SizedBox(height: 16),
               _PaymentMethodCard(paymentMethod: paymentMethod),
@@ -711,12 +711,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(item.medicineName, style: Theme.of(context).textTheme.bodyMedium),
-                            Text('${l10n.translate('quantity')}: ${item.quantity} × ${item.unitPrice.toStringAsFixed(2)} MAD',
+                            Text('${l10n.translate('quantity')}: ${item.quantity} × ${item.unitPrice.toStringAsFixed(2)} MRO',
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary)),
                           ],
                         ),
                       ),
-                      Text('${item.totalPrice.toStringAsFixed(2)} MAD',
+                      Text('${item.totalPrice.toStringAsFixed(2)} MRO',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                     ],
                   ),
@@ -748,7 +748,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
                   fontSize: isTotal ? 15 : 13,
                   color: isTotal ? Colors.black : AppTheme.textSecondary)),
-          Text('${amount.toStringAsFixed(2)} MAD',
+          Text('${amount.toStringAsFixed(2)} MRO',
               style: TextStyle(
                   fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
                   fontSize: isTotal ? 15 : 13,
@@ -1088,7 +1088,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                           ],
                         ),
                       ),
-                      Text('${item.totalPrice.toStringAsFixed(2)} MAD', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      Text('${item.totalPrice.toStringAsFixed(2)} MRO', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                     ],
                   ),
                 )),

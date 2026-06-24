@@ -137,6 +137,24 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     }
   }
 
+  /// Returns the user-entered label, or generates a friendly one when blank.
+  /// Prefers the first part of the resolved address (e.g. "59 Boulevard des
+  /// Bourroches"), falling back to a timestamped "Address" name.
+  String _resolveLabel() {
+    final entered = _labelController.text.trim();
+    if (entered.isNotEmpty) return entered;
+
+    final addr = _addressController.text.trim();
+    if (addr.isNotEmpty) {
+      final firstPart = addr.split(',').first.trim();
+      if (firstPart.isNotEmpty) return firstPart;
+    }
+
+    final now = DateTime.now();
+    return 'Address ${now.day}/${now.month} '
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  }
+
   Future<void> _saveAddress() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -156,10 +174,13 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
       final isEditing = widget.address != null;
       final AddressResult result;
 
+      // Label is optional — generate a friendly name when left blank
+      final label = _resolveLabel();
+
       if (isEditing) {
         result = await AddressService.updateAddress(
           id: widget.address!['_id'],
-          label: _labelController.text.trim(),
+          label: label,
           address: _addressController.text.trim(),
           city: '',
           state: '',
@@ -170,7 +191,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
         );
       } else {
         result = await AddressService.addAddress(
-          label: _labelController.text.trim(),
+          label: label,
           address: _addressController.text.trim(),
           city: '',
           state: '',
@@ -318,12 +339,8 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
               const SizedBox(height: AppTheme.spacing16),
               InputField(
                 controller: _labelController,
-                label: 'Label (e.g., Home, Work)',
+                label: 'Label (optional, e.g., Home, Work)',
                 prefixIcon: const Icon(Icons.label),
-                validator: (value) {
-                  if (value?.isEmpty ?? true) return 'Label is required';
-                  return null;
-                },
               ),
               const SizedBox(height: AppTheme.spacing16),
               InputField(

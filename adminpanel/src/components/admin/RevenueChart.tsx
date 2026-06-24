@@ -65,9 +65,9 @@ export default function RevenueChart() {
       {/* Summary pills */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: '30d Revenue', value: `${totals.revenue.toLocaleString()} MAD`, color: 'text-emerald-600' },
+          { label: '30d Revenue', value: `${totals.revenue.toLocaleString()} MRO`, color: 'text-emerald-600' },
           { label: '30d Orders', value: totals.orders.toLocaleString(), color: 'text-blue-600' },
-          { label: 'Avg/Day', value: `${totals.avgRevenue.toLocaleString()} MAD`, color: 'text-purple-600' },
+          { label: 'Avg/Day', value: `${totals.avgRevenue.toLocaleString()} MRO`, color: 'text-purple-600' },
         ].map(s => (
           <div key={s.label} className="bg-gray-50 rounded-lg px-3 py-2.5 text-center">
             <p className={`text-base font-bold ${s.color}`}>{s.value}</p>
@@ -91,7 +91,7 @@ export default function RevenueChart() {
               return (
                 <div key={i} className="flex-1 group relative flex flex-col justify-end" style={{ height: '100%' }}>
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 bg-gray-900 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 pointer-events-none shadow-lg">
-                    {d._id}<br />{view === 'revenue' ? `${d.revenue.toLocaleString()} MAD` : `${d.orders} orders`}
+                    {d._id}<br />{view === 'revenue' ? `${d.revenue.toLocaleString()} MRO` : `${d.orders} orders`}
                   </div>
                   <div
                     className={`w-full rounded-t-sm transition-all duration-300 ${view === 'revenue' ? 'bg-green-500 group-hover:bg-green-600' : 'bg-blue-500 group-hover:bg-blue-600'}`}

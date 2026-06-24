@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
@@ -65,7 +64,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
         builder: (_) => MapNavigationScreen(
           title: _phase == 'to_pharmacy' ? l10n.translate('pickup_location') : l10n.translate('delivery_location'),
           address: address,
-          destination: LatLng(lat, lng),
+          destinationLat: lat,
+          destinationLng: lng,
         ),
       ),
     );

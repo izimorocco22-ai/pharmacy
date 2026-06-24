@@ -5,7 +5,7 @@ import '../theme/app_theme.dart';
 
 /// A phone input with a country-code dropdown. The user picks the country
 /// (flag + dial code) from a searchable list and types only the local number;
-/// [onChanged] reports the full E.164 number (e.g. +212635123456) via
+/// [onChanged] reports the full E.164 number (e.g. +222635123456) via
 /// [PhoneNumber.completeNumber].
 class PhoneNumberField extends StatelessWidget {
   final TextEditingController? controller;
@@ -20,7 +20,7 @@ class PhoneNumberField extends StatelessWidget {
     this.controller,
     this.label,
     this.hint,
-    this.initialCountryCode = 'MA',
+    this.initialCountryCode = 'MR',
     required this.onChanged,
     this.validator,
   });

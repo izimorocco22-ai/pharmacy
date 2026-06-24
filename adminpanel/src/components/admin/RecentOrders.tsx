@@ -86,7 +86,7 @@ export default function RecentOrders() {
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className="text-sm font-bold text-gray-800">{order.totalAmount} MAD</span>
+                  <span className="text-sm font-bold text-gray-800">{order.totalAmount} MRO</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusStyle}`}>{label}</span>
                 </div>
               </div>

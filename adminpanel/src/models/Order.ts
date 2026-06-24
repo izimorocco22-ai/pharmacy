@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IOrder extends Document {
   orderNumber: string;
+  name?: string;
   prescriptionId: mongoose.Types.ObjectId;
   quoteId?: mongoose.Types.ObjectId;
   patientId: mongoose.Types.ObjectId;
@@ -54,6 +55,10 @@ const OrderSchema = new Schema<IOrder>(
       type: String,
       required: true,
       unique: true,
+    },
+    name: {
+      type: String,
+      default: '',
     },
     prescriptionId: {
       type: Schema.Types.ObjectId,

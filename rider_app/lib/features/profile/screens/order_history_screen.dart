@@ -233,7 +233,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                   ),
                                   Text(
                                     status == 'delivered'
-                                        ? '+${fee.toStringAsFixed(2)} MAD'
+                                        ? '+${fee.toStringAsFixed(2)} MRO'
                                         : '—',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,

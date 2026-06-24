@@ -100,7 +100,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      order.orderNumber?.isNotEmpty == true ? order.orderNumber! : 'Pending Quote',
+                      order.displayTitle,
                       style: Theme.of(context).textTheme.titleMedium,
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -119,6 +119,17 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                     _formatDate(order.createdAt),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
+                  if (order.orderNumber?.isNotEmpty == true) ...[
+                    const SizedBox(width: AppTheme.spacing8),
+                    Flexible(
+                      child: Text(
+                        '· ${order.orderNumber}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const Divider(height: AppTheme.spacing24),
@@ -130,7 +141,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   Text(
-                    '${order.totalAmount.toStringAsFixed(2)} MAD',
+                    '${order.totalAmount.toStringAsFixed(2)} MRO',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: AppTheme.primary,
                         ),
