@@ -24,9 +24,9 @@ export async function POST(request: NextRequest) {
       return errorResponse('No rider account found with this phone number', 404);
     }
 
-    // Bypass for test user +1234567890 with OTP 123456
+    // Bypass for test user +11234567890 with OTP 123456
     let isValid = false;
-    if (phone === '+1234567890' && otp === '123456') {
+    if (phone === '+11234567890' && otp === '123456') {
       isValid = true;
     } else {
       // Verify OTP normally for other users

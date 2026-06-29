@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Google Play Console Review Bypass
-    if (phone === '+1234567890' && otp === '123456') {
+    if (phone === '+11234567890' && otp === '123456') {
       return successResponse({ verified: true }, 'Test OTP verified successfully');
     }
 

@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     let isValid = false;
 
     // Google Play Console Review Bypass
-    if (phone === '+1234567890' && otp === '123456') {
+    if (phone === '+11234567890' && otp === '123456') {
       isValid = true;
     } else if (useTwilioVerify) {
       isValid = await verifyOTPSMS(phone, otp);
