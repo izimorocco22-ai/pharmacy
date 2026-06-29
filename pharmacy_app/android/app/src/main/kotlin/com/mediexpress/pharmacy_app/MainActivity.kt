@@ -1,4 +1,4 @@
-package com.ordogo.pharmacy_app
+package com.mediexpress.pharmacy_app
 
 import io.flutter.embedding.android.FlutterActivity
 
