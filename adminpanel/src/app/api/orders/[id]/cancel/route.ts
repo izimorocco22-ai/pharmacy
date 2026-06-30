@@ -5,6 +5,7 @@ import Prescription from '@/models/Prescription';
 import Quote from '@/models/Quote';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
+import { sendNotificationToPharmacy, sendNotificationToRider } from '@/services/notification';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,27 @@ export async function POST(
           nearbyPharmacies: []
         });
       }
+
+      // Notify the pharmacy (and rider if one was assigned) that the patient
+      // cancelled the order.
+      try {
+        if (order.pharmacyId) {
+          await sendNotificationToPharmacy(
+            order.pharmacyId.toString(),
+            'Order Cancelled',
+            `Order ${order.orderNumber} was cancelled by the patient.`,
+            { orderId: order._id.toString(), type: 'order_cancelled' }
+          );
+        }
+        if (order.riderId) {
+          await sendNotificationToRider(
+            order.riderId.toString(),
+            'Delivery Cancelled',
+            `Order ${order.orderNumber} was cancelled by the patient.`,
+            { orderId: order._id.toString(), type: 'order_cancelled' }
+          );
+        }
+      } catch (_) {}
 
       return successResponse({ message: 'Order cancelled successfully' });
     }

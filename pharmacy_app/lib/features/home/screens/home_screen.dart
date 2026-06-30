@@ -5,6 +5,7 @@ import '../../../providers/prescription_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/widgets/notification_bell.dart';
 import '../../orders/orders_screen.dart';
 import '../../profile/profile_screen.dart';
 import '../../requests/screens/prescription_requests_screen.dart';
@@ -203,18 +204,25 @@ class _DashboardTabState extends State<_DashboardTab> {
                                       fontWeight: FontWeight.bold)),
                             ],
                           ),
-                          CircleAvatar(
-                            radius: 24,
-                            backgroundColor: Colors.white.withOpacity(0.2),
-                            child: Text(
-                              (user?.fullName ?? 'P')
-                                  .substring(0, 1)
-                                  .toUpperCase(),
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold),
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const NotificationBell(),
+                              const SizedBox(width: 4),
+                              CircleAvatar(
+                                radius: 24,
+                                backgroundColor: Colors.white.withOpacity(0.2),
+                                child: Text(
+                                  (user?.fullName ?? 'P')
+                                      .substring(0, 1)
+                                      .toUpperCase(),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

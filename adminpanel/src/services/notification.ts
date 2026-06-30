@@ -1,5 +1,8 @@
 import admin from 'firebase-admin';
 import User from '@/models/User';
+import Patient from '@/models/Patient';
+import Pharmacy from '@/models/Pharmacy';
+import Rider from '@/models/Rider';
 import Notification from '@/models/Notification';
 
 // Initialize Firebase Admin (optional - only if credentials are provided)
@@ -55,6 +58,57 @@ export async function sendNotificationToUser(
     });
   } catch (error) {
     console.error('Send notification error:', error);
+  }
+}
+
+/**
+ * Notifications are stored against a User._id, but order/quote/prescription
+ * documents reference the role-specific doc id (Patient._id, Pharmacy._id,
+ * Rider._id). These helpers resolve that role doc to its owning userId so the
+ * notification reaches the right account.
+ */
+export async function sendNotificationToPatient(
+  patientId: string,
+  title: string,
+  body: string,
+  data?: Record<string, any>
+) {
+  try {
+    const patient = await Patient.findById(patientId).select('userId');
+    if (!patient) return;
+    await sendNotificationToUser(patient.userId.toString(), title, body, data);
+  } catch (error) {
+    console.error('sendNotificationToPatient error:', error);
+  }
+}
+
+export async function sendNotificationToPharmacy(
+  pharmacyId: string,
+  title: string,
+  body: string,
+  data?: Record<string, any>
+) {
+  try {
+    const pharmacy = await Pharmacy.findById(pharmacyId).select('userId');
+    if (!pharmacy) return;
+    await sendNotificationToUser(pharmacy.userId.toString(), title, body, data);
+  } catch (error) {
+    console.error('sendNotificationToPharmacy error:', error);
+  }
+}
+
+export async function sendNotificationToRider(
+  riderId: string,
+  title: string,
+  body: string,
+  data?: Record<string, any>
+) {
+  try {
+    const rider = await Rider.findById(riderId).select('userId');
+    if (!rider) return;
+    await sendNotificationToUser(rider.userId.toString(), title, body, data);
+  } catch (error) {
+    console.error('sendNotificationToRider error:', error);
   }
 }
 

@@ -6,7 +6,7 @@ import Pharmacy from '@/models/Pharmacy';
 import Settings from '@/models/Settings';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
-import { sendNotificationToUser } from '@/services/notification';
+import { sendNotificationToPatient } from '@/services/notification';
 
 export const dynamic = 'force-dynamic';
 
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     // Notify patient
     try {
-      await sendNotificationToUser(
+      await sendNotificationToPatient(
         prescription.patientId.toString(),
         isEdit ? 'Quote Updated' : 'Quote Received',
         `${isEdit ? 'Updated quote' : 'New quote'} of ${totalAmount} MRO from ${pharmacy.pharmacyName}`,

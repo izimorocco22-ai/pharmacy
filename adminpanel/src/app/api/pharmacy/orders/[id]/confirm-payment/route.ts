@@ -4,7 +4,7 @@ import Order from '@/models/Order';
 import Pharmacy from '@/models/Pharmacy';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
-import { sendNotificationToUser } from '@/services/notification';
+import { sendNotificationToPatient } from '@/services/notification';
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Notify patient
     try {
-      await sendNotificationToUser(
+      await sendNotificationToPatient(
         order.patientId.toString(),
         'Payment Confirmed! 🎉',
         `Your payment for order ${order.orderNumber} has been verified. Your order is now confirmed!`,

@@ -5,6 +5,7 @@ import Prescription from '@/models/Prescription';
 import Pharmacy from '@/models/Pharmacy';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
+import { sendNotificationToPharmacy } from '@/services/notification';
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -28,6 +29,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     prescription.nearbyPharmacies = [];
     prescription.status = 'expired';
     await prescription.save();
+
+    // Notify the pharmacy that the patient cancelled their quote.
+    try {
+      await sendNotificationToPharmacy(
+        quote.pharmacyId.toString(),
+        'Quote Cancelled',
+        'The patient cancelled the request for your quote.',
+        { quoteId: quote._id.toString(), type: 'quote_cancelled' }
+      );
+    } catch (_) {}
 
     return successResponse({
       reassigned: false,

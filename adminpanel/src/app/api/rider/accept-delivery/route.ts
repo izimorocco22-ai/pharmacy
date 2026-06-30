@@ -7,7 +7,7 @@ import Patient from '@/models/Patient';
 import User from '@/models/User';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
-import { sendNotificationToUser } from '@/services/notification';
+import { sendNotificationToPatient, sendNotificationToPharmacy } from '@/services/notification';
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Notify patient
     try {
-      await sendNotificationToUser(
+      await sendNotificationToPatient(
         order.patientId.toString(),
         'Rider Assigned',
         'A rider has been assigned to your order and will pick it up soon.',
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     // Notify pharmacy
     try {
       if (order.pharmacyId) {
-        await sendNotificationToUser(
+        await sendNotificationToPharmacy(
           order.pharmacyId.toString(),
           'Rider on the Way',
           `Rider is coming to pick up order ${order.orderNumber}`,

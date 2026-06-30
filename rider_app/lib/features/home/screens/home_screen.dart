@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
 import '../../../services/location_service.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/widgets/notification_bell.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -188,12 +189,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
-                        GestureDetector(
-                          onTap: () async {
-                            await context.read<AuthProvider>().logout();
-                            if (mounted) Navigator.pushReplacementNamed(context, '/login');
-                          },
-                          child: const Icon(Icons.logout, color: Colors.white, size: 24),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const NotificationBell(),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () async {
+                                await context.read<AuthProvider>().logout();
+                                if (mounted) Navigator.pushReplacementNamed(context, '/login');
+                              },
+                              child: const Icon(Icons.logout, color: Colors.white, size: 24),
+                            ),
+                          ],
                         ),
                       ],
                     ),

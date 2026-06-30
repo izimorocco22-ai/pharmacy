@@ -4,7 +4,7 @@ import Order from '@/models/Order';
 import Rider from '@/models/Rider';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
-import { sendNotificationToUser } from '@/services/notification';
+import { sendNotificationToPatient } from '@/services/notification';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest) {
       };
       const msg = messages[status];
       if (msg) {
-        await sendNotificationToUser(order.patientId.toString(), msg.title, msg.body, {
+        await sendNotificationToPatient(order.patientId.toString(), msg.title, msg.body, {
           orderId: order._id.toString(),
           type: `order_${status}`,
         });
