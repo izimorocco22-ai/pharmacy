@@ -4,7 +4,9 @@ export interface INotification extends Document {
   userId: mongoose.Types.ObjectId;
   title: string;
   body: string;
-  type: 'prescription' | 'quote' | 'order' | 'delivery' | 'payment' | 'general';
+  // Granular event type, e.g. 'quote_received', 'rider_assigned', 'order_delivered'.
+  // Kept as a free-form string so new event types don't need a schema change.
+  type: string;
   data?: Record<string, any>;
   isRead: boolean;
   createdAt: Date;
@@ -27,8 +29,7 @@ const NotificationSchema = new Schema<INotification>(
     },
     type: {
       type: String,
-      enum: ['prescription', 'quote', 'order', 'delivery', 'payment', 'general'],
-      required: true,
+      default: 'general',
     },
     data: {
       type: Schema.Types.Mixed,
