@@ -113,21 +113,32 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Find nearby riders
-    const nearbyRiders = await Rider.find({
-      currentLocation: {
-        $near: {
-          $geometry: pharmacy!.location,
-          $maxDistance: 10000, // 10km
+    // Find nearby online riders. Riders only match the geo-query when their
+    // currentLocation is set, so fall back to every available online rider so
+    // a confirmed order never goes unannounced.
+    let nearbyRiders: any[] = [];
+    try {
+      nearbyRiders = await Rider.find({
+        currentLocation: {
+          $near: {
+            $geometry: pharmacy!.location,
+            $maxDistance: 50000, // 50km
+          },
         },
-      },
-      isAvailable: true,
-      isOnline: true,
-    }).limit(10);
+        isAvailable: true,
+        isOnline: true,
+      }).limit(20);
+    } catch (_) {
+      nearbyRiders = [];
+    }
+
+    if (nearbyRiders.length === 0) {
+      nearbyRiders = await Rider.find({ isAvailable: true, isOnline: true }).limit(20);
+    }
 
     // Notify riders
-    if (nearbyRiders.length > 0) {
-      for (const rider of nearbyRiders) {
+    for (const rider of nearbyRiders) {
+      try {
         await sendNotificationToUser(
           rider.userId.toString(),
           'New Delivery Available',
@@ -137,7 +148,7 @@ export async function POST(request: NextRequest) {
             type: 'delivery_available',
           }
         );
-      }
+      } catch (_) {}
     }
 
     return successResponse(

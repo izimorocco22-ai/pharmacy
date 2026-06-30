@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../../services/notification_service.dart';
 import '../../features/notifications/notifications_list_screen.dart';
 
 /// A bell icon with an unread-count badge. Tapping it opens the notifications
-/// list; the badge refreshes when the user returns.
+/// list. The badge refreshes when the user returns, every 30 seconds, and when
+/// the app comes back to the foreground, so new notifications show up promptly.
 class NotificationBell extends StatefulWidget {
   final Color iconColor;
   const NotificationBell({super.key, this.iconColor = Colors.white});
@@ -13,13 +15,30 @@ class NotificationBell extends StatefulWidget {
   State<NotificationBell> createState() => _NotificationBellState();
 }
 
-class _NotificationBellState extends State<NotificationBell> {
+class _NotificationBellState extends State<NotificationBell>
+    with WidgetsBindingObserver {
   int _unread = 0;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadCount();
+    _timer =
+        Timer.periodic(const Duration(seconds: 30), (_) => _loadCount());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _loadCount();
   }
 
   Future<void> _loadCount() async {
@@ -41,7 +60,10 @@ class _NotificationBellState extends State<NotificationBell> {
       clipBehavior: Clip.none,
       children: [
         IconButton(
-          icon: Icon(Icons.notifications_outlined, color: widget.iconColor),
+          icon: Icon(
+            _unread > 0 ? Icons.notifications : Icons.notifications_outlined,
+            color: widget.iconColor,
+          ),
           onPressed: _open,
         ),
         if (_unread > 0)

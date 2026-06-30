@@ -5,6 +5,7 @@ import Pharmacy from '@/models/Pharmacy';
 import Patient from '@/models/Patient';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
+import { sendNotificationToPharmacy } from '@/services/notification';
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,6 +76,18 @@ export async function POST(request: NextRequest) {
 
     prescription.status = 'pending';
     await prescription.save();
+
+    // Notify the assigned pharmacy that a new request is waiting for a quote.
+    if (nearestPharmacy) {
+      try {
+        await sendNotificationToPharmacy(
+          nearestPharmacy._id.toString(),
+          'New Prescription Request',
+          'A new prescription request is waiting for your quote.',
+          { prescriptionId: prescription._id.toString(), type: 'prescription_request' }
+        );
+      } catch (_) {}
+    }
 
     return successResponse(
       {

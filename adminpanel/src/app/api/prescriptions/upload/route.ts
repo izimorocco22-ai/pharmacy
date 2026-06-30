@@ -5,7 +5,7 @@ import Pharmacy from '@/models/Pharmacy';
 import Patient from '@/models/Patient';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
-import { sendNotificationToUser, sendNotificationToPharmacy } from '@/services/notification';
+import { sendNotificationToUser } from '@/services/notification';
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,8 +86,9 @@ export async function POST(request: NextRequest) {
 
     const prescription = await Prescription.create(prescriptionData);
 
-    // Notify the patient that their request was submitted, and alert the
-    // pharmacy it was assigned to so they can send a quote.
+    // Notify the patient that their request was submitted. The pharmacy is
+    // notified later in /orders/create, once the patient picks a delivery
+    // address and the real nearest pharmacy is assigned.
     try {
       await sendNotificationToUser(
         auth.userId,
@@ -95,15 +96,6 @@ export async function POST(request: NextRequest) {
         'Your prescription request was submitted. We are finding a pharmacy for you.',
         { prescriptionId: prescription._id.toString(), type: 'prescription_submitted' }
       );
-      const assignedPharmacyId = prescription.nearbyPharmacies?.[0]?.toString();
-      if (assignedPharmacyId) {
-        await sendNotificationToPharmacy(
-          assignedPharmacyId,
-          'New Prescription Request',
-          'A new prescription request is waiting for your quote.',
-          { prescriptionId: prescription._id.toString(), type: 'prescription_request' }
-        );
-      }
     } catch (_) {}
 
     return successResponse(
