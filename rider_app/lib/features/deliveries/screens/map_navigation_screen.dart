@@ -26,7 +26,8 @@ class MapNavigationScreen extends StatefulWidget {
   State<MapNavigationScreen> createState() => _MapNavigationScreenState();
 }
 
-class _MapNavigationScreenState extends State<MapNavigationScreen> {
+class _MapNavigationScreenState extends State<MapNavigationScreen>
+    with TickerProviderStateMixin {
   final MapController _mapController = MapController();
   StreamSubscription<Position>? _locationSub;
 
@@ -35,23 +36,91 @@ class _MapNavigationScreenState extends State<MapNavigationScreen> {
   bool _loadingRoute = false;
   bool _mapReady = false;
 
+  // _fullRoute is the complete route from the last OSRM fetch; _routePoints is
+  // the displayed route, trimmed so the line starts at the rider and the part
+  // already travelled disappears behind them.
+  List<LatLng> _fullRoute = [];
   List<LatLng> _routePoints = [];
 
   String? _duration;
   String? _distance;
+
+  // Animation that glides the rider marker (and the camera, when following)
+  // between GPS fixes so movement looks smooth instead of jumping.
+  late final AnimationController _moveController;
+  late final Animation<double> _moveAnimation;
+  Tween<double> _latTween = Tween<double>(begin: 0, end: 0);
+  Tween<double> _lngTween = Tween<double>(begin: 0, end: 0);
+
+  bool _didInitialFit = false;
+  LatLng? _lastRoutedFrom;
 
   LatLng get _destination => LatLng(widget.destinationLat, widget.destinationLng);
 
   @override
   void initState() {
     super.initState();
+    _moveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _moveAnimation = CurvedAnimation(parent: _moveController, curve: Curves.linear)
+      ..addListener(_onMoveTick);
     _startTracking();
   }
 
   @override
   void dispose() {
     _locationSub?.cancel();
+    _moveController.dispose();
     super.dispose();
+  }
+
+  /// Called on every animation frame: moves the marker (and camera when
+  /// following) to the interpolated point between the last and newest fix.
+  void _onMoveTick() {
+    if (!mounted) return;
+    final p = LatLng(
+      _latTween.evaluate(_moveAnimation),
+      _lngTween.evaluate(_moveAnimation),
+    );
+    setState(() {
+      _riderPos = p;
+      // Keep the start of the (trimmed) route attached to the gliding marker.
+      if (_routePoints.isNotEmpty) _routePoints[0] = p;
+    });
+    if (_followRider && _mapReady) {
+      _mapController.move(p, _mapController.camera.zoom);
+    }
+  }
+
+  /// Glides the rider from its current displayed position to [target].
+  void _animateRiderTo(LatLng target) {
+    final start = _riderPos ?? target;
+    _latTween = Tween<double>(begin: start.latitude, end: target.latitude);
+    _lngTween = Tween<double>(begin: start.longitude, end: target.longitude);
+    _moveController
+      ..reset()
+      ..forward();
+  }
+
+  /// Drops the part of the route the rider has already passed, so the green
+  /// line always starts at the rider's current position.
+  void _trimTravelledRoute(LatLng pos) {
+    if (_fullRoute.length < 2) return;
+    const distance = Distance();
+    int nearest = 0;
+    double best = double.infinity;
+    for (int i = 0; i < _fullRoute.length; i++) {
+      final d = distance.as(LengthUnit.Meter, pos, _fullRoute[i]);
+      if (d < best) {
+        best = d;
+        nearest = i;
+      }
+    }
+    setState(() {
+      _routePoints = [pos, ..._fullRoute.sublist(nearest)];
+    });
   }
 
   Future<void> _startTracking() async {
@@ -73,28 +142,36 @@ class _MapNavigationScreenState extends State<MapNavigationScreen> {
       if (!mounted) return;
       final riderLatLng = LatLng(pos.latitude, pos.longitude);
       setState(() => _riderPos = riderLatLng);
+      _lastRoutedFrom = riderLatLng;
       await _fetchRoute(riderLatLng);
 
       _locationSub = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 15,
+          distanceFilter: 8,
         ),
-      ).listen((pos) async {
+      ).listen((pos) {
         if (!mounted) return;
         final newPos = LatLng(pos.latitude, pos.longitude);
-        setState(() => _riderPos = newPos);
-        if (_followRider && _mapReady) {
-          _mapController.move(newPos, _mapController.camera.zoom);
-        }
+        // Glide the marker/camera smoothly to the new fix.
+        _animateRiderTo(newPos);
+        // Cut off the route the rider has already covered (~every 8m fix).
+        _trimTravelledRoute(newPos);
+
         // Update backend
         ApiService.put('/rider/update-location', {
           'lat': pos.latitude,
           'lng': pos.longitude,
           'isOnline': true,
         });
-        // Refresh route every ~15m of movement
-        await _fetchRoute(newPos);
+
+        // Only refresh the route after meaningful movement (~60m) so route
+        // fetches don't fight the smooth camera follow or hammer OSRM.
+        if (_lastRoutedFrom == null ||
+            const Distance().as(LengthUnit.Meter, _lastRoutedFrom!, newPos) > 60) {
+          _lastRoutedFrom = newPos;
+          _fetchRoute(newPos);
+        }
       });
     } catch (_) {}
   }
@@ -132,13 +209,18 @@ class _MapNavigationScreenState extends State<MapNavigationScreen> {
 
       if (!mounted) return;
       setState(() {
-        _routePoints = coords;
+        _fullRoute = coords;
+        // Start the displayed route at the rider so nothing trails behind.
+        _routePoints = _riderPos != null ? [_riderPos!, ...coords] : coords;
         _distance = _formatDistance(meters);
         _duration = _formatDuration(seconds);
         _loadingRoute = false;
       });
 
-      if (_mapReady && coords.isNotEmpty) {
+      // Fit the whole route into view only once (on first load). After that
+      // the camera follows the rider, so route refreshes must not move it.
+      if (_mapReady && coords.isNotEmpty && !_didInitialFit) {
+        _didInitialFit = true;
         _mapController.fitCamera(
           CameraFit.coordinates(
             coordinates: coords,
@@ -233,6 +315,7 @@ class _MapNavigationScreenState extends State<MapNavigationScreen> {
               onMapReady: () {
                 setState(() => _mapReady = true);
                 if (_routePoints.isNotEmpty) {
+                  _didInitialFit = true;
                   _mapController.fitCamera(
                     CameraFit.coordinates(
                       coordinates: _routePoints,
