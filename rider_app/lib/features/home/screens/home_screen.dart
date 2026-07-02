@@ -299,22 +299,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pushNamed(context, '/wallet'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.primary,
-                              backgroundColor: Colors.white,
-                              side: BorderSide.none,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
-                            ),
-                            child: Text(l10n.translate('request_payout'),
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                          ),
-                        ),
                       ],
                     ),
                   ),

@@ -10,6 +10,7 @@ export default function PharmacyDetailPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState('all');
 
   useEffect(() => {
     if (id) fetchDetail();
@@ -39,6 +40,26 @@ export default function PharmacyDetailPage() {
     };
     return map[status] || 'bg-gray-100 text-gray-800';
   };
+
+  const monthLabel = (ym: string) => {
+    const [y, m] = ym.split('-');
+    return new Date(Number(y), Number(m) - 1, 1)
+      .toLocaleString('default', { month: 'long', year: 'numeric' });
+  };
+
+  const emptyEarnings = {
+    orders: 0,
+    subtotal: 0,
+    commission: 0,
+    deliveryFee: 0,
+    totalAmount: 0,
+  };
+  const earnings = data?.earnings || { allTime: emptyEarnings, monthly: [] };
+  const currentEarnings =
+    selectedMonth === 'all'
+      ? earnings.allTime
+      : earnings.monthly.find((m: any) => m.month === selectedMonth) ||
+        emptyEarnings;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -112,6 +133,81 @@ export default function PharmacyDetailPage() {
                     <p className="font-medium text-gray-800">{new Date(data.pharmacy.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Earnings & Commission */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+                <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Earnings & Commission</h3>
+                    <p className="text-sm text-gray-500">
+                      Commission is the amount this pharmacy owes the platform.
+                    </p>
+                  </div>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="all">All time</option>
+                    {earnings.monthly.map((m: any) => (
+                      <option key={m.month} value={m.month}>{monthLabel(m.month)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                    <p className="text-xs text-gray-600 mb-1">Commission owed to us</p>
+                    <h3 className="text-2xl font-bold text-green-700">
+                      {currentEarnings.commission.toLocaleString()} MRO
+                    </h3>
+                  </div>
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p className="text-xs text-gray-500 mb-1">Pharmacy earnings</p>
+                    <h3 className="text-2xl font-bold text-gray-800">
+                      {currentEarnings.subtotal.toLocaleString()} MRO
+                    </h3>
+                  </div>
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p className="text-xs text-gray-500 mb-1">Delivered orders</p>
+                    <h3 className="text-2xl font-bold text-gray-800">{currentEarnings.orders}</h3>
+                  </div>
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p className="text-xs text-gray-500 mb-1">Total collected</p>
+                    <h3 className="text-2xl font-bold text-gray-800">
+                      {currentEarnings.totalAmount.toLocaleString()} MRO
+                    </h3>
+                  </div>
+                </div>
+
+                {earnings.monthly.length > 0 && (
+                  <div className="mt-6 overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200 bg-gray-50">
+                          {['Month', 'Delivered', 'Pharmacy Earnings', 'Commission (owed)', 'Total Collected'].map(h => (
+                            <th key={h} className="text-left py-2 px-4 text-xs font-semibold text-gray-600">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {earnings.monthly.map((m: any) => (
+                          <tr
+                            key={m.month}
+                            className={`border-b border-gray-100 hover:bg-gray-50 ${selectedMonth === m.month ? 'bg-green-50/60' : ''}`}
+                          >
+                            <td className="py-2 px-4 text-sm font-medium text-gray-800">{monthLabel(m.month)}</td>
+                            <td className="py-2 px-4 text-sm text-gray-600">{m.orders}</td>
+                            <td className="py-2 px-4 text-sm text-gray-800">{m.subtotal.toLocaleString()} MRO</td>
+                            <td className="py-2 px-4 text-sm font-semibold text-green-700">{m.commission.toLocaleString()} MRO</td>
+                            <td className="py-2 px-4 text-sm text-gray-800">{m.totalAmount.toLocaleString()} MRO</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
               {/* Stats Grid */}

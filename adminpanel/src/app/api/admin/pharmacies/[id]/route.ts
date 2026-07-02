@@ -43,6 +43,45 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       { $limit: 6 },
     ]);
 
+    // Earnings & commission per month (delivered orders only).
+    // - subtotal      = what the pharmacy earns (medicine value it keeps)
+    // - commission    = platform's cut => what the pharmacy owes us
+    // - totalAmount   = full amount collected from the patient
+    const earningsByMonth = await Order.aggregate([
+      { $match: { pharmacyId: pharmacy._id, status: 'delivered' } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+          orders: { $sum: 1 },
+          subtotal: { $sum: '$subtotal' },
+          commission: { $sum: '$commissionAmount' },
+          deliveryFee: { $sum: '$deliveryFee' },
+          totalAmount: { $sum: '$totalAmount' },
+        },
+      },
+      { $sort: { _id: -1 } },
+    ]);
+
+    const round = (n: number) => Math.round((n || 0) * 100) / 100;
+    const monthlyEarnings = earningsByMonth.map((m: any) => ({
+      month: m._id,
+      orders: m.orders,
+      subtotal: round(m.subtotal),
+      commission: round(m.commission),
+      deliveryFee: round(m.deliveryFee),
+      totalAmount: round(m.totalAmount),
+    }));
+    const allTimeEarnings = monthlyEarnings.reduce(
+      (acc: any, m: any) => ({
+        orders: acc.orders + m.orders,
+        subtotal: round(acc.subtotal + m.subtotal),
+        commission: round(acc.commission + m.commission),
+        deliveryFee: round(acc.deliveryFee + m.deliveryFee),
+        totalAmount: round(acc.totalAmount + m.totalAmount),
+      }),
+      { orders: 0, subtotal: 0, commission: 0, deliveryFee: 0, totalAmount: 0 },
+    );
+
     // Order status breakdown
     const statusBreakdown = await Order.aggregate([
       { $match: { pharmacyId: pharmacy._id } },
@@ -97,6 +136,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         acceptanceRate,
       },
       monthlyRevenue,
+      earnings: {
+        allTime: allTimeEarnings,
+        monthly: monthlyEarnings,
+      },
       statusBreakdown,
       recentOrders: orders.slice(0, 10).map((o: any) => ({
         id: o._id,
