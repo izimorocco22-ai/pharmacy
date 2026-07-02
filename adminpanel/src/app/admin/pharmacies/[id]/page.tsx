@@ -61,6 +61,20 @@ export default function PharmacyDetailPage() {
       : earnings.monthly.find((m: any) => m.month === selectedMonth) ||
         emptyEarnings;
 
+  // Always offer the last 12 months in the filter (plus any older month that
+  // actually has data), so the admin can pick a month even before there are
+  // delivered orders in it.
+  const monthOptions = (() => {
+    const set = new Set<string>();
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    earnings.monthly.forEach((m: any) => set.add(m.month));
+    return Array.from(set).sort().reverse();
+  })();
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar isOpen={sidebarOpen} />
@@ -150,8 +164,8 @@ export default function PharmacyDetailPage() {
                     className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
                     <option value="all">All time</option>
-                    {earnings.monthly.map((m: any) => (
-                      <option key={m.month} value={m.month}>{monthLabel(m.month)}</option>
+                    {monthOptions.map((m: string) => (
+                      <option key={m} value={m}>{monthLabel(m)}</option>
                     ))}
                   </select>
                 </div>
