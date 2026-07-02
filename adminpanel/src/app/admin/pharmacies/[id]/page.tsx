@@ -11,6 +11,11 @@ export default function PharmacyDetailPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState('all');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [payAmount, setPayAmount] = useState('');
+  const [payNote, setPayNote] = useState('');
+  const [payType, setPayType] = useState<'payment' | 'adjustment'>('payment');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (id) fetchDetail();
@@ -26,6 +31,66 @@ export default function PharmacyDetailPage() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const recordSettlement = async (amount: number, note: string, type: string) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/pharmacies/${id}/settlements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, note, type }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        alert(json.message || 'Failed to record');
+        return;
+      }
+      setModalOpen(false);
+      setPayAmount('');
+      setPayNote('');
+      setPayType('payment');
+      await fetchDetail();
+    } catch (e) {
+      alert('Failed to record payment');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const submitModal = () => {
+    const amt = parseFloat(payAmount);
+    if (!amt || isNaN(amt)) {
+      alert('Enter a valid amount');
+      return;
+    }
+    recordSettlement(amt, payNote, payType);
+  };
+
+  const clearDue = async () => {
+    const due = data?.settlement?.due || 0;
+    if (due <= 0) {
+      alert('No outstanding due to clear.');
+      return;
+    }
+    if (!confirm(`Clear the full outstanding due of ${due.toLocaleString()} MRO? This records a payment for the full amount.`)) {
+      return;
+    }
+    await recordSettlement(due, 'Cleared full outstanding due', 'payment');
+  };
+
+  const deleteSettlement = async (sid: string) => {
+    if (!confirm('Remove this record? The balance will be recalculated.')) return;
+    try {
+      const res = await fetch(`/api/admin/pharmacies/${id}/settlements/${sid}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) await fetchDetail();
+      else alert(json.message || 'Failed to remove');
+    } catch (e) {
+      alert('Failed to remove record');
     }
   };
 
@@ -74,6 +139,9 @@ export default function PharmacyDetailPage() {
     earnings.monthly.forEach((m: any) => set.add(m.month));
     return Array.from(set).sort().reverse();
   })();
+
+  const settlement = data?.settlement || { totalCommission: 0, totalPaid: 0, due: 0 };
+  const settlements: any[] = data?.settlements || [];
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -224,6 +292,92 @@ export default function PharmacyDetailPage() {
                 )}
               </div>
 
+              {/* Commission Dues & Payments */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+                <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Commission Dues & Payments</h3>
+                    <p className="text-sm text-gray-500">
+                      Record what the pharmacy pays and clear their balance at month-end.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setModalOpen(true)}
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    >
+                      Record payment
+                    </button>
+                    <button
+                      onClick={clearDue}
+                      disabled={(settlement.due || 0) <= 0}
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Clear due
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p className="text-xs text-gray-500 mb-1">Total commission (all time)</p>
+                    <h3 className="text-2xl font-bold text-gray-800">
+                      {(settlement.totalCommission || 0).toLocaleString()} MRO
+                    </h3>
+                  </div>
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p className="text-xs text-gray-500 mb-1">Total paid</p>
+                    <h3 className="text-2xl font-bold text-gray-800">
+                      {(settlement.totalPaid || 0).toLocaleString()} MRO
+                    </h3>
+                  </div>
+                  <div
+                    className={`rounded-xl border p-4 ${
+                      (settlement.due || 0) > 0
+                        ? 'border-red-200 bg-red-50'
+                        : 'border-green-200 bg-green-50'
+                    }`}
+                  >
+                    <p className="text-xs text-gray-600 mb-1">Outstanding due</p>
+                    <h3
+                      className={`text-2xl font-bold ${
+                        (settlement.due || 0) > 0 ? 'text-red-600' : 'text-green-700'
+                      }`}
+                    >
+                      {(settlement.due || 0).toLocaleString()} MRO
+                    </h3>
+                  </div>
+                </div>
+
+                {settlements.length > 0 && (
+                  <div className="mt-6 overflow-x-auto">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">Payment history</p>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200 bg-gray-50">
+                          {['Date', 'Type', 'Note', 'Amount', ''].map(h => (
+                            <th key={h} className="text-left py-2 px-4 text-xs font-semibold text-gray-600">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {settlements.map((s: any) => (
+                          <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-2 px-4 text-sm text-gray-600">{new Date(s.createdAt).toLocaleDateString()}</td>
+                            <td className="py-2 px-4 text-sm capitalize text-gray-700">{s.type}</td>
+                            <td className="py-2 px-4 text-sm text-gray-600">{s.note || '-'}</td>
+                            <td className="py-2 px-4 text-sm font-semibold text-gray-800">{(s.amount || 0).toLocaleString()} MRO</td>
+                            <td className="py-2 px-4 text-right">
+                              <button onClick={() => deleteSettlement(s.id)} className="text-red-500 hover:text-red-700 text-xs">Remove</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
               {/* Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
                 {[
@@ -345,6 +499,68 @@ export default function PharmacyDetailPage() {
                   </div>
                 )}
               </div>
+
+              {/* Record payment modal */}
+              {modalOpen && (
+                <div
+                  className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+                  onClick={() => setModalOpen(false)}
+                >
+                  <div
+                    className="bg-white rounded-xl shadow-lg w-full max-w-md p-6"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h3 className="text-lg font-semibold text-gray-800 mb-1">Record payment</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Outstanding due: {(settlement.due || 0).toLocaleString()} MRO
+                    </p>
+
+                    <label className="block text-xs text-gray-500 mb-1">Type</label>
+                    <select
+                      value={payType}
+                      onChange={(e) => setPayType(e.target.value as 'payment' | 'adjustment')}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
+                    >
+                      <option value="payment">Payment (pharmacy paid us)</option>
+                      <option value="adjustment">Adjustment / discount</option>
+                    </select>
+
+                    <label className="block text-xs text-gray-500 mb-1">Amount (MRO)</label>
+                    <input
+                      type="number"
+                      value={payAmount}
+                      onChange={(e) => setPayAmount(e.target.value)}
+                      placeholder="0"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
+                    />
+
+                    <label className="block text-xs text-gray-500 mb-1">Note (optional)</label>
+                    <input
+                      type="text"
+                      value={payNote}
+                      onChange={(e) => setPayNote(e.target.value)}
+                      placeholder="e.g. June 2026 settlement"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-4"
+                    />
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => setModalOpen(false)}
+                        className="px-4 py-2 rounded-lg text-sm bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={submitModal}
+                        disabled={saving}
+                        className="px-4 py-2 rounded-lg text-sm bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {saving ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </main>

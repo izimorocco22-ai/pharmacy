@@ -5,6 +5,7 @@ import Pharmacy from '@/models/Pharmacy';
 import Order from '@/models/Order';
 import Quote from '@/models/Quote';
 import Prescription from '@/models/Prescription';
+import PharmacySettlement from '@/models/PharmacySettlement';
 import { successResponse, errorResponse } from '@/lib/response';
 
 export const dynamic = 'force-dynamic';
@@ -82,6 +83,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       { orders: 0, subtotal: 0, commission: 0, deliveryFee: 0, totalAmount: 0 },
     );
 
+    // Settlements (payments/adjustments) recorded against commission dues.
+    const settlements = await PharmacySettlement.find({ pharmacyId: pharmacy._id })
+      .sort({ createdAt: -1 })
+      .lean() as any[];
+    const totalPaid = round(
+      settlements.reduce((s: number, x: any) => s + (x.amount || 0), 0),
+    );
+    const outstandingDue = round(allTimeEarnings.commission - totalPaid);
+
     // Order status breakdown
     const statusBreakdown = await Order.aggregate([
       { $match: { pharmacyId: pharmacy._id } },
@@ -140,6 +150,19 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         allTime: allTimeEarnings,
         monthly: monthlyEarnings,
       },
+      settlement: {
+        totalCommission: allTimeEarnings.commission,
+        totalPaid,
+        due: outstandingDue,
+      },
+      settlements: settlements.map((s: any) => ({
+        id: s._id,
+        amount: s.amount,
+        type: s.type,
+        note: s.note,
+        month: s.month,
+        createdAt: s.createdAt,
+      })),
       statusBreakdown,
       recentOrders: orders.slice(0, 10).map((o: any) => ({
         id: o._id,
