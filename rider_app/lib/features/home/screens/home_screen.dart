@@ -494,6 +494,28 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+          if ((order['paymentMethod']?.toString() ?? 'cash') == 'cash') ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.warning.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.payments_outlined, size: 14, color: AppTheme.warning),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Pay on Delivery · collect ${((order['totalAmount'] as num?)?.toDouble() ?? 0).toStringAsFixed(0)} ${l10n.translate('mad')}',
+                    style: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.warning),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 6),
           Text('${l10n.translate('pickup_for')} $patientName',
               style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),

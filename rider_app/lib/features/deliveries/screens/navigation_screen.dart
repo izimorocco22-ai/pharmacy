@@ -45,6 +45,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
   List? get _deliveryCoords => widget.delivery['deliveryCoords'] as List?;
   String get _pharmacyPhone => widget.delivery['pharmacyPhone']?.toString() ?? '';
   String get _patientPhone => widget.delivery['patientPhone']?.toString() ?? '';
+  String get _paymentMethod => widget.delivery['paymentMethod']?.toString() ?? 'cash';
+  bool get _isCod => _paymentMethod == 'cash';
+  double get _subtotal => (widget.delivery['subtotal'] as num?)?.toDouble() ?? 0;
+  double get _serviceFee => (widget.delivery['commissionAmount'] as num?)?.toDouble() ?? 0;
+  double get _totalAmount => (widget.delivery['totalAmount'] as num?)?.toDouble() ?? 0;
 
   Future<void> _callNumber(String phone) async {
     if (phone.isEmpty) return;
@@ -193,6 +198,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     if (_phase == 'delivered') return _buildDeliveredView(l10n);
 
     final isToPharmacy = _phase == 'to_pharmacy';
+    final showCollection = !isToPharmacy && _isCod;
 
     return Column(
       children: [
@@ -221,6 +227,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   coords: isToPharmacy ? _deliveryCoords : null,
                   phone: '',
                 ),
+                if (showCollection) _buildCollectionCard(l10n),
               ],
             ),
           ),
@@ -247,13 +254,90 @@ class _NavigationScreenState extends State<NavigationScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : Text(
-                      isToPharmacy ? l10n.translate('arrived_at_pharmacy') : l10n.translate('arrived_at_patient'),
+                      isToPharmacy
+                          ? l10n.translate('arrived_at_pharmacy')
+                          : (showCollection
+                              ? 'Payment Collected — Complete'
+                              : l10n.translate('arrived_at_patient')),
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  // Cash-on-delivery collection breakdown shown at the delivery step.
+  Widget _buildCollectionCard(AppLocalizations l10n) {
+    final mad = l10n.translate('mad');
+    return Container(
+      margin: const EdgeInsets.only(top: AppTheme.spacing12),
+      padding: const EdgeInsets.all(AppTheme.spacing16),
+      decoration: BoxDecoration(
+        color: AppTheme.warning.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        border: Border.all(color: AppTheme.warning.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.payments_outlined, color: AppTheme.warning, size: 20),
+              const SizedBox(width: 8),
+              const Text('Collect Payment (Cash on Delivery)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacing12),
+          _amountRow('Medicine', _subtotal, mad),
+          _amountRow('Service Fee', _serviceFee, mad),
+          _amountRow('Delivery Fee', _deliveryFee.toDouble(), mad),
+          const Divider(height: 20),
+          _amountRow('Total', _totalAmount, mad, isTotal: true),
+          const SizedBox(height: AppTheme.spacing12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppTheme.spacing12),
+            decoration: BoxDecoration(
+              color: AppTheme.warning,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+            ),
+            child: Column(
+              children: [
+                const Text('Collect from patient',
+                    style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(height: 2),
+                Text('${_totalAmount.toStringAsFixed(2)} $mad',
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _amountRow(String label, double amount, String mad, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: TextStyle(
+                  fontSize: isTotal ? 15 : 14,
+                  fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+                  color: isTotal ? AppTheme.textPrimary : AppTheme.textSecondary)),
+          Text('${amount.toStringAsFixed(2)} $mad',
+              style: TextStyle(
+                  fontSize: isTotal ? 15 : 14,
+                  fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+                  color: isTotal ? AppTheme.primary : AppTheme.textPrimary)),
+        ],
+      ),
     );
   }
 
