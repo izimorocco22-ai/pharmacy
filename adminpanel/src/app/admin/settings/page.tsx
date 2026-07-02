@@ -6,6 +6,7 @@ import Sidebar from '@/components/admin/Sidebar';
 interface Settings {
   deliveryFee: number;
   commissionRate: number;
+  minCommission: number;
   minOrderAmount: number;
   maxDeliveryRadius: number;
   minWithdrawalAmount: number;
@@ -20,6 +21,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>({
     deliveryFee: 20,
     commissionRate: 15,
+    minCommission: 500,
     minOrderAmount: 50,
     maxDeliveryRadius: 10,
     minWithdrawalAmount: 100,
@@ -131,9 +133,29 @@ export default function SettingsPage() {
                     <input
                       type="number"
                       value={settings.commissionRate}
-                      onChange={(e) => setSettings({ ...settings, commissionRate: Number(e.target.value) })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      readOnly
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-200 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed"
                     />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Fixed rate. Commission charged = max({settings.minCommission} MRO, {settings.commissionRate}% of medicines).
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Minimum Commission (MRO)
+                    </label>
+                    <input
+                      type="number"
+                      value={settings.minCommission}
+                      readOnly
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-200 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      The pharmacy is never charged less than this per order.
+                    </p>
                   </div>
 
                   <div>

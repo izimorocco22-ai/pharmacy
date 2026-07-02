@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ISettings extends Document {
   deliveryFee: number;
   commissionRate: number;
+  minCommission: number;
   minOrderAmount: number;
   maxDeliveryRadius: number;
   minWithdrawalAmount: number;
@@ -16,6 +17,7 @@ const SettingsSchema = new Schema<ISettings>(
   {
     deliveryFee: { type: Number, default: 20 },
     commissionRate: { type: Number, default: 15 },
+    minCommission: { type: Number, default: 500 },
     minOrderAmount: { type: Number, default: 50 },
     maxDeliveryRadius: { type: Number, default: 10 },
     minWithdrawalAmount: { type: Number, default: 100 },

@@ -41,7 +41,8 @@ export async function GET(request: NextRequest) {
 
     const settings = (await Settings.findOne().lean()) as any;
     const deliveryFeePerKm = settings?.deliveryFee ?? 20;
-    const commissionRate = settings?.commissionRate ?? 0;
+    const commissionRate = settings?.commissionRate ?? 15;
+    const minCommission = settings?.minCommission ?? 500;
 
     const pharmacy = (await Pharmacy.findOne({ userId: auth.userId }).lean()) as any;
     if (!pharmacy) return errorResponse('Pharmacy not found', 404);
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
       }
     } catch (_) {}
 
-    return successResponse({ commissionRate, deliveryFee, deliveryFeePerKm });
+    return successResponse({ commissionRate, minCommission, deliveryFee, deliveryFeePerKm });
   } catch (error) {
     console.error('Quote preview error:', error);
     return errorResponse('Failed to compute quote preview', 500);

@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 const defaults = {
   deliveryFee: 20,
   commissionRate: 15,
+  minCommission: 500,
   minOrderAmount: 50,
   maxDeliveryRadius: 10,
   minWithdrawalAmount: 100,
@@ -31,7 +32,8 @@ export async function GET() {
     const settings = await getSettings();
     return successResponse({
       deliveryFee: settings.deliveryFee,
-      commissionRate: settings.commissionRate,
+      commissionRate: settings.commissionRate ?? 15,
+      minCommission: settings.minCommission ?? 500,
       minOrderAmount: settings.minOrderAmount,
       maxDeliveryRadius: settings.maxDeliveryRadius,
       minWithdrawalAmount: settings.minWithdrawalAmount ?? 100,
@@ -57,6 +59,11 @@ export async function PUT(request: NextRequest) {
       delete body.razorpayKeySecret;
     }
 
+    // Commission rate and minimum commission are fixed business rules — the
+    // admin can view them but not change them here.
+    delete body.commissionRate;
+    delete body.minCommission;
+
     const settings = await Settings.findOneAndUpdate(
       {},
       { $set: body },
@@ -65,7 +72,8 @@ export async function PUT(request: NextRequest) {
 
     return successResponse({
       deliveryFee: settings.deliveryFee,
-      commissionRate: settings.commissionRate,
+      commissionRate: settings.commissionRate ?? 15,
+      minCommission: settings.minCommission ?? 500,
       minOrderAmount: settings.minOrderAmount,
       maxDeliveryRadius: settings.maxDeliveryRadius,
       minWithdrawalAmount: settings.minWithdrawalAmount ?? 100,

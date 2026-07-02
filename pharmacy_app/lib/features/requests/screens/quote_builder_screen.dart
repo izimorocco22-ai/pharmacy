@@ -30,6 +30,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
   // Fee breakdown (commission + delivery) fetched from the backend so the
   // pharmacy can preview what the patient will pay.
   double _commissionRate = 0;
+  double _minCommission = 0;
   double _deliveryFee = 0;
   bool _previewLoaded = false;
 
@@ -53,6 +54,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
     if (res.success && res.data != null) {
       setState(() {
         _commissionRate = (res.data['commissionRate'] as num?)?.toDouble() ?? 0;
+        _minCommission = (res.data['minCommission'] as num?)?.toDouble() ?? 0;
         _deliveryFee = (res.data['deliveryFee'] as num?)?.toDouble() ?? 0;
         _previewLoaded = true;
       });
@@ -505,7 +507,9 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
     final subtotal = _currentSubtotal;
     if (subtotal <= 0) return const SizedBox.shrink();
 
-    final serviceFee = subtotal * _commissionRate / 100;
+    // Service fee = max(minimum commission, rate% of medicines).
+    final pct = subtotal * _commissionRate / 100;
+    final serviceFee = pct > _minCommission ? pct : _minCommission;
     final total = subtotal + serviceFee + _deliveryFee;
 
     return AppCard(

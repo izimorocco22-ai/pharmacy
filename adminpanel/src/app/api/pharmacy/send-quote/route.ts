@@ -83,7 +83,8 @@ export async function POST(request: NextRequest) {
     // Fetch admin settings for delivery fee per km and commission
     const settings = await Settings.findOne().lean() as any;
     const deliveryFeePerKm = settings?.deliveryFee ?? 20;
-    const commissionRate = settings?.commissionRate ?? 0;
+    const commissionRate = settings?.commissionRate ?? 15;
+    const minCommission = settings?.minCommission ?? 500;
 
     // Calculate distance-based delivery fee
     let deliveryFee = deliveryFeePerKm; // fallback: 1km minimum
@@ -103,7 +104,10 @@ export async function POST(request: NextRequest) {
     } catch (_) {}
 
     const subtotal = items.reduce((sum: number, item: any) => sum + item.totalPrice, 0);
-    const commissionAmount = parseFloat(((subtotal * commissionRate) / 100).toFixed(2));
+    // Commission = max(minimum commission, rate% of medicine subtotal).
+    const commissionAmount = parseFloat(
+      Math.max(minCommission, (subtotal * commissionRate) / 100).toFixed(2),
+    );
     const totalAmount = parseFloat((subtotal + commissionAmount + deliveryFee).toFixed(2));
 
     // Check if quote already exists from this pharmacy
