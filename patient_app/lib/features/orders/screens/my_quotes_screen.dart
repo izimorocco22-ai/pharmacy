@@ -53,7 +53,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
         ? Map<String, dynamic>.from(paymentMethodRaw)
         : null;
 
-    final proceed = await showDialog<bool>(
+    final choice = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -64,7 +64,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
             Text(l10n.translate('confirm_order')),
             IconButton(
               icon: const Icon(Icons.close, size: 20),
-              onPressed: () => Navigator.pop(_, false),
+              onPressed: () => Navigator.pop(_, null),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
@@ -85,7 +85,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => Navigator.pop(_, true),
+              onPressed: () => Navigator.pop(_, 'pay'),
               icon: const Icon(Icons.payment, size: 18),
               label: Text(l10n.translate('pay_now')),
               style: ElevatedButton.styleFrom(
@@ -96,19 +96,65 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.pop(_, 'cod'),
+              icon: const Icon(Icons.local_shipping_outlined, size: 20),
+              label: const Text('Pay on Delivery'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primary,
+                side: const BorderSide(color: AppTheme.primary),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
         ],
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       ),
     );
 
-    if (proceed != true || !mounted) return;
+    if (!mounted || choice == null) return;
 
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PaymentProofScreen(quoteMap: Map<String, dynamic>.from(quote)),
-      ),
-    );
-    _fetchQuotes();
+    if (choice == 'pay') {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentProofScreen(quoteMap: Map<String, dynamic>.from(quote)),
+        ),
+      );
+      _fetchQuotes();
+    } else if (choice == 'cod') {
+      await _confirmCod(quote);
+    }
+  }
+
+  // Cash on delivery: confirm the order immediately, no payment proof needed.
+  Future<void> _confirmCod(dynamic quote) async {
+    _showLoading('Confirming order...');
+    try {
+      final ok = await context.read<OrderProvider>().confirmQuote(
+            quoteId: quote['id'].toString(),
+            paymentMethod: 'cash',
+          );
+      if (mounted) Navigator.pop(context); // dismiss loader
+      if (!mounted) return;
+      if (ok) {
+        _showSuccess('Order confirmed! Pay on delivery.');
+        _fetchQuotes();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to confirm order'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) Navigator.pop(context);
+    }
   }
 
   // ── Cancel flow ───────────────────────────────────────────────────────────

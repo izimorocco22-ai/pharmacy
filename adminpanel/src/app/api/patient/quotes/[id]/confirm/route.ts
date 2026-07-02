@@ -4,6 +4,7 @@ import Quote from '@/models/Quote';
 import Order from '@/models/Order';
 import Prescription from '@/models/Prescription';
 import Pharmacy from '@/models/Pharmacy';
+import Rider from '@/models/Rider';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
 import { sendNotificationToUser } from '@/services/notification';
@@ -28,7 +29,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return errorResponse('Quote has expired and is no longer available');
     }
 
-    if (!quote.paymentProofUrl) {
+    // Cash on delivery skips the payment-proof requirement.
+    const isCod = paymentMethod === 'cash';
+    if (!isCod && !quote.paymentProofUrl) {
       return errorResponse('Payment proof is required before confirming the order', 400);
     }
 
@@ -54,9 +57,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       totalAmount: quote.totalAmount,
       paymentMethod,
       paymentMethodDetails: quote.paymentMethod,
-      paymentProofUrl: quote.paymentProofUrl,
+      paymentProofUrl: quote.paymentProofUrl || null,
       paymentStatus: 'pending',
-      status: 'payment_verification',
+      // COD is confirmed straight away; paid orders wait for the pharmacy to
+      // verify the uploaded proof.
+      status: isCod ? 'confirmed' : 'payment_verification',
       deliveryAddress: prescription.deliveryAddress,
       pharmacyAddress: { address: pharmacy.address, location: pharmacy.location },
       estimatedDeliveryTime: new Date(Date.now() + 60 * 60 * 1000),
@@ -68,15 +73,53 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     prescription.status = 'accepted';
     await prescription.save();
 
-    // Notify pharmacy
-    try {
-      await sendNotificationToUser(
-        pharmacy.userId.toString(),
-        'Payment Proof Received!',
-        `Patient submitted payment proof for order ${orderNumber}. Please verify and confirm.`,
-        { orderId: order._id.toString(), type: 'payment_proof_received' }
-      );
-    } catch (_) {}
+    if (isCod) {
+      // Notify the pharmacy to prepare the order, and alert nearby riders.
+      try {
+        await sendNotificationToUser(
+          pharmacy.userId.toString(),
+          'New Order Confirmed',
+          `Order ${orderNumber} has been confirmed (Pay on Delivery). Please prepare the medicines.`,
+          { orderId: order._id.toString(), type: 'order_confirmed' }
+        );
+      } catch (_) {}
+
+      try {
+        let nearbyRiders: any[] = [];
+        try {
+          nearbyRiders = await Rider.find({
+            currentLocation: {
+              $near: { $geometry: pharmacy.location, $maxDistance: 50000 },
+            },
+            isAvailable: true,
+            isOnline: true,
+          }).limit(20);
+        } catch (_) {
+          nearbyRiders = [];
+        }
+        if (nearbyRiders.length === 0) {
+          nearbyRiders = await Rider.find({ isAvailable: true, isOnline: true }).limit(20);
+        }
+        for (const rider of nearbyRiders) {
+          await sendNotificationToUser(
+            rider.userId.toString(),
+            'New Delivery Available',
+            `Delivery fee: ${order.deliveryFee} MRO`,
+            { orderId: order._id.toString(), type: 'delivery_available' }
+          );
+        }
+      } catch (_) {}
+    } else {
+      // Paid: tell the pharmacy a proof was submitted so they can verify.
+      try {
+        await sendNotificationToUser(
+          pharmacy.userId.toString(),
+          'Payment Proof Received!',
+          `Patient submitted payment proof for order ${orderNumber}. Please verify and confirm.`,
+          { orderId: order._id.toString(), type: 'payment_proof_received' }
+        );
+      } catch (_) {}
+    }
 
     return successResponse({
       order: {

@@ -449,7 +449,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final l10n = AppLocalizations.of(context)!;
     final paymentMethod = order.paymentMethodDetails;
 
-    final proceed = await showDialog<bool>(
+    final choice = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -460,7 +460,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             Text(l10n.translate('confirm_order')),
             IconButton(
               icon: const Icon(Icons.close, size: 20),
-              onPressed: () => Navigator.pop(_, false),
+              onPressed: () => Navigator.pop(_, null),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
@@ -481,7 +481,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(_, true),
+              onPressed: () => Navigator.pop(_, 'pay'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
@@ -491,18 +491,71 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               child: const Text('Pay Now'),
             ),
           ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.pop(_, 'cod'),
+              icon: const Icon(Icons.local_shipping_outlined, size: 20),
+              label: const Text('Pay on Delivery'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primary,
+                side: const BorderSide(color: AppTheme.primary),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
         ],
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       ),
     );
 
-    if (proceed != true || !mounted) return;
+    if (!mounted || choice == null) return;
 
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PaymentProofScreen(order: order),
-      ),
-    );
+    if (choice == 'pay') {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentProofScreen(order: order),
+        ),
+      );
+    } else if (choice == 'cod') {
+      await _confirmCod(order);
+    }
+  }
+
+  // Cash on delivery: confirm the order immediately, no payment proof needed.
+  Future<void> _confirmCod(Order order) async {
+    _showLoading('Confirming order...');
+    try {
+      final provider = context.read<OrderProvider>();
+      final ok = await provider.confirmQuote(
+        quoteId: order.quoteId!,
+        paymentMethod: 'cash',
+      );
+      if (mounted) Navigator.pop(context); // dismiss loader
+      if (!mounted) return;
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order confirmed! Pay on delivery.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        await provider.fetchOrders();
+        if (mounted) Navigator.pop(context); // back to orders list
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(provider.error ?? 'Failed to confirm order'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) Navigator.pop(context);
+    }
   }
 
   Widget _paymentOption({
