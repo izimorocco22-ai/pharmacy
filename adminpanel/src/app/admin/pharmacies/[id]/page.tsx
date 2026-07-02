@@ -16,6 +16,7 @@ export default function PharmacyDetailPage() {
   const [payNote, setPayNote] = useState('');
   const [payType, setPayType] = useState<'payment' | 'adjustment'>('payment');
   const [saving, setSaving] = useState(false);
+  const [duesOpen, setDuesOpen] = useState(false);
 
   useEffect(() => {
     if (id) fetchDetail();
@@ -238,7 +239,7 @@ export default function PharmacyDetailPage() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   <div className="rounded-xl border border-green-200 bg-green-50 p-4">
                     <p className="text-xs text-gray-600 mb-1">Commission owed to us</p>
                     <h3 className="text-2xl font-bold text-green-700">
@@ -249,6 +250,12 @@ export default function PharmacyDetailPage() {
                     <p className="text-xs text-gray-500 mb-1">Pharmacy earnings</p>
                     <h3 className="text-2xl font-bold text-gray-800">
                       {currentEarnings.subtotal.toLocaleString()} MRO
+                    </h3>
+                  </div>
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p className="text-xs text-gray-500 mb-1">Delivery charges</p>
+                    <h3 className="text-2xl font-bold text-gray-800">
+                      {(currentEarnings.deliveryFee || 0).toLocaleString()} MRO
                     </h3>
                   </div>
                   <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
@@ -268,7 +275,7 @@ export default function PharmacyDetailPage() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-gray-200 bg-gray-50">
-                          {['Month', 'Delivered', 'Pharmacy Earnings', 'Commission (owed)', 'Total Collected'].map(h => (
+                          {['Month', 'Delivered', 'Pharmacy Earnings', 'Delivery', 'Commission (owed)', 'Total Collected'].map(h => (
                             <th key={h} className="text-left py-2 px-4 text-xs font-semibold text-gray-600">{h}</th>
                           ))}
                         </tr>
@@ -282,6 +289,7 @@ export default function PharmacyDetailPage() {
                             <td className="py-2 px-4 text-sm font-medium text-gray-800">{monthLabel(m.month)}</td>
                             <td className="py-2 px-4 text-sm text-gray-600">{m.orders}</td>
                             <td className="py-2 px-4 text-sm text-gray-800">{m.subtotal.toLocaleString()} MRO</td>
+                            <td className="py-2 px-4 text-sm text-gray-800">{(m.deliveryFee || 0).toLocaleString()} MRO</td>
                             <td className="py-2 px-4 text-sm font-semibold text-green-700">{m.commission.toLocaleString()} MRO</td>
                             <td className="py-2 px-4 text-sm text-gray-800">{m.totalAmount.toLocaleString()} MRO</td>
                           </tr>
@@ -294,28 +302,53 @@ export default function PharmacyDetailPage() {
 
               {/* Commission Dues & Payments */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-                <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+                <button
+                  onClick={() => setDuesOpen(!duesOpen)}
+                  className="w-full flex items-center justify-between text-left gap-3"
+                >
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800">Commission Dues & Payments</h3>
                     <p className="text-sm text-gray-500">
                       Record what the pharmacy pays and clear their balance at month-end.
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setModalOpen(true)}
-                      className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap ${
+                        (settlement.due || 0) > 0
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-green-100 text-green-700'
+                      }`}
                     >
-                      Record payment
-                    </button>
-                    <button
-                      onClick={clearDue}
-                      disabled={(settlement.due || 0) <= 0}
-                      className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      Due: {(settlement.due || 0).toLocaleString()} MRO
+                    </span>
+                    <svg
+                      className={`w-5 h-5 text-gray-400 transition-transform ${duesOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      Clear due
-                    </button>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </div>
+                </button>
+
+                {duesOpen && (
+                <div className="mt-5">
+                <div className="flex gap-2 justify-end mb-4">
+                  <button
+                    onClick={() => setModalOpen(true)}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  >
+                    Record payment
+                  </button>
+                  <button
+                    onClick={clearDue}
+                    disabled={(settlement.due || 0) <= 0}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Clear due
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -375,6 +408,8 @@ export default function PharmacyDetailPage() {
                       </tbody>
                     </table>
                   </div>
+                )}
+                </div>
                 )}
               </div>
 
