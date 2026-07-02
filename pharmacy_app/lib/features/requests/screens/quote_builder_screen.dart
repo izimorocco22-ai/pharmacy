@@ -5,6 +5,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/input_field.dart';
 import '../../../providers/prescription_provider.dart';
+import '../../../services/api_service.dart';
 
 class QuoteBuilderScreen extends StatefulWidget {
   final dynamic prescription;
@@ -26,12 +27,36 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
   bool _isLoading = false;
   bool _isDirectMode = false;
 
+  // Fee breakdown (commission + delivery) fetched from the backend so the
+  // pharmacy can preview what the patient will pay.
+  double _commissionRate = 0;
+  double _deliveryFee = 0;
+  bool _previewLoaded = false;
+
   final TextEditingController _paymentDetailsController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadExistingQuote();
+    _loadPreview();
+  }
+
+  Future<void> _loadPreview() async {
+    final prescriptionId = (widget.prescription is Map
+            ? widget.prescription['id']
+            : widget.prescription.id)
+        .toString();
+    final res = await ApiService.get(
+        '/pharmacy/quote-preview?prescriptionId=$prescriptionId');
+    if (!mounted) return;
+    if (res.success && res.data != null) {
+      setState(() {
+        _commissionRate = (res.data['commissionRate'] as num?)?.toDouble() ?? 0;
+        _deliveryFee = (res.data['deliveryFee'] as num?)?.toDouble() ?? 0;
+        _previewLoaded = true;
+      });
+    }
   }
 
   @override
@@ -116,6 +141,11 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
       _items.fold(0, (sum, item) => sum + (item['totalPrice'] as num).toDouble());
 
   double get _total => _subtotal;
+
+  // Medicine subtotal for whichever mode is active.
+  double get _currentSubtotal => _isDirectMode
+      ? (double.tryParse(_directTotalController.text.trim()) ?? 0)
+      : _subtotal;
 
   Future<void> _submit() async {
     List<Map<String, dynamic>> itemsToSend;
@@ -314,6 +344,10 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
 
             const SizedBox(height: AppTheme.spacing24),
 
+            _buildBreakdown(),
+
+            const SizedBox(height: AppTheme.spacing24),
+
             PrimaryButton(
               text: _isEdit ? 'Update Quote' : 'Send Quote',
               icon: _isEdit ? Icons.update : Icons.send,
@@ -459,6 +493,52 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
         child: Column(
           children: [
             _summaryRow('Total', _total, isTotal: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Fee breakdown card: medicine subtotal + service (platform) fee + delivery
+  // fee => total the patient will pay.
+  Widget _buildBreakdown() {
+    final subtotal = _currentSubtotal;
+    if (subtotal <= 0) return const SizedBox.shrink();
+
+    final serviceFee = subtotal * _commissionRate / 100;
+    final total = subtotal + serviceFee + _deliveryFee;
+
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spacing16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.receipt_long, color: AppTheme.primary, size: 20),
+                const SizedBox(width: 8),
+                Text('Quote Details',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: AppTheme.spacing12),
+            _summaryRow('Medicine (Subtotal)', subtotal),
+            _summaryRow('Service Fee (${_commissionRate.toStringAsFixed(0)}%)', serviceFee),
+            _summaryRow('Delivery Fee', _deliveryFee),
+            const Divider(height: 20),
+            _summaryRow('Total', total, isTotal: true),
+            if (!_previewLoaded)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'Calculating fees…',
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                ),
+              ),
           ],
         ),
       ),
