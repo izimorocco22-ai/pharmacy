@@ -531,7 +531,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
             ),
             const SizedBox(height: AppTheme.spacing12),
             _summaryRow('Medicine (Subtotal)', subtotal),
-            _summaryRow('Service Fee (${_commissionRate.toStringAsFixed(0)}%)', serviceFee),
+            _summaryRow('Service Fee', serviceFee),
             _summaryRow('Delivery Fee', _deliveryFee),
             const Divider(height: 20),
             _summaryRow('Total', total, isTotal: true),

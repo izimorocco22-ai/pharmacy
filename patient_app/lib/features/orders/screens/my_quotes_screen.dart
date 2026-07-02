@@ -328,7 +328,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
             _priceRow(l10n.translate('subtotal'), subtotal),
             if (commissionAmount > 0)
               _priceRow(
-                '${l10n.translate('service_fee')} (${commissionRate.toStringAsFixed(0)}%)',
+                '${l10n.translate('service_fee')}',
                 commissionAmount,
               ),
             _priceRow(l10n.translate('delivery_fee'), deliveryFee),

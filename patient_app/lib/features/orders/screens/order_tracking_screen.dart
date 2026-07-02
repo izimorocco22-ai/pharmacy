@@ -725,7 +725,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             _summaryRow(l10n.translate('subtotal'), order.subtotal),
             if (order.commissionAmount > 0)
               _summaryRow(
-                '${l10n.translate('service_fee')} (${order.commissionRate.toStringAsFixed(0)}%)',
+                '${l10n.translate('service_fee')}',
                 order.commissionAmount,
               ),
             _summaryRow(l10n.translate('delivery_fee'), order.deliveryFee),
@@ -1111,7 +1111,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             if (order.subtotal > 0) _summaryRow(l10n.translate('subtotal'), order.subtotal),
             if (order.commissionAmount > 0)
               _summaryRow(
-                '${l10n.translate('service_fee')} (${order.commissionRate.toStringAsFixed(0)}%)',
+                '${l10n.translate('service_fee')}',
                 order.commissionAmount,
               ),
             if (order.deliveryFee > 0) _summaryRow(l10n.translate('delivery_fee'), order.deliveryFee),
