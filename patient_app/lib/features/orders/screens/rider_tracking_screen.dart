@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
 
@@ -20,67 +21,91 @@ class RiderTrackingScreen extends StatefulWidget {
   State<RiderTrackingScreen> createState() => _RiderTrackingScreenState();
 }
 
-class _RiderTrackingScreenState extends State<RiderTrackingScreen> {
-  GoogleMapController? _mapController;
+class _RiderTrackingScreenState extends State<RiderTrackingScreen>
+    with TickerProviderStateMixin {
+  final MapController _mapController = MapController();
   Timer? _pollTimer;
 
   LatLng? _riderPos;
   String? _orderStatus;
   bool _loading = true;
   bool _riderOffline = false;
+  bool _mapReady = false;
+  bool _didFit = false;
 
-  final Set<Marker> _markers = {};
+  // Smoothly glide the rider marker between the 5-second location polls.
+  late final AnimationController _moveController;
+  late final Animation<double> _moveAnimation;
+  Tween<double> _latTween = Tween<double>(begin: 0, end: 0);
+  Tween<double> _lngTween = Tween<double>(begin: 0, end: 0);
+
+  LatLng? get _destination => widget.deliveryLocation;
 
   @override
   void initState() {
     super.initState();
+    _moveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _moveAnimation =
+        CurvedAnimation(parent: _moveController, curve: Curves.easeInOut)
+          ..addListener(_onMoveTick);
     _fetchRiderLocation();
-    // Poll every 5 seconds for live updates
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _fetchRiderLocation();
-    });
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _fetchRiderLocation(),
+    );
   }
 
   @override
   void dispose() {
     _pollTimer?.cancel();
-    _mapController?.dispose();
+    _moveController.dispose();
     super.dispose();
+  }
+
+  void _onMoveTick() {
+    if (!mounted) return;
+    setState(() {
+      _riderPos = LatLng(
+        _latTween.evaluate(_moveAnimation),
+        _lngTween.evaluate(_moveAnimation),
+      );
+    });
+  }
+
+  void _animateRiderTo(LatLng target) {
+    final start = _riderPos ?? target;
+    _latTween = Tween<double>(begin: start.latitude, end: target.latitude);
+    _lngTween = Tween<double>(begin: start.longitude, end: target.longitude);
+    _moveController
+      ..reset()
+      ..forward();
   }
 
   Future<void> _fetchRiderLocation() async {
     try {
-      final res = await ApiService.get('/orders/${widget.orderId}/rider-location');
+      final res =
+          await ApiService.get('/orders/${widget.orderId}/rider-location');
       if (!mounted) return;
 
-      if (res.success && res.data != null) {
+      if (res.success && res.data != null && res.data['lat'] != null) {
         final lat = (res.data['lat'] as num).toDouble();
         final lng = (res.data['lng'] as num).toDouble();
         final newPos = LatLng(lat, lng);
-        final status = res.data['orderStatus']?.toString();
 
         setState(() {
-          _orderStatus = status;
+          _orderStatus = res.data['orderStatus']?.toString();
           _riderOffline = res.data['isOnline'] == false;
           _loading = false;
         });
 
-        // Smooth animate marker to new position
-        if (_riderPos != null && _mapController != null) {
-          _animateMarker(_riderPos!, newPos);
-        } else {
+        if (_riderPos == null) {
           setState(() => _riderPos = newPos);
-          _buildMarkers(newPos);
-          // First load — fit map to show both rider and destination
-          if (widget.deliveryLocation != null) {
-            _fitBounds(newPos, widget.deliveryLocation!);
-          } else {
-            _mapController?.animateCamera(
-              CameraUpdate.newCameraPosition(
-                CameraPosition(target: newPos, zoom: 15),
-              ),
-            );
-          }
+          _fitInitial();
+        } else {
+          _animateRiderTo(newPos);
         }
       } else {
         if (mounted) setState(() => _loading = false);
@@ -90,82 +115,26 @@ class _RiderTrackingScreenState extends State<RiderTrackingScreen> {
     }
   }
 
-  // Smooth marker animation over 1 second
-  void _animateMarker(LatLng from, LatLng to) {
-    const steps = 20;
-    const stepDuration = Duration(milliseconds: 50);
-    int step = 0;
-
-    Timer.periodic(stepDuration, (timer) {
-      if (!mounted) { timer.cancel(); return; }
-      step++;
-      final t = step / steps;
-      final lat = from.latitude + (to.latitude - from.latitude) * t;
-      final lng = from.longitude + (to.longitude - from.longitude) * t;
-      final interpolated = LatLng(lat, lng);
-
-      setState(() => _riderPos = interpolated);
-      _buildMarkers(interpolated);
-
-      if (step >= steps) {
-        timer.cancel();
-        setState(() => _riderPos = to);
-        _buildMarkers(to);
-      }
-    });
-  }
-
-  void _buildMarkers(LatLng riderPos) {
-    final markers = <Marker>{};
-
-    // Rider marker
-    markers.add(Marker(
-      markerId: const MarkerId('rider'),
-      position: riderPos,
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-      infoWindow: const InfoWindow(title: 'Rider', snippet: 'Your delivery rider'),
-    ));
-
-    // Delivery destination marker
-    if (widget.deliveryLocation != null) {
-      markers.add(Marker(
-        markerId: const MarkerId('destination'),
-        position: widget.deliveryLocation!,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        infoWindow: InfoWindow(
-          title: 'Delivery Location',
-          snippet: widget.deliveryAddress,
+  // Fit the rider + destination into view once, on first fix.
+  void _fitInitial() {
+    if (!_mapReady || _riderPos == null || _didFit) return;
+    _didFit = true;
+    final dest = _destination;
+    if (dest != null) {
+      _mapController.fitCamera(
+        CameraFit.coordinates(
+          coordinates: [_riderPos!, dest],
+          padding: const EdgeInsets.all(80),
         ),
-      ));
+      );
+    } else {
+      _mapController.move(_riderPos!, 15);
     }
-
-    setState(() {
-      _markers.clear();
-      _markers.addAll(markers);
-    });
-  }
-
-  void _fitBounds(LatLng a, LatLng b) {
-    final bounds = LatLngBounds(
-      southwest: LatLng(
-        a.latitude < b.latitude ? a.latitude : b.latitude,
-        a.longitude < b.longitude ? a.longitude : b.longitude,
-      ),
-      northeast: LatLng(
-        a.latitude > b.latitude ? a.latitude : b.latitude,
-        a.longitude > b.longitude ? a.longitude : b.longitude,
-      ),
-    );
-    _mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80));
   }
 
   void _centerOnRider() {
-    if (_riderPos == null) return;
-    _mapController?.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(target: _riderPos!, zoom: 16),
-      ),
-    );
+    if (_riderPos == null || !_mapReady) return;
+    _mapController.move(_riderPos!, 16);
   }
 
   @override
@@ -173,27 +142,61 @@ class _RiderTrackingScreenState extends State<RiderTrackingScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Google Map
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: widget.deliveryLocation ?? const LatLng(33.5731, -7.5898),
-              zoom: 14,
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter:
+                  _destination ?? const LatLng(33.5731, -7.5898),
+              initialZoom: 14,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+              onMapReady: () {
+                setState(() => _mapReady = true);
+                _fitInitial();
+              },
             ),
-            onMapCreated: (controller) {
-              _mapController = controller;
-              if (_riderPos != null) {
-                _buildMarkers(_riderPos!);
-                if (widget.deliveryLocation != null) {
-                  _fitBounds(_riderPos!, widget.deliveryLocation!);
-                }
-              }
-            },
-            markers: _markers,
-            zoomControlsEnabled: false,
-            mapToolbarEnabled: false,
-            myLocationButtonEnabled: false,
-            trafficEnabled: false,
-            compassEnabled: true,
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                subdomains: const ['a', 'b', 'c', 'd'],
+                userAgentPackageName: 'com.ordogo.patient_app',
+                maxZoom: 20,
+              ),
+              MarkerLayer(
+                markers: [
+                  if (_destination != null)
+                    Marker(
+                      point: _destination!,
+                      width: 44,
+                      height: 44,
+                      child: const Icon(Icons.location_on,
+                          color: AppTheme.error, size: 44),
+                    ),
+                  if (_riderPos != null)
+                    Marker(
+                      point: _riderPos!,
+                      width: 44,
+                      height: 44,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.25),
+                                blurRadius: 6),
+                          ],
+                        ),
+                        child: const Icon(Icons.delivery_dining,
+                            color: Colors.white, size: 20),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ),
 
           // Loading overlay
@@ -203,9 +206,36 @@ class _RiderTrackingScreenState extends State<RiderTrackingScreen> {
               child: const Center(child: CircularProgressIndicator()),
             ),
 
+          // No rider location yet (after loading)
+          if (!_loading && _riderPos == null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.location_off,
+                        size: 64,
+                        color: AppTheme.textSecondary.withValues(alpha: 0.4)),
+                    const SizedBox(height: 12),
+                    const Text('Rider location not available yet',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    const Text(
+                      "We'll show the rider here once they start moving.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // Top bar
           Positioned(
-            top: 0, left: 0, right: 0,
+            top: 0,
+            left: 0,
+            right: 0,
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -214,7 +244,8 @@ class _RiderTrackingScreenState extends State<RiderTrackingScreen> {
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Container(
-                        width: 40, height: 40,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -265,7 +296,6 @@ class _RiderTrackingScreenState extends State<RiderTrackingScreen> {
                                 ],
                               ),
                             ),
-                            // Live pulse indicator
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
@@ -319,7 +349,8 @@ class _RiderTrackingScreenState extends State<RiderTrackingScreen> {
             child: GestureDetector(
               onTap: _centerOnRider,
               child: Container(
-                width: 44, height: 44,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
@@ -337,7 +368,9 @@ class _RiderTrackingScreenState extends State<RiderTrackingScreen> {
 
           // Bottom status card
           Positioned(
-            bottom: 0, left: 0, right: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
             child: Container(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               decoration: BoxDecoration(
@@ -388,7 +421,6 @@ class _RiderTrackingScreenState extends State<RiderTrackingScreen> {
                       ],
                     ),
                   ),
-                  // Status badge
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 6),
