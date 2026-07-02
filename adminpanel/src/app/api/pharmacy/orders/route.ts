@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
 import Pharmacy from '@/models/Pharmacy';
+import Prescription from '@/models/Prescription';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
 
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     const orders = await Order.find({ pharmacyId: pharmacy._id })
       .sort({ createdAt: -1 })
       .limit(50)
-      .populate({ path: 'prescriptionId', select: 'imageUrl medicines' })
+      .populate({ path: 'prescriptionId', model: Prescription, select: 'imageUrl medicines' })
       .lean();
 
     const formatted = orders.map((o: any) => ({
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
 
     return successResponse({ orders: formatted });
   } catch (error: any) {
+    console.error('Pharmacy orders error:', error);
     return errorResponse('Failed to fetch orders', 500);
   }
 }

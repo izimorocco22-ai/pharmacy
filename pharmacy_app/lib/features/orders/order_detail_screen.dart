@@ -85,6 +85,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final paymentProofUrl = _order['paymentProofUrl'] as String?;
     final medicines = (_order['medicines'] as List?) ?? [];
     final subtotal = (_order['subtotal'] ?? 0).toDouble();
+    final deliveryFee = (_order['deliveryFee'] ?? 0).toDouble();
+    final totalAmount = (_order['totalAmount'] ?? 0).toDouble();
+    // Service fee (platform commission) = what the patient paid on top of
+    // the medicine subtotal and delivery fee.
+    final rawServiceFee = totalAmount - subtotal - deliveryFee;
+    final serviceFee = rawServiceFee < 0 ? 0.0 : rawServiceFee;
     final paymentMethod = _order['paymentMethod']?.toString();
     final createdAt = _order['createdAt'] != null
         ? DateTime.tryParse(_order['createdAt'].toString())?.toLocal()
@@ -437,8 +443,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             ),
                           )),
                       const Divider(height: AppTheme.spacing24),
-                      _summaryRow(context, 'Total',
+                      _summaryRow(context, 'Medicine (Subtotal)',
                           '${subtotal.toStringAsFixed(2)} MRO'),
+                      _summaryRow(context, 'Service Fee',
+                          '${serviceFee.toStringAsFixed(2)} MRO'),
+                      _summaryRow(context, 'Delivery Fee',
+                          '${deliveryFee.toStringAsFixed(2)} MRO'),
+                      const Divider(height: AppTheme.spacing16),
+                      _summaryRow(context, 'Total',
+                          '${totalAmount.toStringAsFixed(2)} MRO',
+                          isTotal: true),
                     ],
                   ),
                 ),
@@ -504,18 +518,28 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _summaryRow(BuildContext context, String label, String value) {
+  Widget _summaryRow(BuildContext context, String label, String value,
+      {bool isTotal = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTheme.spacing4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppTheme.textSecondary)),
-          Text(value, style: Theme.of(context).textTheme.bodyMedium),
+              style: isTotal
+                  ? Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)
+                  : Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppTheme.textSecondary)),
+          Text(value,
+              style: isTotal
+                  ? Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold, color: AppTheme.primary)
+                  : Theme.of(context).textTheme.bodyMedium),
         ],
       ),
     );
