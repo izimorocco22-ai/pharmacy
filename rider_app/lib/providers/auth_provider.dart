@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 export '../services/auth_service.dart' show AuthResult;
 import '../services/api_service.dart';
+import '../services/push_notification_service.dart';
 import '../models/user_model.dart';
 
 class AuthProvider with ChangeNotifier {
@@ -95,6 +96,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await PushNotificationService.unregisterToken();
     await AuthService.logout();
     _user = null;
     _error = null;

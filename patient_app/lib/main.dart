@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/localization/app_localizations.dart';
 import 'models/quote_model.dart';
@@ -33,10 +36,15 @@ import 'features/profile/screens/about_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  
-  // Initialize Firebase (optional - comment out if not using)
-  // await Firebase.initializeApp();
-  
+
+  // Firebase push notifications. Guarded so the app still runs if Firebase
+  // isn't configured yet (missing google-services.json).
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    await PushNotificationService.initialize();
+  } catch (_) {}
+
   runApp(const MyApp());
 }
 

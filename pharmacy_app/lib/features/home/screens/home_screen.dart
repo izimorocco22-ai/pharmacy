@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/widgets/notification_bell.dart';
+import '../../../services/push_notification_service.dart';
 import '../../orders/orders_screen.dart';
 import '../../profile/profile_screen.dart';
 import '../../requests/screens/prescription_requests_screen.dart';
@@ -24,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    PushNotificationService.registerToken();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context.read<AuthProvider>().checkAuth();
       if (mounted) context.read<PrescriptionProvider>().fetchPrescriptionRequests();

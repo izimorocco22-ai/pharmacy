@@ -7,6 +7,7 @@ import '../../../services/api_service.dart';
 import '../../../services/location_service.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/widgets/notification_bell.dart';
+import '../../../services/push_notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    PushNotificationService.registerToken();
     _fetchData();
   }
 
