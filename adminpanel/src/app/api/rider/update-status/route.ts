@@ -39,6 +39,10 @@ export async function PUT(request: NextRequest) {
       rider.isOnline = true;
       rider.totalDeliveries = (rider.totalDeliveries || 0) + 1;
       rider.totalEarnings = (rider.totalEarnings || 0) + order.deliveryFee;
+      // Unpaid balance; legacy riders start from their lifetime earnings
+      // since no payout was ever recorded before this field existed.
+      rider.walletBalance =
+        (rider.walletBalance ?? rider.totalEarnings - order.deliveryFee) + order.deliveryFee;
       await rider.save();
     }
     await order.save();

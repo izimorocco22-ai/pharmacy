@@ -12,6 +12,7 @@ class WalletScreen extends StatefulWidget {
 class _WalletScreenState extends State<WalletScreen> {
   bool _loading = true;
   double _totalEarnings = 0;
+  double _walletBalance = 0;
   int _totalDeliveries = 0;
   List<Map<String, dynamic>> _orders = [];
 
@@ -31,6 +32,11 @@ class _WalletScreenState extends State<WalletScreen> {
       );
       setState(() {
         _totalEarnings = (res.data['totalEarnings'] as num?)?.toDouble() ?? 0;
+        // Unpaid balance (reset when the admin pays out); falls back to
+        // totalEarnings while the backend is older.
+        _walletBalance = (res.data['walletBalance'] as num?)?.toDouble() ??
+            (res.data['totalEarnings'] as num?)?.toDouble() ??
+            0;
         _totalDeliveries = (res.data['totalDeliveries'] as num?)?.toInt() ?? 0;
         _orders = list.where((o) => o['status'] == 'delivered').toList();
         _loading = false;
@@ -81,17 +87,30 @@ class _WalletScreenState extends State<WalletScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Total Earnings',
+                        const Text('Wallet Balance',
                             style: TextStyle(color: Colors.white70, fontSize: 14)),
                         const SizedBox(height: AppTheme.spacing8),
                         Text(
-                          '${_totalEarnings.toStringAsFixed(2)} MRO',
+                          '${_walletBalance.toStringAsFixed(2)} MRO',
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 32,
                               fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: AppTheme.spacing12),
+                        Row(
+                          children: [
+                            const Icon(Icons.trending_up,
+                                color: Colors.white70, size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Total earned: ${_totalEarnings.toStringAsFixed(2)} MRO',
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
                         Row(
                           children: [
                             const Icon(Icons.delivery_dining,

@@ -14,6 +14,7 @@ interface Rider {
   rating: number;
   totalDeliveries: number;
   totalEarnings: number;
+  walletBalance?: number;
   createdAt: string;
   userId: {
     _id: string;
@@ -43,6 +44,28 @@ export default function RidersPage() {
       if (data.success) setRiders(data.data?.riders || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
+  };
+
+  // Unpaid balance; legacy riders (no walletBalance yet) show lifetime earnings
+  const balanceOf = (r: Rider) => r.walletBalance ?? r.totalEarnings ?? 0;
+
+  const [settlingId, setSettlingId] = useState<string | null>(null);
+
+  const handleSettleBalance = async (rider: Rider) => {
+    const amount = balanceOf(rider);
+    if (!confirm(`Mark ${amount.toLocaleString()} MRO as paid to ${rider.userId?.fullName}? The balance will be reset to zero.`)) return;
+    setSettlingId(rider._id);
+    try {
+      const res = await fetch(`/api/admin/riders/${rider._id}/settle-balance`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSelectedRider(null);
+        fetchRiders();
+      } else {
+        alert(data.message || 'Failed to settle balance');
+      }
+    } catch (e) { console.error(e); }
+    finally { setSettlingId(null); }
   };
 
   const filtered = riders.filter(r =>
@@ -145,7 +168,12 @@ export default function RidersPage() {
                           <div className="text-xs text-gray-400">{rider.vehicleNumber || '—'}</div>
                         </td>
                         <td className="py-4 px-6 font-medium text-gray-800">{rider.totalDeliveries}</td>
-                        <td className="py-4 px-6 font-medium text-gray-800">{rider.totalEarnings.toLocaleString()} MRO</td>
+                        <td className="py-4 px-6">
+                          <div className="font-medium text-gray-800">{rider.totalEarnings.toLocaleString()} MRO</div>
+                          <div className={`text-xs ${balanceOf(rider) > 0 ? 'text-orange-600 font-medium' : 'text-gray-400'}`}>
+                            Unpaid: {balanceOf(rider).toLocaleString()} MRO
+                          </div>
+                        </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center">
                             <span className="text-yellow-500 mr-1">⭐</span>
@@ -158,10 +186,19 @@ export default function RidersPage() {
                           </span>
                         </td>
                         <td className="py-4 px-6">
-                          <button onClick={() => setSelectedRider(rider)}
-                            className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-medium">
-                            View More
-                          </button>
+                          <div className="flex space-x-2">
+                            <button onClick={() => setSelectedRider(rider)}
+                              className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-medium">
+                              View More
+                            </button>
+                            {balanceOf(rider) > 0 && (
+                              <button onClick={() => handleSettleBalance(rider)}
+                                disabled={settlingId === rider._id}
+                                className="px-3 py-1 text-xs bg-green-50 text-green-600 rounded-lg hover:bg-green-100 font-medium disabled:opacity-60">
+                                {settlingId === rider._id ? 'Paying...' : '💰 Mark Paid'}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -204,6 +241,7 @@ export default function RidersPage() {
                 {[
                   { label: 'Total Deliveries', value: selectedRider.totalDeliveries, icon: '📦' },
                   { label: 'Total Earnings', value: `${selectedRider.totalEarnings.toLocaleString()} MRO`, icon: '💰' },
+                  { label: 'Unpaid Balance', value: `${balanceOf(selectedRider).toLocaleString()} MRO`, icon: '💵' },
                   { label: 'Rating', value: `${selectedRider.rating.toFixed(1)} ⭐`, icon: '⭐' },
                 ].map(s => (
                   <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">

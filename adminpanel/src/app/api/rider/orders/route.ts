@@ -39,6 +39,9 @@ export async function GET(request: NextRequest) {
     return successResponse({
       orders: result,
       totalEarnings: rider.totalEarnings || 0,
+      // Unpaid balance; legacy riders (field not set yet) show their
+      // lifetime earnings until the first payout resets it.
+      walletBalance: rider.walletBalance ?? rider.totalEarnings ?? 0,
       totalDeliveries: rider.totalDeliveries || 0,
     });
   } catch (error) {

@@ -17,6 +17,7 @@ export interface IRider extends Document {
   rating: number;
   totalDeliveries: number;
   totalEarnings: number;
+  walletBalance: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,6 +76,13 @@ const RiderSchema = new Schema<IRider>(
       default: 0,
     },
     totalEarnings: {
+      type: Number,
+      default: 0,
+    },
+    // Unpaid balance: grows with each delivery, reset to zero when the
+    // admin settles (pays out) the rider. totalEarnings stays as the
+    // lifetime figure.
+    walletBalance: {
       type: Number,
       default: 0,
     },
