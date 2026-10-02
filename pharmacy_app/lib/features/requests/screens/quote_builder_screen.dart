@@ -25,7 +25,9 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
 
   bool _isEdit = false;
   bool _isLoading = false;
-  bool _isDirectMode = false;
+  // Direct Total is the default: the pharmacy just types the total amount.
+  // Itemized entry stays available as an optional mode.
+  bool _isDirectMode = true;
 
   // Fee breakdown (commission + delivery) fetched from the backend so the
   // pharmacy can preview what the patient will pay.
@@ -79,12 +81,26 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
     if (existingQuote != null) {
       _isEdit = true;
       final items = existingQuote['items'] as List? ?? [];
-      for (final item in items) {
-        _addItemWithValues(
-          name: item['medicineName']?.toString() ?? '',
-          qty: (item['quantity'] ?? 1).toString(),
-          price: (item['unitPrice'] ?? 0).toString(),
-        );
+
+      // A direct-total quote is stored as a single "Total" item; load it back
+      // into Direct Total mode instead of showing it as an itemized row.
+      final isDirectQuote = items.length == 1 &&
+          (items.first['medicineName']?.toString() ?? '') == 'Total';
+
+      if (isDirectQuote) {
+        _isDirectMode = true;
+        final total = (items.first['unitPrice'] ?? 0) as num;
+        _directTotalController.text =
+            total % 1 == 0 ? total.toInt().toString() : total.toString();
+      } else if (items.isNotEmpty) {
+        _isDirectMode = false;
+        for (final item in items) {
+          _addItemWithValues(
+            name: item['medicineName']?.toString() ?? '',
+            qty: (item['quantity'] ?? 1).toString(),
+            price: (item['unitPrice'] ?? 0).toString(),
+          );
+        }
       }
     }
   }
