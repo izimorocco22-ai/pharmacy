@@ -32,6 +32,10 @@ export async function POST(request: NextRequest) {
       return errorResponse('Rider profile not found', 404);
     }
 
+    if (rider.approvalStatus !== 'approved') {
+      return errorResponse('Your account is not approved yet');
+    }
+
     if (!rider.isAvailable) {
       // Reset availability in case it got stuck
       rider.isAvailable = true;

@@ -20,8 +20,10 @@ export async function GET(request: NextRequest) {
     const rider = await Rider.findOne({ userId: auth.userId });
     if (!rider) return errorResponse('Rider profile not found', 404);
 
-    // Only return orders if rider is online
-    if (!rider.isOnline) {
+    // Orders appear once the account is activated (admin-approved). The
+    // online/availability toggle is NOT required to see orders — it only
+    // enables live location tracking for distance filtering.
+    if (rider.approvalStatus !== 'approved') {
       return successResponse({ deliveries: [] });
     }
 

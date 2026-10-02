@@ -33,6 +33,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     PushNotificationService.registerToken();
     _fetchData();
+    // Orders are visible whenever the account is approved — the availability
+    // toggle is not required — so always keep polling for new orders.
+    _pollTimer = Timer.periodic(
+        const Duration(seconds: 10), (_) => _fetchAvailableOrders());
   }
 
   @override
@@ -51,10 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final backendOnline = rider?['isOnline'] == true;
       if (backendOnline != _isOnline) {
         setState(() => _isOnline = backendOnline);
-        if (backendOnline) {
-          _pollTimer?.cancel();
-          _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) => _fetchAvailableOrders());
-        }
       }
     }
     final res = await ApiService.get('/rider/orders');
@@ -78,7 +78,11 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
       setState(() {
-        _walletBalance = (res.data['totalEarnings'] as num?)?.toDouble() ?? 0;
+        // Unpaid balance (reset to zero when the admin settles the payout);
+        // falls back to totalEarnings while the backend is older.
+        _walletBalance = (res.data['walletBalance'] as num?)?.toDouble() ??
+            (res.data['totalEarnings'] as num?)?.toDouble() ??
+            0;
         _todayEarnings = todayEarn;
         _todayDeliveries = todayCount;
         _loading = false;
@@ -86,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       setState(() => _loading = false);
     }
-    if (_isOnline) _fetchAvailableOrders();
+    _fetchAvailableOrders();
   }
 
   Future<void> _fetchAvailableOrders() async {
@@ -118,16 +122,11 @@ class _HomeScreenState extends State<HomeScreen> {
       await LocationService.updateLocation(isOnline: true);
       setState(() => _isOnline = true);
       LocationService.startTracking();
-      _pollTimer?.cancel();
-      _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) => _fetchAvailableOrders());
       await _fetchAvailableOrders();
     } else {
+      // Going offline only stops location tracking — orders stay visible.
       await LocationService.markOffline();
-      setState(() {
-        _isOnline = false;
-        _availableOrders = [];
-      });
-      _pollTimer?.cancel();
+      setState(() => _isOnline = false);
     }
     setState(() => _togglingOnline = false);
   }
@@ -328,38 +327,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Online: show available orders / Offline: show offline state
+                  // Quick links when offline (orders stay visible either way)
                   if (!_isOnline) ...[
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF8E1),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-                        border: Border.all(color: const Color(0xFFFFE082)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.info_outline, color: Color(0xFFF39C12), size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(l10n.translate('you_are_offline'),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFFF39C12),
-                                        fontSize: 14)),
-                                const SizedBox(height: 2),
-                                Text(l10n.translate('toggle_availability_desc'),
-                                    style: TextStyle(color: Colors.orange.shade700, fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(child: _quickTile(Icons.delivery_dining, l10n.translate('deliveries'),
@@ -369,34 +338,37 @@ class _HomeScreenState extends State<HomeScreen> {
                             () => Navigator.pushNamed(context, '/wallet'))),
                       ],
                     ),
-                  ] else ...[
-                    if (_availableOrders.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surface,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-                          border: Border.all(color: AppTheme.divider),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(Icons.delivery_dining,
-                                size: 48, color: AppTheme.textSecondary.withOpacity(0.4)),
-                            const SizedBox(height: 8),
-                            Text(l10n.translate('no_jobs_nearby'),
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                            const SizedBox(height: 4),
-                            Text(l10n.translate('new_jobs_desc'),
-                                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                          ],
-                        ),
-                      )
-                    else ...[
-                      Text(l10n.translate('new_tasks'),
-                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      ..._availableOrders.map((order) => _jobCard(order, l10n)),
-                    ],
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Available orders — shown as soon as the account is
+                  // approved; the availability toggle is not required.
+                  if (_availableOrders.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                        border: Border.all(color: AppTheme.divider),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.delivery_dining,
+                              size: 48, color: AppTheme.textSecondary.withOpacity(0.4)),
+                          const SizedBox(height: 8),
+                          Text(l10n.translate('no_jobs_nearby'),
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                          const SizedBox(height: 4),
+                          Text(l10n.translate('new_jobs_desc'),
+                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                        ],
+                      ),
+                    )
+                  else ...[
+                    Text(l10n.translate('new_tasks'),
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    ..._availableOrders.map((order) => _jobCard(order, l10n)),
                   ],
                   const SizedBox(height: 16),
                 ]),

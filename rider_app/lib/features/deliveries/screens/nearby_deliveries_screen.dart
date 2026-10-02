@@ -19,12 +19,21 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
   List<dynamic> _deliveries = [];
   String? _error;
 
+  @override
+  void initState() {
+    super.initState();
+    // Orders are visible as soon as the account is approved — the
+    // online toggle only enables live location for distance filtering.
+    _loadDeliveries();
+  }
+
   Future<void> _loadDeliveries() async {
-    if (!_isOnline) return;
     setState(() { _isLoading = true; _error = null; });
     try {
       // Update location first so backend can filter by distance
-      await LocationService.updateLocation();
+      if (_isOnline) {
+        await LocationService.updateLocation();
+      }
       final res = await ApiService.get('/rider/nearby-deliveries');
       if (res.success) {
         setState(() {
@@ -42,13 +51,10 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
 
   void _toggleOnlineStatus() async {
     final newStatus = !_isOnline;
-    setState(() {
-      _isOnline = newStatus;
-      if (!newStatus) _deliveries = [];
-    });
-    // Tell backend rider is online/offline
+    setState(() => _isOnline = newStatus);
+    // Tell backend rider is online/offline (orders stay visible either way)
     await ApiService.put('/rider/update-location', {'isOnline': newStatus});
-    if (newStatus) _loadDeliveries();
+    _loadDeliveries();
   }
 
   @override
@@ -79,15 +85,13 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
           ),
         ],
       ),
-      body: !_isOnline
-          ? _buildOfflineState(l10n)
-          : _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _error != null
-                  ? _buildErrorState(l10n)
-                  : _deliveries.isEmpty
-                      ? _buildEmptyState(l10n)
-                      : RefreshIndicator(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _buildErrorState(l10n)
+              : _deliveries.isEmpty
+                  ? _buildEmptyState(l10n)
+                  : RefreshIndicator(
                           onRefresh: _loadDeliveries,
                           child: ListView.separated(
                             padding: const EdgeInsets.all(AppTheme.spacing16),
@@ -98,25 +102,6 @@ class _NearbyDeliveriesScreenState extends State<NearbyDeliveriesScreen> {
                                 _buildDeliveryCard(_deliveries[i], l10n),
                           ),
                         ),
-    );
-  }
-
-  Widget _buildOfflineState(AppLocalizations l10n) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.power_settings_new,
-              size: 80, color: AppTheme.textSecondary.withValues(alpha: 0.5)),
-          const SizedBox(height: AppTheme.spacing16),
-          Text(l10n.translate('you_are_offline'),
-              style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: AppTheme.spacing8),
-          Text(l10n.translate('toggle_availability_desc'),
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center),
-        ],
-      ),
     );
   }
 
