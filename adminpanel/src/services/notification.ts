@@ -50,11 +50,25 @@ export async function sendNotificationToUser(
       return;
     }
 
-    // Send FCM notification
+    // Send FCM notification. FCM requires all data values to be strings.
+    const stringData: Record<string, string> = {};
+    for (const [key, value] of Object.entries(data || {})) {
+      if (value !== undefined && value !== null) stringData[key] = String(value);
+    }
+
     await admin.messaging().send({
       token: user.fcmToken,
       notification: { title, body },
-      data: data || {},
+      data: stringData,
+      android: {
+        // High priority so the notification is delivered immediately even
+        // when the app is closed and the device is dozing.
+        priority: 'high',
+        notification: {
+          channelId: 'ordogo_default',
+          clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+      },
     });
   } catch (error) {
     console.error('Send notification error:', error);

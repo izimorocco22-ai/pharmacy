@@ -51,6 +51,7 @@ class MyApp extends StatelessWidget {
         builder: (context, languageProvider, child) {
           return MaterialApp(
             title: 'Ordo Pharmacy Store',
+            navigatorKey: PushNotificationService.navigatorKey,
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             locale: languageProvider.locale,

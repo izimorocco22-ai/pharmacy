@@ -64,6 +64,7 @@ class MyApp extends StatelessWidget {
         builder: (context, languageProvider, child) {
           return MaterialApp(
             title: 'OrdoGo Medicine app',
+            navigatorKey: PushNotificationService.navigatorKey,
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             locale: languageProvider.locale,

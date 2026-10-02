@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../features/notifications/notifications_list_screen.dart';
 import 'api_service.dart';
 
 /// Handles messages received while the app is in the background or terminated.
@@ -11,6 +13,11 @@ import 'api_service.dart';
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
 class PushNotificationService {
+  /// Attached to MaterialApp.navigatorKey so taps on notifications can
+  /// navigate even when no BuildContext is at hand.
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
   static final FlutterLocalNotificationsPlugin _local =
       FlutterLocalNotificationsPlugin();
 
@@ -33,7 +40,11 @@ class PushNotificationService {
     // foreground (FCM does not show those automatically).
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidInit);
-    await _local.initialize(settings: initSettings);
+    await _local.initialize(
+      settings: initSettings,
+      // Tap on a notification shown while the app was in the foreground.
+      onDidReceiveNotificationResponse: (_) => _openNotifications(),
+    );
 
     await _local
         .resolvePlatformSpecificImplementation<
@@ -68,6 +79,22 @@ class PushNotificationService {
         payload: jsonEncode(message.data),
       );
     });
+
+    // Tap on the system notification while the app was in the BACKGROUND.
+    FirebaseMessaging.onMessageOpenedApp.listen((_) => _openNotifications());
+
+    // Tap on the system notification while the app was TERMINATED: the tap is
+    // what launched the app, so navigate once the splash screen has routed.
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      Future.delayed(const Duration(seconds: 4), _openNotifications);
+    }
+  }
+
+  static void _openNotifications() {
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(builder: (_) => const NotificationsListScreen()),
+    );
   }
 
   /// Sends this device's FCM token to the backend. Call after the user is
