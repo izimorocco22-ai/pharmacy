@@ -11,6 +11,16 @@ class AppLocalizations {
 
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
+      // Registration documents
+      'documents': 'Documents',
+      'upload_license_image': 'Upload Pharmacy License Image',
+      'upload_id_proof': 'Upload Identity Proof',
+      'tap_to_upload': 'Tap to take photo or choose from gallery',
+      'take_photo': 'Take Photo',
+      'choose_from_gallery': 'Choose from Gallery',
+      'please_upload_license_image': 'Please upload your pharmacy license image',
+      'please_upload_id_proof': 'Please upload your identity proof',
+      'document_upload_failed': 'Failed to upload documents. Please try again.',
       // Auth
       'login': 'Login',
       'register': 'Register',
@@ -167,6 +177,16 @@ class AppLocalizations {
       'days_ago': 'd ago',
     },
     'fr': {
+      // Registration documents
+      'documents': 'Documents',
+      'upload_license_image': 'Télécharger l\'image de la licence de pharmacie',
+      'upload_id_proof': 'Télécharger la pièce d\'identité',
+      'tap_to_upload': 'Appuyez pour prendre une photo ou choisir dans la galerie',
+      'take_photo': 'Prendre une photo',
+      'choose_from_gallery': 'Choisir dans la galerie',
+      'please_upload_license_image': 'Veuillez télécharger l\'image de votre licence de pharmacie',
+      'please_upload_id_proof': 'Veuillez télécharger votre pièce d\'identité',
+      'document_upload_failed': 'Échec du téléchargement des documents. Veuillez réessayer.',
       // Auth
       'login': 'Connexion',
       'register': 'S\'inscrire',
@@ -323,6 +343,16 @@ class AppLocalizations {
       'days_ago': 'il y a d j',
     },
     'ar': {
+      // Registration documents
+      'documents': 'المستندات',
+      'upload_license_image': 'تحميل صورة رخصة الصيدلية',
+      'upload_id_proof': 'تحميل إثبات الهوية',
+      'tap_to_upload': 'اضغط لالتقاط صورة أو اختر من المعرض',
+      'take_photo': 'التقاط صورة',
+      'choose_from_gallery': 'اختيار من المعرض',
+      'please_upload_license_image': 'يرجى تحميل صورة رخصة الصيدلية',
+      'please_upload_id_proof': 'يرجى تحميل إثبات الهوية',
+      'document_upload_failed': 'فشل تحميل المستندات. حاول مرة أخرى.',
       // Auth
       'login': 'تسجيل الدخول',
       'register': 'تسجيل',

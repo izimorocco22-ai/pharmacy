@@ -7,6 +7,8 @@ interface PharmacyRequest {
   _id: string;
   pharmacyName: string;
   licenseNumber: string;
+  licenseImageUrl?: string;
+  idProofUrl?: string;
   address: string;
   location: { coordinates: [number, number] };
   approvalStatus: string;
@@ -202,6 +204,27 @@ export default function PharmacyRequestsPage() {
               <div><span className="text-gray-500">Phone:</span> <span className="font-medium">{selectedRequest.userId?.phone}</span></div>
               <div><span className="text-gray-500">License:</span> <span className="font-medium">{selectedRequest.licenseNumber}</span></div>
               <div className="col-span-2"><span className="text-gray-500">Coordinates:</span> <span className="font-medium">{selectedRequest.location?.coordinates?.[1]?.toFixed(5)}, {selectedRequest.location?.coordinates?.[0]?.toFixed(5)}</span></div>
+              <div className="col-span-2">
+                <span className="text-gray-500 block mb-2">Documents:</span>
+                <div className="flex space-x-4">
+                  {selectedRequest.licenseImageUrl ? (
+                    <a href={selectedRequest.licenseImageUrl} target="_blank" rel="noopener noreferrer" className="block">
+                      <img src={selectedRequest.licenseImageUrl} alt="Pharmacy license" className="h-24 w-36 object-cover rounded-lg border border-gray-200 hover:opacity-80" />
+                      <span className="text-xs text-blue-600 mt-1 block text-center">Pharmacy License ↗</span>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-gray-400 italic">No license image</span>
+                  )}
+                  {selectedRequest.idProofUrl ? (
+                    <a href={selectedRequest.idProofUrl} target="_blank" rel="noopener noreferrer" className="block">
+                      <img src={selectedRequest.idProofUrl} alt="Identity proof" className="h-24 w-36 object-cover rounded-lg border border-gray-200 hover:opacity-80" />
+                      <span className="text-xs text-blue-600 mt-1 block text-center">Identity Proof ↗</span>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-gray-400 italic">No identity proof</span>
+                  )}
+                </div>
+              </div>
             </div>
             <iframe src={getMapUrl(selectedRequest)} className="w-full h-72 border-0" loading="lazy" />
             {selectedRequest.approvalStatus === 'pending' && (

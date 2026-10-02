@@ -62,6 +62,8 @@ export async function POST(request: NextRequest) {
         userId: user._id,
         pharmacyName: roleData.pharmacyName,
         licenseNumber: roleData.licenseNumber,
+        licenseImageUrl: roleData.licenseImageUrl || '',
+        idProofUrl: roleData.idProofUrl || '',
         address: roleData.address,
         location: {
           type: 'Point',

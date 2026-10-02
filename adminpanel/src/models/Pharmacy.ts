@@ -4,6 +4,8 @@ export interface IPharmacy extends Document {
   userId: mongoose.Types.ObjectId;
   pharmacyName: string;
   licenseNumber: string;
+  licenseImageUrl?: string;
+  idProofUrl?: string;
   address: string;
   location: {
     type: string;
@@ -43,6 +45,14 @@ const PharmacySchema = new Schema<IPharmacy>(
       type: String,
       required: true,
       unique: true,
+    },
+    licenseImageUrl: {
+      type: String,
+      default: '',
+    },
+    idProofUrl: {
+      type: String,
+      default: '',
     },
     address: {
       type: String,
