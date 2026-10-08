@@ -151,6 +151,61 @@ export async function GET(request: NextRequest) {
       })
     );
 
+    // Requests that closed without an order stay in history: no pharmacy
+    // took it (rejected), the quote expired, or the patient cancelled
+    const orderedPrescriptionIds = orders
+      .map((o: any) => (o.prescriptionId?._id || o.prescriptionId)?.toString())
+      .filter(Boolean);
+    const closedPrescriptions = await Prescription.find({
+      patientId: patient._id,
+      status: { $in: ['expired', 'rejected'] },
+      _id: { $nin: orderedPrescriptionIds },
+    }).sort({ createdAt: -1 }).limit(50).lean() as any[];
+
+    const enrichedClosed = await Promise.all(closedPrescriptions.map(async (p: any) => {
+      const quotes = await Quote.find({ prescriptionId: p._id }).sort({ createdAt: 1 }).lean() as any[];
+      const status = quotes.some((q: any) => q.status === 'expired')
+        ? 'expired'
+        : quotes.some((q: any) => q.status === 'rejected' && !q.rejectionReason)
+          ? 'cancelled'
+          : quotes.some((q: any) => q.status === 'rejected' && q.rejectionReason)
+            ? 'rejected'
+            : 'cancelled';
+
+      const quoteHistory = await Promise.all(quotes.map(async (q: any) => {
+        let pharmacyName = 'Unknown Pharmacy';
+        try {
+          const ph = await Pharmacy.findById(q.pharmacyId).select('pharmacyName').lean() as any;
+          if (ph) pharmacyName = ph.pharmacyName || 'Unknown';
+        } catch (_) {}
+        return {
+          id: q._id?.toString(),
+          pharmacyName,
+          status: q.status,
+          rejectionReason: q.rejectionReason || '',
+          createdAt: q.createdAt,
+        };
+      }));
+
+      return {
+        _isPendingQuote: false,
+        id: p._id?.toString(),
+        prescriptionId: p._id?.toString(),
+        prescriptionImage: p.imageUrl || null,
+        medicines: p.medicines || [],
+        pharmacyName: null,
+        items: [],
+        subtotal: 0,
+        deliveryFee: 0,
+        totalAmount: 0,
+        status,
+        orderNumber: `REQ-${p._id.toString().slice(-6).toUpperCase()}`,
+        createdAt: p.createdAt,
+        deliveryAddress: p.deliveryAddress || null,
+        quoteHistory,
+      };
+    }));
+
     // Normalize confirmed orders
     const normalizedOrders = orders.map((o: any) => ({
       ...o,
@@ -174,7 +229,8 @@ export async function GET(request: NextRequest) {
     }));
 
     // Merge: searching prescriptions + pending quotes + confirmed orders
-    const combined = [...enrichedPrescriptions, ...enrichedQuotes, ...normalizedOrders];
+    const combined = [...enrichedPrescriptions, ...enrichedQuotes, ...normalizedOrders, ...enrichedClosed]
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return successResponse(combined, 'Orders fetched successfully');
   } catch (error: any) {

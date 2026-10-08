@@ -229,7 +229,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   Widget _buildStatusBanner(Order order, AppLocalizations l10n) {
     final isPending = order.isPendingQuote;
     final isSearching = order.status == 'searching';
-    final isExpired = order.status == 'expired';
+    // Closed without an order: no pharmacy took it, or the quote expired
+    final isExpired = order.status == 'expired' || order.status == 'rejected';
     final isPaymentVerification = order.status == 'payment_verification';
     
     final color = isPending ? Colors.orange 
@@ -255,7 +256,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         : isSearching
             ? l10n.translate('finding_pharmacy_desc')
             : isExpired
-                ? l10n.translate('no_pharmacy_timeout')
+                ? l10n.translate(order.status == 'expired'
+                    ? 'quote_expired_desc'
+                    : 'no_pharmacy_timeout')
                 : isPaymentVerification
                     ? 'Your payment proof is being reviewed by the pharmacy'
                     : (order.orderNumber.isNotEmpty ? order.orderNumber : 'Order #${order.id.substring(order.id.length > 6 ? order.id.length - 6 : 0).toUpperCase()}');

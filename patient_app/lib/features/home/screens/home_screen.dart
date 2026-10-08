@@ -112,7 +112,7 @@ class _HomeTab extends StatelessWidget {
     return Consumer<OrderProvider>(
       builder: (context, orderProvider, _) {
         final orders = orderProvider.orders;
-        final active = orders.where((o) => !['delivered', 'cancelled'].contains(o.status)).length;
+        final active = orders.where((o) => !['delivered', 'cancelled', 'expired', 'rejected'].contains(o.status)).length;
         final completed = orders.where((o) => o.status == 'delivered').length;
         final pending = orders.where((o) => o.status == 'quote_pending').length;
         final recent = orders.take(3).toList();

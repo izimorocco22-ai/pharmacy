@@ -38,12 +38,24 @@ export async function GET(
       // Try to find as a Prescription if it's not an Order (searching state)
       const prescription = await Prescription.findById(params.id).lean() as any;
       if (prescription) {
+        // A closed request keeps its final status instead of "searching"
+        let status = 'searching';
+        if (['expired', 'rejected'].includes(prescription.status)) {
+          const quotes = await Quote.find({ prescriptionId: prescription._id }).lean() as any[];
+          status = quotes.some((q: any) => q.status === 'expired')
+            ? 'expired'
+            : quotes.some((q: any) => q.status === 'rejected' && !q.rejectionReason)
+              ? 'cancelled'
+              : quotes.some((q: any) => q.status === 'rejected' && q.rejectionReason)
+                ? 'rejected'
+                : 'cancelled';
+        }
         // Mock an order object from prescription
         order = {
           _id: prescription._id,
           prescriptionId: prescription,
           patientId: prescription.patientId,
-          status: 'searching',
+          status,
           orderNumber: `REQ-${prescription._id.toString().slice(-6).toUpperCase()}`,
           createdAt: prescription.createdAt,
           items: [],

@@ -184,6 +184,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         return AppTheme.info;
       case 'cancelled':
       case 'expired':
+      case 'rejected':
         return Colors.red;
       case 'searching':
       case 'quote_pending':
@@ -210,7 +211,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       case 'quote_pending':
         return 'Quote received';
       case 'expired':
-        return 'Cancelled (No Pharmacy)';
+        return 'Quote expired';
+      case 'rejected':
+        return 'Rejected (No Pharmacy)';
       default:
         return status;
     }

@@ -160,6 +160,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ],
               ),
               const SizedBox(height: AppTheme.spacing8),
+              if (order['isClosedRequest'] == true &&
+                  (order['rejectionReason'] ?? '').toString().isNotEmpty) ...[
+                Text(
+                  order['rejectionReason'].toString(),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppTheme.textSecondary),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppTheme.spacing4),
+              ],
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -201,6 +214,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
       case 'in_transit': return 'IN TRANSIT';
       case 'delivered': return 'DELIVERED';
       case 'cancelled': return 'CANCELLED';
+      case 'rejected': return 'REJECTED';
+      case 'expired': return 'EXPIRED';
       default: return status.toUpperCase();
     }
   }
@@ -208,7 +223,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Color _statusColor(String status) {
     switch (status) {
       case 'delivered': return AppTheme.success;
-      case 'cancelled': return AppTheme.error;
+      case 'cancelled':
+      case 'rejected': return AppTheme.error;
+      case 'expired': return AppTheme.textSecondary;
       case 'payment_verification': return Colors.blueGrey;
       case 'in_transit':
       case 'picked_up': return AppTheme.info;

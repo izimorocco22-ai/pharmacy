@@ -96,7 +96,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ? DateTime.tryParse(_order['createdAt'].toString())?.toLocal()
         : null;
 
-    final showConfirmButton = paymentProofUrl != null &&
+    // Rejected / expired / cancelled request: no order, no payment
+    final isClosedRequest = _order['isClosedRequest'] == true;
+    final rejectionReason = _order['rejectionReason']?.toString() ?? '';
+    final showConfirmButton = !isClosedRequest &&
+        paymentProofUrl != null &&
         paymentProofUrl.isNotEmpty &&
         paymentStatus == 'pending';
 
@@ -132,6 +136,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           color: Colors.white.withValues(alpha: 0.85)),
                     ),
                   ],
+                  if (isClosedRequest && rejectionReason.isNotEmpty) ...[
+                    const SizedBox(height: AppTheme.spacing8),
+                    Text(
+                      rejectionReason,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -157,6 +170,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       _infoRow(context, Icons.payment,
                           paymentMethod == 'cash' ? 'Cash on Delivery' : paymentMethod == 'manual' ? 'Bank Transfer' : 'Online Payment'),
                     ],
+                    if (!isClosedRequest) ...[
                     const SizedBox(height: AppTheme.spacing8),
                     Row(
                       children: [
@@ -187,6 +201,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ),
                       ],
                     ),
+                    ],
                   ],
                 ),
               ),
@@ -548,7 +563,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Color _statusColor(String status) {
     switch (status) {
       case 'delivered': return AppTheme.success;
-      case 'cancelled': return AppTheme.error;
+      case 'cancelled':
+      case 'rejected': return AppTheme.error;
+      case 'expired': return AppTheme.textSecondary;
       case 'in_transit':
       case 'picked_up': return AppTheme.info;
       default: return AppTheme.warning;
