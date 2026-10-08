@@ -7,8 +7,7 @@ import User from '@/models/User';
 import Quote from '@/models/Quote';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
-import { sendNotificationToUser } from '@/services/notification';
-import { reassignPrescriptionToNextPharmacy } from '@/services/reassignment';
+import { processTimedOutPrescriptions } from '@/services/reassignment';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,56 +25,8 @@ export async function GET(request: NextRequest) {
       return errorResponse('Pharmacy profile not found', 404);
     }
 
-    // Auto-check for timeouts before returning requests
-    const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-
-    const timedOutPrescriptions = await Prescription.find({
-      nearbyPharmacies: pharmacy._id,
-      status: 'pending',
-      assignedAt: { $lt: oneHourAgo },
-    });
-
-    if (timedOutPrescriptions.length > 0) {
-      for (const p of timedOutPrescriptions) {
-        // Exclude this pharmacy by creating a rejected quote
-        await Quote.create({
-          prescriptionId: p._id,
-          patientId: p.patientId,
-          pharmacyId: pharmacy._id,
-          items: [],
-          subtotal: 0,
-          deliveryFee: 0,
-          totalAmount: 0,
-          status: 'rejected',
-          rejectionReason: 'Auto-reassigned: No response within 1 hour',
-        });
-
-        // Try to move the request to the next nearest pharmacy (notifies the
-        // new pharmacy and the patient)
-        const reassigned = await reassignPrescriptionToNextPharmacy(p);
-
-        if (!reassigned) {
-          // No pharmacy left to try — expire the request
-          p.nearbyPharmacies = [];
-          p.status = 'expired';
-          await p.save();
-
-          // Notify patient
-          try {
-            const patient = await Patient.findById(p.patientId).lean() as any;
-            if (patient) {
-              await sendNotificationToUser(
-                patient.userId.toString(),
-                'Request Timed Out',
-                'Your prescription request has timed out as no pharmacy responded within 1 hour.',
-                { prescriptionId: p._id.toString(), type: 'prescription_expired' }
-              );
-            }
-          } catch (_) {}
-        }
-      }
-    }
+    // Move requests whose pharmacy didn't quote in time to the next one
+    await processTimedOutPrescriptions();
 
     // Show pending, quoted and confirmed prescriptions assigned to this pharmacy
     const prescriptions = await Prescription.find({

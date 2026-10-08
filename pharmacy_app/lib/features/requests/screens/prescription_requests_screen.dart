@@ -389,7 +389,9 @@ class _CountdownTimerState extends State<_CountdownTimer> {
 
   void _calculateRemaining() {
     final now = DateTime.now();
-    final expiry = widget.assignedAt.add(const Duration(hours: 1));
+    // Time to send a quote before the request moves to the next pharmacy;
+    // matches PHARMACY_RESPONSE_MINUTES on the backend
+    final expiry = widget.assignedAt.add(const Duration(minutes: 15));
     _remaining = expiry.difference(now);
     if (_remaining.isNegative) {
       _remaining = Duration.zero;

@@ -8,6 +8,7 @@ import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
 import { sendNotificationToUser } from '@/services/notification';
 import Prescription from '@/models/Prescription';
+import { processTimedOutPrescriptions } from '@/services/reassignment';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,9 @@ export async function GET(request: NextRequest) {
     if (!auth || auth.role !== 'patient') return unauthorizedResponse();
 
     await connectDB();
+
+    // Move requests whose pharmacy didn't quote in time to the next one
+    await processTimedOutPrescriptions();
 
     const patient = await Patient.findOne({ userId: auth.userId }).lean() as any;
     if (!patient) return errorResponse('Patient not found', 404);

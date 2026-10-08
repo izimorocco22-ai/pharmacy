@@ -7,6 +7,7 @@ import Patient from '@/models/Patient';
 import Pharmacy from '@/models/Pharmacy';
 import User from '@/models/User';
 import Rider from '@/models/Rider';
+import { processTimedOutPrescriptions } from '@/services/reassignment';
 import { successResponse, errorResponse } from '@/lib/response';
 import jwt from 'jsonwebtoken';
 
@@ -15,6 +16,9 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
+
+    // Move requests whose pharmacy didn't quote in time to the next one
+    await processTimedOutPrescriptions();
 
     const authHeader = request.headers.get('authorization');
     let userId = request.nextUrl.searchParams.get('userId');

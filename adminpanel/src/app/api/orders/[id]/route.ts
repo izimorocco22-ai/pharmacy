@@ -7,6 +7,7 @@ import Rider from '@/models/Rider';
 import User from '@/models/User';
 import Patient from '@/models/Patient';
 import Prescription from '@/models/Prescription';
+import { processTimedOutPrescriptions, PHARMACY_RESPONSE_MINUTES } from '@/services/reassignment';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
 
@@ -23,6 +24,9 @@ export async function GET(
     if (!auth && !adminToken) return unauthorizedResponse();
 
     await connectDB();
+
+    // Move requests whose pharmacy didn't quote in time to the next one
+    await processTimedOutPrescriptions();
 
     let order = await Order.findById(params.id)
       .populate('pharmacyId', 'pharmacyName address')
@@ -158,7 +162,12 @@ export async function GET(
       createdAt: order.createdAt,
       deliveredAt: order.deliveredAt,
       estimatedDeliveryTime: order.estimatedDeliveryTime,
-      expiresAt: pendingQuote?.expiresAt || prescription?.assignedAt ? new Date(new Date(prescription.assignedAt).getTime() + 60 * 60 * 1000) : null,
+      // Quote pending: when the quote expires. Still searching: when the
+      // assigned pharmacy's time to quote runs out.
+      expiresAt: pendingQuote?.expiresAt
+        ?? (prescription?.assignedAt
+          ? new Date(new Date(prescription.assignedAt).getTime() + PHARMACY_RESPONSE_MINUTES * 60 * 1000)
+          : null),
       // Patient
       patient: patientInfo,
       // Pharmacy
