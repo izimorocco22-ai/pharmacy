@@ -27,6 +27,15 @@ interface Rider {
   };
 }
 
+interface WalletTxn {
+  _id: string;
+  type: 'deduct' | 'add' | 'payout';
+  amount: number;
+  balanceAfter: number;
+  note?: string;
+  createdAt: string;
+}
+
 export default function RidersPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [riders, setRiders] = useState<Rider[]>([]);
@@ -66,6 +75,68 @@ export default function RidersPage() {
       }
     } catch (e) { console.error(e); }
     finally { setSettlingId(null); }
+  };
+
+  // Wallet modal
+  const [walletRider, setWalletRider] = useState<Rider | null>(null);
+  const [walletData, setWalletData] = useState<{ walletBalance: number; transactions: WalletTxn[] } | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [walletAction, setWalletAction] = useState<'deduct' | 'add'>('deduct');
+  const [walletAmount, setWalletAmount] = useState('');
+  const [walletNote, setWalletNote] = useState('');
+  const [walletSaving, setWalletSaving] = useState(false);
+  const [walletError, setWalletError] = useState('');
+
+  const loadWallet = async (riderId: string) => {
+    setWalletLoading(true);
+    try {
+      const res = await fetch(`/api/admin/riders/${riderId}/wallet`);
+      const data = await res.json();
+      if (data.success) setWalletData(data.data);
+      else setWalletError(data.message || 'Failed to load wallet');
+    } catch (e) { console.error(e); }
+    finally { setWalletLoading(false); }
+  };
+
+  const openWallet = (rider: Rider) => {
+    setWalletRider(rider);
+    setWalletData(null);
+    setWalletAction('deduct');
+    setWalletAmount('');
+    setWalletNote('');
+    setWalletError('');
+    loadWallet(rider._id);
+  };
+
+  const handleWalletSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!walletRider) return;
+    const amount = Number(walletAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setWalletError('Enter an amount greater than zero');
+      return;
+    }
+    const verb = walletAction === 'deduct' ? 'Deduct' : 'Add';
+    if (!confirm(`${verb} ${amount.toLocaleString()} MRO ${walletAction === 'deduct' ? 'from' : 'to'} ${walletRider.userId?.fullName}'s wallet?`)) return;
+    setWalletSaving(true);
+    setWalletError('');
+    try {
+      const res = await fetch(`/api/admin/riders/${walletRider._id}/wallet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: walletAction, amount, note: walletNote }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWalletAmount('');
+        setWalletNote('');
+        loadWallet(walletRider._id);
+        fetchRiders();
+      } else {
+        setWalletError(data.message || 'Failed to update wallet');
+      }
+    } catch (e) { console.error(e); }
+    finally { setWalletSaving(false); }
   };
 
   const filtered = riders.filter(r =>
@@ -191,6 +262,10 @@ export default function RidersPage() {
                               className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-medium">
                               View More
                             </button>
+                            <button onClick={() => openWallet(rider)}
+                              className="px-3 py-1 text-xs bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 font-medium">
+                              👛 Wallet
+                            </button>
                             {balanceOf(rider) > 0 && (
                               <button onClick={() => handleSettleBalance(rider)}
                                 disabled={settlingId === rider._id}
@@ -276,6 +351,84 @@ export default function RidersPage() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Wallet Modal */}
+      {walletRider && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">Wallet Management</h2>
+                <p className="text-sm text-gray-500">{walletRider.userId?.fullName}</p>
+              </div>
+              <button onClick={() => setWalletRider(null)} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+            </div>
+
+            <div className="p-5 overflow-y-auto">
+              {/* Balance */}
+              <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 mb-5 text-center">
+                <div className="text-sm text-purple-700 mb-1">Current Wallet Balance</div>
+                <div className="text-3xl font-bold text-purple-800">
+                  {walletData ? `${walletData.walletBalance.toLocaleString()} MRO` : walletLoading ? '...' : '—'}
+                </div>
+              </div>
+
+              {/* Deduct / Add form */}
+              <form onSubmit={handleWalletSubmit} className="space-y-3 mb-6">
+                <div className="grid grid-cols-2 gap-2">
+                  {(['deduct', 'add'] as const).map(a => (
+                    <button key={a} type="button" onClick={() => setWalletAction(a)}
+                      className={`py-2 rounded-lg text-sm font-medium border ${walletAction === a
+                        ? a === 'deduct' ? 'bg-red-600 text-white border-red-600' : 'bg-green-600 text-white border-green-600'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}>
+                      {a === 'deduct' ? '− Deduct' : '+ Add'}
+                    </button>
+                  ))}
+                </div>
+                <input type="number" min="0" step="0.01" placeholder="Amount (MRO)"
+                  value={walletAmount} onChange={e => setWalletAmount(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                <input type="text" maxLength={300} placeholder="Reason / note (optional)"
+                  value={walletNote} onChange={e => setWalletNote(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                {walletError && <p className="text-sm text-red-600">{walletError}</p>}
+                <button type="submit" disabled={walletSaving || !walletAmount}
+                  className={`w-full py-2 rounded-lg text-white font-medium disabled:opacity-60 ${walletAction === 'deduct' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}>
+                  {walletSaving ? 'Saving...' : walletAction === 'deduct' ? 'Deduct from Wallet' : 'Add to Wallet'}
+                </button>
+              </form>
+
+              {/* History */}
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">Wallet History</h3>
+              {walletLoading && !walletData ? (
+                <p className="text-sm text-gray-500">Loading...</p>
+              ) : !walletData?.transactions.length ? (
+                <p className="text-sm text-gray-400">No wallet changes yet</p>
+              ) : (
+                <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl">
+                  {walletData.transactions.map(t => (
+                    <div key={t._id} className="flex items-center justify-between p-3 text-sm">
+                      <div>
+                        <div className="font-medium text-gray-800">
+                          {t.type === 'deduct' ? 'Deducted' : t.type === 'add' ? 'Added' : 'Paid out'}
+                        </div>
+                        {t.note && <div className="text-xs text-gray-500">{t.note}</div>}
+                        <div className="text-xs text-gray-400">{new Date(t.createdAt).toLocaleString()}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`font-semibold ${t.type === 'add' ? 'text-green-600' : 'text-red-600'}`}>
+                          {t.type === 'add' ? '+' : '−'}{t.amount.toLocaleString()} MRO
+                        </div>
+                        <div className="text-xs text-gray-400">Bal: {t.balanceAfter.toLocaleString()} MRO</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

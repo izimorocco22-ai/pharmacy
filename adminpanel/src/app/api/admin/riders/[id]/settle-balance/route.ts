@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Rider from '@/models/Rider';
+import RiderWalletTransaction from '@/models/RiderWalletTransaction';
 import { successResponse, errorResponse } from '@/lib/response';
 import { sendNotificationToUser } from '@/services/notification';
 
@@ -21,6 +22,16 @@ export async function POST(
     const settledAmount = rider.walletBalance ?? rider.totalEarnings ?? 0;
     rider.walletBalance = 0;
     await rider.save();
+
+    if (settledAmount > 0) {
+      await RiderWalletTransaction.create({
+        riderId: rider._id,
+        type: 'payout',
+        amount: settledAmount,
+        balanceAfter: 0,
+        note: 'Balance paid out',
+      });
+    }
 
     // Notify the rider that the payout was made
     try {
