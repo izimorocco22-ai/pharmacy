@@ -78,11 +78,8 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
       setState(() {
-        // Unpaid balance (reset to zero when the admin settles the payout);
-        // falls back to totalEarnings while the backend is older.
-        _walletBalance = (res.data['walletBalance'] as num?)?.toDouble() ??
-            (res.data['totalEarnings'] as num?)?.toDouble() ??
-            0;
+        // Total earnings: deliveries plus/minus admin adjustments
+        _walletBalance = (res.data['totalEarnings'] as num?)?.toDouble() ?? 0;
         _todayEarnings = todayEarn;
         _todayDeliveries = todayCount;
         _loading = false;

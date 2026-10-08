@@ -1,15 +1,16 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-// A manual change to a rider's wallet made by the admin. The wallet balance
-// itself lives on Rider.walletBalance; these rows are the audit trail.
-// 'deduct' = admin took money out (penalty, cash collected, etc.),
+// A manual change to a rider's earnings made by the admin. The amount itself
+// lives on Rider.totalEarnings; these rows are the audit trail and are also
+// listed in the rider app's earnings history.
+// 'deduct' = admin took money out (penalty, payout, etc.),
 // 'add' = admin credited money (bonus, correction),
-// 'payout' = admin paid out the whole balance (Mark Paid).
+// 'payout' = legacy full payout from the removed Mark Paid button.
 export interface IRiderWalletTransaction extends Document {
   riderId: mongoose.Types.ObjectId;
   type: 'deduct' | 'add' | 'payout';
   amount: number; // always positive; type decides the direction
-  balanceAfter: number;
+  balanceAfter: number; // rider's totalEarnings after this change
   note?: string;
   createdAt: Date;
   updatedAt: Date;

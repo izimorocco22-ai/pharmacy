@@ -12,9 +12,10 @@ class WalletScreen extends StatefulWidget {
 class _WalletScreenState extends State<WalletScreen> {
   bool _loading = true;
   double _totalEarnings = 0;
-  double _walletBalance = 0;
   int _totalDeliveries = 0;
-  List<Map<String, dynamic>> _orders = [];
+  // Delivered orders and admin adjustments, newest first. Each entry has
+  // title, subtitle (note), date and a signed amount.
+  List<Map<String, dynamic>> _history = [];
 
   @override
   void initState() {
@@ -27,18 +28,34 @@ class _WalletScreenState extends State<WalletScreen> {
     final res = await ApiService.get('/rider/orders');
     if (!mounted) return;
     if (res.success && res.data != null) {
-      final list = List<Map<String, dynamic>>.from(
-        (res.data['orders'] as List? ?? []).map((e) => Map<String, dynamic>.from(e)),
-      );
+      final orders = (res.data['orders'] as List? ?? [])
+          .map((e) => Map<String, dynamic>.from(e))
+          .where((o) => o['status'] == 'delivered')
+          .map((o) => <String, dynamic>{
+                'title': o['orderNumber']?.toString() ?? '',
+                'subtitle': null,
+                'date': o['deliveredAt'] ?? o['createdAt'],
+                'amount': (o['deliveryFee'] as num?)?.toDouble() ?? 0.0,
+              });
+      final adjustments = (res.data['adjustments'] as List? ?? [])
+          .map((e) => Map<String, dynamic>.from(e))
+          .map((a) {
+        final amount = (a['amount'] as num?)?.toDouble() ?? 0.0;
+        final isDeduct = a['type'] == 'deduct';
+        final note = a['note']?.toString() ?? '';
+        return <String, dynamic>{
+          'title': isDeduct ? 'Deducted by admin' : 'Added by admin',
+          'subtitle': note.isEmpty ? null : note,
+          'date': a['createdAt'],
+          'amount': isDeduct ? -amount : amount,
+        };
+      });
+      final history = [...orders, ...adjustments]
+        ..sort((a, b) => b['date'].toString().compareTo(a['date'].toString()));
       setState(() {
         _totalEarnings = (res.data['totalEarnings'] as num?)?.toDouble() ?? 0;
-        // Unpaid balance (reset when the admin pays out); falls back to
-        // totalEarnings while the backend is older.
-        _walletBalance = (res.data['walletBalance'] as num?)?.toDouble() ??
-            (res.data['totalEarnings'] as num?)?.toDouble() ??
-            0;
         _totalDeliveries = (res.data['totalDeliveries'] as num?)?.toInt() ?? 0;
-        _orders = list.where((o) => o['status'] == 'delivered').toList();
+        _history = history;
         _loading = false;
       });
     } else {
@@ -87,30 +104,17 @@ class _WalletScreenState extends State<WalletScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Wallet Balance',
+                        const Text('Total Earnings',
                             style: TextStyle(color: Colors.white70, fontSize: 14)),
                         const SizedBox(height: AppTheme.spacing8),
                         Text(
-                          '${_walletBalance.toStringAsFixed(2)} MRO',
+                          '${_totalEarnings.toStringAsFixed(2)} MRO',
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 32,
                               fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: AppTheme.spacing12),
-                        Row(
-                          children: [
-                            const Icon(Icons.trending_up,
-                                color: Colors.white70, size: 16),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Total earned: ${_totalEarnings.toStringAsFixed(2)} MRO',
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
                         Row(
                           children: [
                             const Icon(Icons.delivery_dining,
@@ -134,9 +138,9 @@ class _WalletScreenState extends State<WalletScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Delivery Earnings',
+                        Text('Earnings History',
                             style: Theme.of(context).textTheme.titleMedium),
-                        Text('${_orders.length} orders',
+                        Text('${_history.length} entries',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall
@@ -148,7 +152,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
                   // Transactions list
                   Expanded(
-                    child: _orders.isEmpty
+                    child: _history.isEmpty
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -173,37 +177,45 @@ class _WalletScreenState extends State<WalletScreen> {
                         : ListView.separated(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: AppTheme.spacing16),
-                            itemCount: _orders.length,
+                            itemCount: _history.length,
                             separatorBuilder: (_, __) =>
                                 const Divider(height: 1),
                             itemBuilder: (context, index) {
-                              final o = _orders[index];
-                              final fee =
-                                  (o['deliveryFee'] as num?)?.toDouble() ??
-                                      0.0;
+                              final h = _history[index];
+                              final amount = h['amount'] as double;
+                              final isCredit = amount >= 0;
+                              final color =
+                                  isCredit ? AppTheme.success : AppTheme.error;
+                              final note = h['subtitle'] as String?;
+                              final sign = isCredit ? '+' : '-';
                               return ListTile(
                                 contentPadding: EdgeInsets.zero,
                                 leading: CircleAvatar(
-                                  backgroundColor:
-                                      AppTheme.success.withOpacity(0.1),
-                                  child: const Icon(Icons.check_circle,
-                                      color: AppTheme.success, size: 20),
+                                  backgroundColor: color.withOpacity(0.1),
+                                  child: Icon(
+                                      isCredit
+                                          ? Icons.check_circle
+                                          : Icons.remove_circle,
+                                      color: color,
+                                      size: 20),
                                 ),
                                 title: Text(
-                                  o['orderNumber']?.toString() ?? '',
+                                  h['title'] as String,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14),
                                 ),
                                 subtitle: Text(
-                                  _formatDate(o['deliveredAt'] ?? o['createdAt']),
+                                  note == null
+                                      ? _formatDate(h['date'])
+                                      : '$note · ${_formatDate(h['date'])}',
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 trailing: Text(
-                                  '+${fee.toStringAsFixed(2)} MRO',
-                                  style: const TextStyle(
+                                  '$sign${amount.abs().toStringAsFixed(2)} MRO',
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: AppTheme.success,
+                                    color: color,
                                     fontSize: 14,
                                   ),
                                 ),

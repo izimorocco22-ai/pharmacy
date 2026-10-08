@@ -1,24 +1,14 @@
 import mongoose from 'mongoose';
 import Rider from '@/models/Rider';
 
-// All rider wallet writes go through here and use atomic updates, never
-// rider.save(), so a stale document can't overwrite the balance.
+// A rider has one money figure: totalEarnings. Deliveries add to it and the
+// admin can add or deduct. All writes go through here as atomic updates,
+// never rider.save(), so a stale document can't overwrite the amount.
 
-// Riders created before walletBalance existed have no such field; their
-// unpaid balance is their lifetime earnings. Persist that once.
-export async function ensureWalletBalance(riderId: string | mongoose.Types.ObjectId) {
-  await Rider.updateOne(
-    { _id: riderId, walletBalance: { $exists: false } },
-    [{ $set: { walletBalance: { $ifNull: ['$totalEarnings', 0] } } }]
-  );
-  return Rider.findById(riderId).lean() as any;
-}
-
-// Add (positive) or remove (negative) money. A removal only succeeds if the
-// balance covers it; returns null otherwise.
-export async function incWalletBalance(riderId: string | mongoose.Types.ObjectId, amount: number) {
-  await ensureWalletBalance(riderId);
+// Add (positive) or remove (negative) earnings. A removal only succeeds if
+// the earnings cover it; returns null otherwise.
+export async function incRiderEarnings(riderId: string | mongoose.Types.ObjectId, amount: number) {
   const filter: any = { _id: riderId };
-  if (amount < 0) filter.walletBalance = { $gte: -amount };
-  return Rider.findOneAndUpdate(filter, { $inc: { walletBalance: amount } }, { new: true }).lean() as any;
+  if (amount < 0) filter.totalEarnings = { $gte: -amount };
+  return Rider.findOneAndUpdate(filter, { $inc: { totalEarnings: amount } }, { new: true }).lean() as any;
 }

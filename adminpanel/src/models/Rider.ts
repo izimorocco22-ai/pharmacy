@@ -17,7 +17,6 @@ export interface IRider extends Document {
   rating: number;
   totalDeliveries: number;
   totalEarnings: number;
-  walletBalance?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,17 +74,11 @@ const RiderSchema = new Schema<IRider>(
       type: Number,
       default: 0,
     },
+    // The rider's one money figure: deliveries add to it and the admin can
+    // add/deduct. Change it only through lib/riderWallet.ts (atomic $inc).
     totalEarnings: {
       type: Number,
       default: 0,
-    },
-    // Unpaid balance: grows with each delivery, reset to zero when the
-    // admin settles (pays out) the rider. totalEarnings stays as the
-    // lifetime figure. No default on purpose: a default would be applied to
-    // older riders on load and written back as 0 by any rider.save(). Only
-    // change it through lib/riderWallet.ts.
-    walletBalance: {
-      type: Number,
     },
   },
   {

@@ -14,7 +14,6 @@ interface Rider {
   rating: number;
   totalDeliveries: number;
   totalEarnings: number;
-  walletBalance?: number;
   createdAt: string;
   userId: {
     _id: string;
@@ -55,12 +54,10 @@ export default function RidersPage() {
     finally { setLoading(false); }
   };
 
-  // Wallet balance; legacy riders (no walletBalance yet) show lifetime earnings
-  const balanceOf = (r: Rider) => r.walletBalance ?? r.totalEarnings ?? 0;
 
-  // Wallet modal
+  // Earnings management modal
   const [walletRider, setWalletRider] = useState<Rider | null>(null);
-  const [walletData, setWalletData] = useState<{ walletBalance: number; transactions: WalletTxn[] } | null>(null);
+  const [walletData, setWalletData] = useState<{ totalEarnings: number; transactions: WalletTxn[] } | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletAction, setWalletAction] = useState<'deduct' | 'add'>('deduct');
   const [walletAmount, setWalletAmount] = useState('');
@@ -71,10 +68,10 @@ export default function RidersPage() {
   const loadWallet = async (riderId: string) => {
     setWalletLoading(true);
     try {
-      const res = await fetch(`/api/admin/riders/${riderId}/wallet`);
+      const res = await fetch(`/api/admin/riders/${riderId}/earnings`);
       const data = await res.json();
       if (data.success) setWalletData(data.data);
-      else setWalletError(data.message || 'Failed to load wallet');
+      else setWalletError(data.message || 'Failed to load earnings');
     } catch (e) { console.error(e); }
     finally { setWalletLoading(false); }
   };
@@ -98,11 +95,11 @@ export default function RidersPage() {
       return;
     }
     const verb = walletAction === 'deduct' ? 'Deduct' : 'Add';
-    if (!confirm(`${verb} ${amount.toLocaleString()} MRO ${walletAction === 'deduct' ? 'from' : 'to'} ${walletRider.userId?.fullName}'s wallet?`)) return;
+    if (!confirm(`${verb} ${amount.toLocaleString()} MRO ${walletAction === 'deduct' ? 'from' : 'to'} ${walletRider.userId?.fullName}'s earnings?`)) return;
     setWalletSaving(true);
     setWalletError('');
     try {
-      const res = await fetch(`/api/admin/riders/${walletRider._id}/wallet`, {
+      const res = await fetch(`/api/admin/riders/${walletRider._id}/earnings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: walletAction, amount, note: walletNote }),
@@ -114,7 +111,7 @@ export default function RidersPage() {
         loadWallet(walletRider._id);
         fetchRiders();
       } else {
-        setWalletError(data.message || 'Failed to update wallet');
+        setWalletError(data.message || 'Failed to update earnings');
       }
     } catch (e) { console.error(e); }
     finally { setWalletSaving(false); }
@@ -242,7 +239,7 @@ export default function RidersPage() {
                             </button>
                             <button onClick={() => openWallet(rider)}
                               className="px-3 py-1 text-xs bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 font-medium">
-                              👛 Wallet
+                              💰 Earnings
                             </button>
                           </div>
                         </td>
@@ -287,7 +284,6 @@ export default function RidersPage() {
                 {[
                   { label: 'Total Deliveries', value: selectedRider.totalDeliveries, icon: '📦' },
                   { label: 'Total Earnings', value: `${selectedRider.totalEarnings.toLocaleString()} MRO`, icon: '💰' },
-                  { label: 'Wallet Balance', value: `${balanceOf(selectedRider).toLocaleString()} MRO`, icon: '💵' },
                   { label: 'Rating', value: `${selectedRider.rating.toFixed(1)} ⭐`, icon: '⭐' },
                 ].map(s => (
                   <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
@@ -327,13 +323,13 @@ export default function RidersPage() {
         </div>
       )}
 
-      {/* Wallet Modal */}
+      {/* Earnings Management Modal */}
       {walletRider && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-5 border-b">
               <div>
-                <h2 className="text-lg font-semibold text-gray-800">Wallet Management</h2>
+                <h2 className="text-lg font-semibold text-gray-800">Earnings Management</h2>
                 <p className="text-sm text-gray-500">{walletRider.userId?.fullName}</p>
               </div>
               <button onClick={() => setWalletRider(null)} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
@@ -342,9 +338,9 @@ export default function RidersPage() {
             <div className="p-5 overflow-y-auto">
               {/* Balance */}
               <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 mb-5 text-center">
-                <div className="text-sm text-purple-700 mb-1">Current Wallet Balance</div>
+                <div className="text-sm text-purple-700 mb-1">Current Earnings</div>
                 <div className="text-3xl font-bold text-purple-800">
-                  {walletData ? `${walletData.walletBalance.toLocaleString()} MRO` : walletLoading ? '...' : '—'}
+                  {walletData ? `${walletData.totalEarnings.toLocaleString()} MRO` : walletLoading ? '...' : '—'}
                 </div>
               </div>
 
@@ -369,16 +365,16 @@ export default function RidersPage() {
                 {walletError && <p className="text-sm text-red-600">{walletError}</p>}
                 <button type="submit" disabled={walletSaving || !walletAmount}
                   className={`w-full py-2 rounded-lg text-white font-medium disabled:opacity-60 ${walletAction === 'deduct' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}>
-                  {walletSaving ? 'Saving...' : walletAction === 'deduct' ? 'Deduct from Wallet' : 'Add to Wallet'}
+                  {walletSaving ? 'Saving...' : walletAction === 'deduct' ? 'Deduct from Earnings' : 'Add to Earnings'}
                 </button>
               </form>
 
               {/* History */}
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Wallet History</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">Adjustment History</h3>
               {walletLoading && !walletData ? (
                 <p className="text-sm text-gray-500">Loading...</p>
               ) : !walletData?.transactions.length ? (
-                <p className="text-sm text-gray-400">No wallet changes yet</p>
+                <p className="text-sm text-gray-400">No adjustments yet</p>
               ) : (
                 <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl">
                   {walletData.transactions.map(t => (

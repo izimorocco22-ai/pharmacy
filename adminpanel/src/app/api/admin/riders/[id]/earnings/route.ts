@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import { ensureWalletBalance, incWalletBalance } from '@/lib/riderWallet';
+import Rider from '@/models/Rider';
 import RiderWalletTransaction from '@/models/RiderWalletTransaction';
+import { incRiderEarnings } from '@/lib/riderWallet';
 import { verifyToken } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
 import { sendNotificationToUser } from '@/services/notification';
@@ -13,12 +14,12 @@ function isAdmin(request: NextRequest) {
   return !!token && verifyToken(token)?.role === 'admin';
 }
 
-// GET: current balance and the admin's wallet history for this rider
+// GET: the rider's earnings and the admin's adjustment history
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   if (!isAdmin(request)) return unauthorizedResponse();
   try {
     await connectDB();
-    const rider = await ensureWalletBalance(params.id);
+    const rider = await Rider.findById(params.id).lean() as any;
     if (!rider) return errorResponse('Rider not found', 404);
 
     const transactions = await RiderWalletTransaction.find({ riderId: rider._id })
@@ -26,18 +27,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       .limit(100)
       .lean();
 
-    return successResponse({
-      walletBalance: rider.walletBalance,
-      totalEarnings: rider.totalEarnings || 0,
-      transactions,
-    });
+    return successResponse({ totalEarnings: rider.totalEarnings || 0, transactions });
   } catch (error) {
-    console.error('Get rider wallet error:', error);
-    return errorResponse('Failed to load wallet', 500);
+    console.error('Get rider earnings error:', error);
+    return errorResponse('Failed to load earnings', 500);
   }
 }
 
-// POST { action: 'deduct' | 'add', amount, note }: change the wallet balance
+// POST { action: 'deduct' | 'add', amount, note }: adjust the rider's earnings
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   if (!isAdmin(request)) return unauthorizedResponse();
   try {
@@ -52,15 +49,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
     const note = (body.note || '').toString().trim().slice(0, 300);
 
-    const rider = await ensureWalletBalance(params.id);
+    const rider = await Rider.findById(params.id).lean() as any;
     if (!rider) return errorResponse('Rider not found', 404);
 
-    // A deduction only succeeds if the balance covers it
-    const updated = await incWalletBalance(rider._id, action === 'deduct' ? -amount : amount);
-
+    // A deduction only succeeds if the earnings cover it
+    const updated = await incRiderEarnings(rider._id, action === 'deduct' ? -amount : amount);
     if (!updated) {
       return errorResponse(
-        `Cannot deduct ${amount} MRO: wallet balance is only ${rider.walletBalance} MRO`
+        `Cannot deduct ${amount} MRO: earnings are only ${rider.totalEarnings || 0} MRO`
       );
     }
 
@@ -68,28 +64,28 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       riderId: rider._id,
       type: action,
       amount,
-      balanceAfter: updated.walletBalance,
+      balanceAfter: updated.totalEarnings,
       note,
     });
 
     try {
       await sendNotificationToUser(
         rider.userId.toString(),
-        action === 'deduct' ? 'Wallet Deduction' : 'Wallet Credit',
+        action === 'deduct' ? 'Earnings Deducted' : 'Earnings Added',
         action === 'deduct'
-          ? `${amount.toFixed(2)} MRO was deducted from your wallet.${note ? ` Reason: ${note}` : ''}`
-          : `${amount.toFixed(2)} MRO was added to your wallet.${note ? ` Note: ${note}` : ''}`,
-        { type: action === 'deduct' ? 'wallet_deduct' : 'wallet_credit', amount: String(amount) }
+          ? `${amount.toFixed(2)} MRO was deducted from your earnings.${note ? ` Reason: ${note}` : ''}`
+          : `${amount.toFixed(2)} MRO was added to your earnings.${note ? ` Note: ${note}` : ''}`,
+        { type: action === 'deduct' ? 'earnings_deduct' : 'earnings_credit', amount: String(amount) }
       );
     } catch (_) {}
 
     return successResponse(
-      { walletBalance: updated.walletBalance, transaction },
+      { totalEarnings: updated.totalEarnings, transaction },
       action === 'deduct' ? 'Amount deducted' : 'Amount added',
       201
     );
   } catch (error) {
-    console.error('Update rider wallet error:', error);
-    return errorResponse('Failed to update wallet', 500);
+    console.error('Update rider earnings error:', error);
+    return errorResponse('Failed to update earnings', 500);
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
 import Rider from '@/models/Rider';
+import RiderWalletTransaction from '@/models/RiderWalletTransaction';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
 
@@ -25,6 +26,14 @@ export async function GET(request: NextRequest) {
       .limit(50)
       .lean() as any[];
 
+    const adjustments = await RiderWalletTransaction.find({
+      riderId: rider._id,
+      type: { $in: ['add', 'deduct'] },
+    })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean() as any[];
+
     const result = orders.map((o: any) => ({
       id: o._id?.toString(),
       orderNumber: o.orderNumber || '',
@@ -39,9 +48,17 @@ export async function GET(request: NextRequest) {
     return successResponse({
       orders: result,
       totalEarnings: rider.totalEarnings || 0,
-      // Unpaid balance; legacy riders (field not set yet) show their
-      // lifetime earnings until the first payout resets it.
-      walletBalance: rider.walletBalance ?? rider.totalEarnings ?? 0,
+      // Same figure as totalEarnings; kept so older app builds that read
+      // walletBalance show the right amount
+      walletBalance: rider.totalEarnings || 0,
+      // Admin add/deduct entries, shown in the app's earnings history
+      adjustments: adjustments.map((a: any) => ({
+        id: a._id?.toString(),
+        type: a.type,
+        amount: a.amount,
+        note: a.note || '',
+        createdAt: a.createdAt,
+      })),
       totalDeliveries: rider.totalDeliveries || 0,
     });
   } catch (error) {
