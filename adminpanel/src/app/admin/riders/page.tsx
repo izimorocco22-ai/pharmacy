@@ -55,27 +55,8 @@ export default function RidersPage() {
     finally { setLoading(false); }
   };
 
-  // Unpaid balance; legacy riders (no walletBalance yet) show lifetime earnings
+  // Wallet balance; legacy riders (no walletBalance yet) show lifetime earnings
   const balanceOf = (r: Rider) => r.walletBalance ?? r.totalEarnings ?? 0;
-
-  const [settlingId, setSettlingId] = useState<string | null>(null);
-
-  const handleSettleBalance = async (rider: Rider) => {
-    const amount = balanceOf(rider);
-    if (!confirm(`Mark ${amount.toLocaleString()} MRO as paid to ${rider.userId?.fullName}? The balance will be reset to zero.`)) return;
-    setSettlingId(rider._id);
-    try {
-      const res = await fetch(`/api/admin/riders/${rider._id}/settle-balance`, { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        setSelectedRider(null);
-        fetchRiders();
-      } else {
-        alert(data.message || 'Failed to settle balance');
-      }
-    } catch (e) { console.error(e); }
-    finally { setSettlingId(null); }
-  };
 
   // Wallet modal
   const [walletRider, setWalletRider] = useState<Rider | null>(null);
@@ -241,9 +222,6 @@ export default function RidersPage() {
                         <td className="py-4 px-6 font-medium text-gray-800">{rider.totalDeliveries}</td>
                         <td className="py-4 px-6">
                           <div className="font-medium text-gray-800">{rider.totalEarnings.toLocaleString()} MRO</div>
-                          <div className={`text-xs ${balanceOf(rider) > 0 ? 'text-orange-600 font-medium' : 'text-gray-400'}`}>
-                            Unpaid: {balanceOf(rider).toLocaleString()} MRO
-                          </div>
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center">
@@ -266,13 +244,6 @@ export default function RidersPage() {
                               className="px-3 py-1 text-xs bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 font-medium">
                               👛 Wallet
                             </button>
-                            {balanceOf(rider) > 0 && (
-                              <button onClick={() => handleSettleBalance(rider)}
-                                disabled={settlingId === rider._id}
-                                className="px-3 py-1 text-xs bg-green-50 text-green-600 rounded-lg hover:bg-green-100 font-medium disabled:opacity-60">
-                                {settlingId === rider._id ? 'Paying...' : '💰 Mark Paid'}
-                              </button>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -316,7 +287,7 @@ export default function RidersPage() {
                 {[
                   { label: 'Total Deliveries', value: selectedRider.totalDeliveries, icon: '📦' },
                   { label: 'Total Earnings', value: `${selectedRider.totalEarnings.toLocaleString()} MRO`, icon: '💰' },
-                  { label: 'Unpaid Balance', value: `${balanceOf(selectedRider).toLocaleString()} MRO`, icon: '💵' },
+                  { label: 'Wallet Balance', value: `${balanceOf(selectedRider).toLocaleString()} MRO`, icon: '💵' },
                   { label: 'Rating', value: `${selectedRider.rating.toFixed(1)} ⭐`, icon: '⭐' },
                 ].map(s => (
                   <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">

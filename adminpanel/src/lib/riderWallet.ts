@@ -22,14 +22,3 @@ export async function incWalletBalance(riderId: string | mongoose.Types.ObjectId
   if (amount < 0) filter.walletBalance = { $gte: -amount };
   return Rider.findOneAndUpdate(filter, { $inc: { walletBalance: amount } }, { new: true }).lean() as any;
 }
-
-// Reset the balance to zero; returns the rider as it was before the reset
-// (so walletBalance is the amount paid out), or null if not found.
-export async function resetWalletBalance(riderId: string | mongoose.Types.ObjectId) {
-  await ensureWalletBalance(riderId);
-  return Rider.findOneAndUpdate(
-    { _id: riderId },
-    { $set: { walletBalance: 0 } },
-    { new: false }
-  ).lean() as any;
-}
