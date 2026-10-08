@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import Rider from '@/models/Rider';
+import { resetWalletBalance } from '@/lib/riderWallet';
 import RiderWalletTransaction from '@/models/RiderWalletTransaction';
 import { successResponse, errorResponse } from '@/lib/response';
 import { sendNotificationToUser } from '@/services/notification';
@@ -16,12 +16,9 @@ export async function POST(
   try {
     await connectDB();
 
-    const rider = await Rider.findById(params.id);
+    const rider = await resetWalletBalance(params.id);
     if (!rider) return errorResponse('Rider not found', 404);
-
-    const settledAmount = rider.walletBalance ?? rider.totalEarnings ?? 0;
-    rider.walletBalance = 0;
-    await rider.save();
+    const settledAmount: number = rider.walletBalance || 0;
 
     if (settledAmount > 0) {
       await RiderWalletTransaction.create({

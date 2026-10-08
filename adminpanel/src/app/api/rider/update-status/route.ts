@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
 import Rider from '@/models/Rider';
+import { incWalletBalance } from '@/lib/riderWallet';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
 import { sendNotificationToPatient } from '@/services/notification';
@@ -39,10 +40,10 @@ export async function PUT(request: NextRequest) {
       rider.isOnline = true;
       rider.totalDeliveries = (rider.totalDeliveries || 0) + 1;
       rider.totalEarnings = (rider.totalEarnings || 0) + order.deliveryFee;
-      // Unpaid balance; legacy riders start from their lifetime earnings
-      // since no payout was ever recorded before this field existed.
-      rider.walletBalance =
-        (rider.walletBalance ?? rider.totalEarnings - order.deliveryFee) + order.deliveryFee;
+      // Credit the wallet before saving: an older rider's balance is
+      // backfilled from the stored totalEarnings, which must not yet
+      // include this delivery
+      await incWalletBalance(rider._id, order.deliveryFee || 0);
       await rider.save();
     }
     await order.save();

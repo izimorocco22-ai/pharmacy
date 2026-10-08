@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import Rider from '@/models/Rider';
+import { ensureWalletBalance, incWalletBalance } from '@/lib/riderWallet';
 import RiderWalletTransaction from '@/models/RiderWalletTransaction';
 import { verifyToken } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
@@ -11,21 +11,6 @@ export const dynamic = 'force-dynamic';
 function isAdmin(request: NextRequest) {
   const token = request.cookies.get('admin_token')?.value;
   return !!token && verifyToken(token)?.role === 'admin';
-}
-
-// Legacy riders have no walletBalance yet; their unpaid balance is their
-// lifetime earnings. Persist that once so atomic $inc works from here on.
-async function ensureWalletBalance(riderId: string) {
-  const rider = await Rider.findById(riderId).lean() as any;
-  if (!rider) return null;
-  if (rider.walletBalance == null) {
-    await Rider.updateOne(
-      { _id: rider._id, walletBalance: { $exists: false } },
-      { $set: { walletBalance: rider.totalEarnings || 0 } }
-    );
-    rider.walletBalance = rider.totalEarnings || 0;
-  }
-  return rider;
 }
 
 // GET: current balance and the admin's wallet history for this rider
@@ -70,14 +55,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const rider = await ensureWalletBalance(params.id);
     if (!rider) return errorResponse('Rider not found', 404);
 
-    // Atomic update; a deduction only succeeds if the balance covers it
-    const filter: any = { _id: rider._id };
-    if (action === 'deduct') filter.walletBalance = { $gte: amount };
-    const updated = await Rider.findOneAndUpdate(
-      filter,
-      { $inc: { walletBalance: action === 'deduct' ? -amount : amount } },
-      { new: true }
-    ).lean() as any;
+    // A deduction only succeeds if the balance covers it
+    const updated = await incWalletBalance(rider._id, action === 'deduct' ? -amount : amount);
 
     if (!updated) {
       return errorResponse(
