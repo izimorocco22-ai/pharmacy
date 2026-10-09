@@ -91,6 +91,7 @@ export async function GET(request: NextRequest) {
               deliveryFee: q.deliveryFee,
               totalAmount: q.totalAmount,
               status: q.status,
+              paymentMethod: q.paymentMethod || null,
             };
           }
         } catch (_) {}

@@ -6,6 +6,8 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/input_field.dart';
 import '../../../providers/prescription_provider.dart';
 import '../../../services/api_service.dart';
+import '../../../services/pharmacy_service.dart';
+import '../../profile/payment_settings_screen.dart';
 
 class QuoteBuilderScreen extends StatefulWidget {
   final dynamic prescription;
@@ -36,13 +38,58 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
   double _deliveryFee = 0;
   bool _previewLoaded = false;
 
-  final TextEditingController _paymentDetailsController = TextEditingController();
+  // Payment methods saved in Payment Settings; the pharmacy ticks which ones
+  // this quote accepts
+  List<Map<String, String>> _savedMethods = [];
+  final Set<int> _selectedMethods = {};
+  bool _methodsLoaded = false;
+  // Payment details of the quote being edited, to pre-tick its methods
+  String _existingPaymentDetails = '';
 
   @override
   void initState() {
     super.initState();
     _loadExistingQuote();
     _loadPreview();
+    _loadPaymentMethods();
+  }
+
+  Future<void> _loadPaymentMethods() async {
+    final res = await PharmacyService.getPaymentSettings();
+    if (!mounted) return;
+    final methods = res.success && res.data is List
+        ? (res.data as List)
+            .map((m) => {
+                  'name': (m['name'] ?? '').toString(),
+                  'details': (m['details'] ?? '').toString(),
+                })
+            .toList()
+        : <Map<String, String>>[];
+    setState(() {
+      _savedMethods = methods;
+      _selectedMethods.clear();
+      // Editing: tick the methods the quote already had. New quote (or no
+      // match): tick them all.
+      for (var i = 0; i < methods.length; i++) {
+        if (_existingPaymentDetails.contains(_methodLine(methods[i]))) {
+          _selectedMethods.add(i);
+        }
+      }
+      if (_selectedMethods.isEmpty) {
+        _selectedMethods.addAll(List.generate(methods.length, (i) => i));
+      }
+      _methodsLoaded = true;
+    });
+  }
+
+  String _methodLine(Map<String, String> m) => '${m['name']}: ${m['details']}';
+
+  Future<void> _openPaymentSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PaymentSettingsScreen()),
+    );
+    if (mounted) _loadPaymentMethods();
   }
 
   Future<void> _loadPreview() async {
@@ -69,7 +116,6 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
     for (final c in _qtyControllers) c.dispose();
     for (final c in _priceControllers) c.dispose();
     _directTotalController.dispose();
-    _paymentDetailsController.dispose();
     super.dispose();
   }
 
@@ -80,6 +126,8 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
 
     if (existingQuote != null) {
       _isEdit = true;
+      final pm = existingQuote['paymentMethod'];
+      if (pm is Map) _existingPaymentDetails = pm['details']?.toString() ?? '';
       final items = existingQuote['items'] as List? ?? [];
 
       // A direct-total quote is stored as a single "Total" item; load it back
@@ -213,7 +261,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
           prescriptionId: prescriptionId,
           items: itemsToSend,
           deliveryFee: 0,
-          paymentMethod: {'name': '', 'details': _paymentDetailsController.text.trim()},
+          paymentMethod: _selectedPaymentMethod(),
         );
 
     setState(() => _isLoading = false);
@@ -369,7 +417,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
             PrimaryButton(
               text: _isEdit ? 'Update Quote' : 'Send Quote',
               icon: _isEdit ? Icons.update : Icons.send,
-              onPressed: (_isLoading || _paymentDetailsController.text.trim().isEmpty) ? null : _submit,
+              onPressed: (_isLoading || _selectedMethods.isEmpty) ? null : _submit,
               isLoading: _isLoading,
             ),
             const SizedBox(height: AppTheme.spacing16),
@@ -589,19 +637,98 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
     );
   }
 
+  // The ticked methods as the quote's single payment method: names joined,
+  // and one "Name: details" line each, which the patient app shows as is
+  Map<String, String> _selectedPaymentMethod() {
+    final chosen = (_selectedMethods.toList()..sort())
+        .map((i) => _savedMethods[i])
+        .toList();
+    return {
+      'name': chosen.map((m) => m['name']).join(', '),
+      'details': chosen.map(_methodLine).join('\n'),
+    };
+  }
+
   Widget _buildPaymentSelection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Payment Details',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        InputField(
-          controller: _paymentDetailsController,
-          label: 'Payment Details',
-          prefixIcon: Icons.info_outline,
-          onChanged: (_) => setState(() {}),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Payment Methods',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            if (_savedMethods.isNotEmpty)
+              TextButton.icon(
+                onPressed: _openPaymentSettings,
+                icon: const Icon(Icons.settings, size: 16),
+                label: const Text('Manage'),
+              ),
+          ],
         ),
+        if (_savedMethods.isNotEmpty)
+          Text('Select the methods the patient can pay with',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary)),
+        const SizedBox(height: 12),
+        if (!_methodsLoaded)
+          const Center(child: Padding(
+            padding: EdgeInsets.all(12),
+            child: CircularProgressIndicator(),
+          ))
+        else if (_savedMethods.isEmpty)
+          AppCard(
+            child: Padding(
+              padding: const EdgeInsets.all(AppTheme.spacing16),
+              child: Column(
+                children: [
+                  const Icon(Icons.account_balance_wallet_outlined,
+                      size: 36, color: AppTheme.textSecondary),
+                  const SizedBox(height: 8),
+                  const Text('No payment methods saved yet',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text('Add one in Payment Settings to send quotes.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _openPaymentSettings,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Payment Method'),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          AppCard(
+            child: Column(
+              children: [
+                for (var i = 0; i < _savedMethods.length; i++)
+                  CheckboxListTile(
+                    value: _selectedMethods.contains(i),
+                    onChanged: (checked) => setState(() {
+                      if (checked == true) {
+                        _selectedMethods.add(i);
+                      } else {
+                        _selectedMethods.remove(i);
+                      }
+                    }),
+                    activeColor: AppTheme.primary,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(_savedMethods[i]['name'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(_savedMethods[i]['details'] ?? ''),
+                  ),
+              ],
+            ),
+          ),
+        if (_methodsLoaded && _savedMethods.isNotEmpty && _selectedMethods.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text('Select at least one payment method',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.error)),
+          ),
       ],
     );
   }
