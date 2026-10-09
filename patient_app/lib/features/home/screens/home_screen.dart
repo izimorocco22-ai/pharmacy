@@ -303,6 +303,8 @@ class _HomeTab extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(o.orderNumber.isNotEmpty ? o.orderNumber : l10n.translate('quote_received'),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                                     Text(_statusLabel(o.status, l10n),
                                         style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
@@ -473,8 +475,13 @@ class _OrdersTab extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(o.orderNumber.isNotEmpty ? o.orderNumber : l10n.translate('quote_received'),
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              Expanded(
+                                child: Text(o.orderNumber.isNotEmpty ? o.orderNumber : l10n.translate('quote_received'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              ),
+                              const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(

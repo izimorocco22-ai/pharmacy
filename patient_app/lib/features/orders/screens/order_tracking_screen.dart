@@ -12,6 +12,7 @@ import '../../../services/api_service.dart';
 import '../../../core/localization/app_localizations.dart';
 import 'payment_proof_screen.dart';
 import 'rider_tracking_screen.dart';
+import '../../../core/widgets/payment_methods_list.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   final String orderId;
@@ -456,6 +457,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         titlePadding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -469,16 +471,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${l10n.translate('confirm_order_desc')} ${order.totalAmount.toStringAsFixed(2)} MRO?'),
-            if (paymentMethod != null) ...[
-              const SizedBox(height: 16),
-              _PaymentMethodCard(paymentMethod: paymentMethod),
-            ],
-          ],
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${l10n.translate('confirm_order_desc')} ${order.totalAmount.toStringAsFixed(2)} MRO?'),
+                if (paymentMethod != null) ...[
+                  const SizedBox(height: 16),
+                  PaymentMethodsList(paymentMethod: paymentMethod),
+                ],
+              ],
+            ),
+          ),
         ),
         actions: [
           SizedBox(
@@ -1276,70 +1283,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final ampm = date.hour >= 12 ? 'PM' : 'AM';
     final min = date.minute.toString().padLeft(2, '0');
     return '${date.day} ${months[date.month - 1]} ${date.year}, $hour:$min $ampm';
-  }
-}
-
-class _PaymentMethodCard extends StatefulWidget {
-  final Map<String, dynamic> paymentMethod;
-
-  const _PaymentMethodCard({required this.paymentMethod});
-
-  @override
-  State<_PaymentMethodCard> createState() => _PaymentMethodCardState();
-}
-
-class _PaymentMethodCardState extends State<_PaymentMethodCard> {
-  bool _copied = false;
-
-  void _copy() {
-    final details = widget.paymentMethod['details']?.toString() ?? '';
-    if (details.isEmpty) return;
-    Clipboard.setData(ClipboardData(text: details));
-    setState(() => _copied = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _copied = false);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final details = widget.paymentMethod['details']?.toString() ?? '';
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.payment, color: AppTheme.primary, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(details,
-                style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
-          ),
-          if (details.isNotEmpty)
-            GestureDetector(
-              onTap: _copy,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _copied
-                      ? AppTheme.success.withValues(alpha: 0.1)
-                      : AppTheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  _copied ? Icons.check : Icons.copy,
-                  size: 16,
-                  color: _copied ? AppTheme.success : AppTheme.primary,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
   }
 }
 

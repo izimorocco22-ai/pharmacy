@@ -8,6 +8,7 @@ import '../../../providers/order_provider.dart';
 import '../../../services/api_service.dart';
 import '../../../core/localization/app_localizations.dart';
 import 'payment_proof_screen.dart';
+import '../../../core/widgets/payment_methods_list.dart';
 
 class MyQuotesScreen extends StatefulWidget {
   const MyQuotesScreen({super.key});
@@ -77,7 +78,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
             Text('${l10n.translate('confirm_order_desc')} ${totalAmount.toStringAsFixed(2)} MRO?'),
             if (paymentMethod != null) ...[
               const SizedBox(height: 16),
-              _QuotePaymentCard(paymentMethod: paymentMethod),
+              PaymentMethodsList(paymentMethod: paymentMethod),
             ],
           ],
         ),
@@ -437,71 +438,6 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                   fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
                   fontSize: isTotal ? 15 : 13,
                   color: isTotal ? AppTheme.primary : AppTheme.textSecondary)),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Payment method card with copy button ─────────────────────────────────────
-
-class _QuotePaymentCard extends StatefulWidget {
-  final Map<String, dynamic> paymentMethod;
-  const _QuotePaymentCard({required this.paymentMethod});
-
-  @override
-  State<_QuotePaymentCard> createState() => _QuotePaymentCardState();
-}
-
-class _QuotePaymentCardState extends State<_QuotePaymentCard> {
-  bool _copied = false;
-
-  void _copy() {
-    final details = widget.paymentMethod['details']?.toString() ?? '';
-    if (details.isEmpty) return;
-    Clipboard.setData(ClipboardData(text: details));
-    setState(() => _copied = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _copied = false);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final details = widget.paymentMethod['details']?.toString() ?? '';
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.payment, color: AppTheme.primary, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(details,
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-          ),
-          if (details.isNotEmpty)
-            GestureDetector(
-              onTap: _copy,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _copied
-                      ? AppTheme.success.withValues(alpha: 0.1)
-                      : AppTheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  _copied ? Icons.check : Icons.copy,
-                  size: 16,
-                  color: _copied ? AppTheme.success : AppTheme.primary,
-                ),
-              ),
-            ),
         ],
       ),
     );
