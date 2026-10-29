@@ -202,9 +202,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: AppTheme.spacing16),
                 Center(
                   child: TextButton(
+                    // Carry the typed phone over so the user doesn't have to
+                    // enter it a second time on the register screen.
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => RegisterScreen(prefill: {
+                          'phone': _phoneController.text,
+                          'completePhone': _completePhone,
+                        }),
+                      ),
                     ),
                     child: Text(l10n.translate('no_account_register')),
                   ),

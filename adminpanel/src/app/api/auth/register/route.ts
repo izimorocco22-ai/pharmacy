@@ -17,8 +17,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { fullName, phone, password, role, ...roleData } = body;
 
-    // Validate required fields
-    if (!fullName || !phone || !password || !role) {
+    // Validate required fields. Password is optional: app users authenticate
+    // with phone + OTP only, so when none is sent we store a random one just
+    // to satisfy the schema (admin accounts still use passwords).
+    if (!fullName || !phone || !role) {
       return errorResponse('All fields are required');
     }
 
@@ -39,8 +41,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Hash password
-    const hashedPassword = await hashPassword(password);
+    // Hash password (random when the app registers OTP-only users)
+    const hashedPassword = await hashPassword(password || crypto.randomUUID());
 
     // Create user
     const user = await User.create({

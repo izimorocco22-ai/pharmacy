@@ -30,7 +30,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _pharmacyNameController = TextEditingController();
   final _licenseController = TextEditingController();
   final _addressController = TextEditingController();
@@ -51,7 +50,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final d = widget.prefillData;
     if (d != null) {
       _nameController.text = d['fullName'] ?? '';
-      // Phone is re-entered via the country-code field on re-registration.
+      // Phone typed on the login screen carries over so the user doesn't
+      // have to enter it twice.
+      if ((d['phone'] ?? '').toString().isNotEmpty) {
+        _phoneController.text = d['phone'];
+      }
+      if ((d['completePhone'] ?? '').toString().isNotEmpty) {
+        _completePhone = d['completePhone'];
+      }
       _pharmacyNameController.text = d['pharmacyName'] ?? '';
       _licenseController.text = d['licenseNumber'] ?? '';
       _addressController.text = d['address'] ?? '';
@@ -67,7 +73,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _passwordController.dispose();
     _pharmacyNameController.dispose();
     _licenseController.dispose();
     _addressController.dispose();
@@ -223,7 +228,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             registrationData: {
               'fullName': _nameController.text.trim(),
               'phone': _completePhone.trim(),
-              'password': _passwordController.text,
               'role': 'pharmacy',
               'pharmacyName': _pharmacyNameController.text.trim(),
               'licenseNumber': _licenseController.text.trim(),
@@ -297,14 +301,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   }
                   return null;
                 },
-              ),
-              const SizedBox(height: AppTheme.spacing12),
-              InputField(
-                controller: _passwordController,
-                label: l10n.translate('password'),
-                prefixIcon: Icons.lock,
-                isPassword: true,
-                validator: (v) => v!.length < 6 ? l10n.translate('min_6_chars') : null,
               ),
               const SizedBox(height: AppTheme.spacing24),
 

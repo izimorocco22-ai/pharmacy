@@ -7,6 +7,7 @@ import '../../../core/widgets/language_selector.dart';
 import '../../../core/widgets/phone_number_field.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -206,8 +207,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     TextButton(
+                      // Carry the typed phone over so the user doesn't have
+                      // to enter it a second time on the signup screen.
                       onPressed: () {
-                        Navigator.pushNamed(context, '/signup');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SignupScreen(prefill: {
+                              'phone': _phoneController.text,
+                              'completePhone': _completePhone,
+                            }),
+                          ),
+                        );
                       },
                       child: Text(l10n.translate('sign_up')),
                     ),

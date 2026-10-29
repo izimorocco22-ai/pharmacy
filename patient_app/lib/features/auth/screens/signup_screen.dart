@@ -9,7 +9,11 @@ import '../../../services/api_service.dart';
 import 'otp_verification_screen.dart';
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  /// Phone typed on the login screen, carried over so the user doesn't have
+  /// to enter it twice. Keys: 'phone' (local number), 'completePhone' (E.164).
+  final Map<String, String>? prefill;
+
+  const SignupScreen({super.key, this.prefill});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -19,17 +23,25 @@ class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
   String _completePhone = '';
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.prefill;
+    if (p != null) {
+      if ((p['phone'] ?? '').isNotEmpty) _phoneController.text = p['phone']!;
+      if ((p['completePhone'] ?? '').isNotEmpty) {
+        _completePhone = p['completePhone']!;
+      }
+    }
+  }
 
   @override
   void dispose() {
     _fullNameController.dispose();
     _phoneController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -63,7 +75,6 @@ class _SignupScreenState extends State<SignupScreen> {
               signupData: {
                 'fullName': _fullNameController.text.trim(),
                 'phone': _completePhone.trim(),
-                'password': _passwordController.text,
                 'role': 'patient',
               },
             ),
@@ -139,33 +150,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   validator: (phone) {
                     if (phone == null || phone.number.trim().isEmpty) {
                       return l10n.translate('enter_phone');
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: AppTheme.spacing16),
-                PasswordField(
-                  label: l10n.translate('password'),
-                  hint: l10n.translate('enter_password'),
-                  controller: _passwordController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return l10n.translate('enter_a_password');
-                    }
-                    if (value.length < 6) {
-                      return l10n.translate('password_min');
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: AppTheme.spacing16),
-                PasswordField(
-                  label: l10n.translate('confirm_password'),
-                  hint: l10n.translate('reenter_password'),
-                  controller: _confirmPasswordController,
-                  validator: (value) {
-                    if (value != _passwordController.text) {
-                      return l10n.translate('passwords_no_match');
                     }
                     return null;
                   },
