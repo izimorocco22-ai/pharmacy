@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
+import '../../../core/constants/map_tiles.dart';
 
 class RiderTrackingScreen extends StatefulWidget {
   final String orderId;
@@ -157,13 +158,7 @@ class _RiderTrackingScreenState extends State<RiderTrackingScreen>
               },
             ),
             children: [
-              TileLayer(
-                urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
-                userAgentPackageName: 'com.ordogo.patient_app',
-                maxZoom: 20,
-              ),
+              MapTiles.base(),
               MarkerLayer(
                 markers: [
                   if (_destination != null)
@@ -196,6 +191,8 @@ class _RiderTrackingScreenState extends State<RiderTrackingScreen>
                     ),
                 ],
               ),
+              // Required by the OpenStreetMap tile licence.
+              MapTiles.attribution(),
             ],
           ),
 

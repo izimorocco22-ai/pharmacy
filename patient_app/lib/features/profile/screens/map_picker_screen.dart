@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/theme/app_theme.dart';
+import '../../../core/constants/map_tiles.dart';
 
 class MapPickerScreen extends StatefulWidget {
   final double? initialLatitude;
@@ -162,13 +163,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               onPositionChanged: _onPositionChanged,
             ),
             children: [
-              TileLayer(
-                urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
-                userAgentPackageName: 'com.mediexpress.patient_app',
-                maxZoom: 20,
-              ),
+              MapTiles.base(),
+              // Required by the OpenStreetMap tile licence.
+              MapTiles.attribution(),
             ],
           ),
 

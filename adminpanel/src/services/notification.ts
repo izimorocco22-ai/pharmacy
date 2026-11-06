@@ -22,6 +22,71 @@ if (!admin.apps.length && process.env.FIREBASE_PROJECT_ID) {
   }
 }
 
+/** FCM rejects the whole message unless every data value is a string. */
+function stringifyData(data?: Record<string, any>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(data || {})) {
+    if (value !== undefined && value !== null) out[key] = String(value);
+  }
+  return out;
+}
+
+/**
+ * Builds the cross-platform FCM payload.
+ *
+ * The `apns` block is what makes iOS work. Without it APNs receives the
+ * message at the default priority (5), which lets the system delay or drop it
+ * when the device is locked or low on battery, and it arrives with no sound.
+ * `apns-push-type` is mandatory for APNs on iOS 13+ — messages sent without it
+ * are rejected outright.
+ */
+function buildPushPayload(
+  title: string,
+  body: string,
+  data?: Record<string, any>
+) {
+  return {
+    notification: { title, body },
+    data: stringifyData(data),
+    android: {
+      // High priority so the notification is delivered immediately even
+      // when the app is closed and the device is dozing.
+      priority: 'high' as const,
+      notification: {
+        channelId: 'ordogo_default',
+        clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+      },
+    },
+    apns: {
+      headers: {
+        'apns-priority': '10',
+        'apns-push-type': 'alert',
+      },
+      payload: {
+        aps: {
+          alert: { title, body },
+          sound: 'default',
+        },
+      },
+    },
+  };
+}
+
+/**
+ * A token is permanently dead once the app is uninstalled or the token is
+ * rotated. Leaving it on the user keeps every later send failing, so drop it.
+ */
+async function pruneTokenIfDead(userId: string, error: any) {
+  const code = error?.errorInfo?.code || error?.code;
+  if (
+    code === 'messaging/registration-token-not-registered' ||
+    code === 'messaging/invalid-registration-token' ||
+    code === 'messaging/invalid-argument'
+  ) {
+    await User.findByIdAndUpdate(userId, { $unset: { fcmToken: '' } });
+  }
+}
+
 export async function sendNotificationToUser(
   userId: string,
   title: string,
@@ -50,26 +115,15 @@ export async function sendNotificationToUser(
       return;
     }
 
-    // Send FCM notification. FCM requires all data values to be strings.
-    const stringData: Record<string, string> = {};
-    for (const [key, value] of Object.entries(data || {})) {
-      if (value !== undefined && value !== null) stringData[key] = String(value);
+    try {
+      await admin.messaging().send({
+        token: user.fcmToken,
+        ...buildPushPayload(title, body, data),
+      });
+    } catch (sendError) {
+      console.error('FCM send error:', sendError);
+      await pruneTokenIfDead(userId, sendError);
     }
-
-    await admin.messaging().send({
-      token: user.fcmToken,
-      notification: { title, body },
-      data: stringData,
-      android: {
-        // High priority so the notification is delivered immediately even
-        // when the app is closed and the device is dozing.
-        priority: 'high',
-        notification: {
-          channelId: 'ordogo_default',
-          clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-        },
-      },
-    });
   } catch (error) {
     console.error('Send notification error:', error);
   }
@@ -133,8 +187,6 @@ export async function sendNotificationToPharmacies(
   data?: Record<string, any>
 ) {
   try {
-    const users = await User.find({ _id: { $in: userIds }, fcmToken: { $exists: true } });
-
     // Save notifications
     const notifications = userIds.map((userId) => ({
       userId,
@@ -145,15 +197,34 @@ export async function sendNotificationToPharmacies(
     }));
     await Notification.insertMany(notifications);
 
-    // Send FCM notifications
-    const tokens = users.map((u) => u.fcmToken).filter(Boolean) as string[];
-    if (tokens.length > 0) {
-      await admin.messaging().sendEachForMulticast({
-        tokens,
-        notification: { title, body },
-        data: data || {},
-      });
+    // Only send FCM notifications if Firebase is initialized — calling
+    // admin.messaging() without credentials throws and would lose the batch.
+    if (!firebaseInitialized) {
+      console.log('Firebase not initialized, skipping push notifications');
+      return;
     }
+
+    const users = await User.find({
+      _id: { $in: userIds },
+      fcmToken: { $exists: true, $ne: null },
+    });
+
+    const recipients = users
+      .filter((u) => !!u.fcmToken)
+      .map((u) => ({ userId: u._id.toString(), token: u.fcmToken as string }));
+    if (recipients.length === 0) return;
+
+    const response = await admin.messaging().sendEachForMulticast({
+      tokens: recipients.map((r) => r.token),
+      ...buildPushPayload(title, body, data),
+    });
+
+    // Drop tokens APNs/FCM reported as dead so they stop failing forever.
+    await Promise.all(
+      response.responses.map((r, i) =>
+        r.success ? null : pruneTokenIfDead(recipients[i].userId, r.error)
+      )
+    );
   } catch (error) {
     console.error('Send notifications error:', error);
   }

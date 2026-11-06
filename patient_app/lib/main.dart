@@ -38,12 +38,17 @@ void main() async {
   await dotenv.load(fileName: '.env');
 
   // Firebase push notifications. Guarded so the app still runs if Firebase
-  // isn't configured yet (missing google-services.json).
+  // isn't configured yet, but the failure is logged: on iOS a missing
+  // GoogleService-Info.plist fails here, and swallowing it silently is why a
+  // build can look fine while never receiving a single push.
   try {
     await Firebase.initializeApp();
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await PushNotificationService.initialize();
-  } catch (_) {}
+  } catch (e, s) {
+    debugPrint('[push] Firebase init failed — push disabled: $e');
+    debugPrintStack(stackTrace: s);
+  }
 
   runApp(const MyApp());
 }

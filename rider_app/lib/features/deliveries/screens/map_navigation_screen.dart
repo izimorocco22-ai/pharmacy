@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
+import '../../../core/constants/map_tiles.dart';
 
 class MapNavigationScreen extends StatefulWidget {
   final String title;
@@ -331,13 +332,7 @@ class _MapNavigationScreenState extends State<MapNavigationScreen>
               },
             ),
             children: [
-              TileLayer(
-                urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
-                userAgentPackageName: 'com.ordogo.rider_app',
-                maxZoom: 20,
-              ),
+              MapTiles.base(),
               if (_routePoints.isNotEmpty)
                 PolylineLayer(
                   polylines: [
@@ -381,6 +376,8 @@ class _MapNavigationScreenState extends State<MapNavigationScreen>
                     ),
                 ],
               ),
+              // Required by the OpenStreetMap tile licence.
+              MapTiles.attribution(),
             ],
           ),
 
