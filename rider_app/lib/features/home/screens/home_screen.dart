@@ -338,9 +338,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 20),
                   ],
 
-                  // Available orders — shown as soon as the account is
-                  // approved; the availability toggle is not required.
-                  if (_availableOrders.isEmpty)
+                  // Available orders are only delivered while the rider is
+                  // online — the backend returns nothing to an offline rider.
+                  // When offline, prompt them to go online rather than showing
+                  // a misleading "no jobs" state.
+                  if (!_isOnline)
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                        border: Border.all(color: AppTheme.divider),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.wifi_off_rounded,
+                              size: 48, color: AppTheme.textSecondary.withOpacity(0.4)),
+                          const SizedBox(height: 8),
+                          Text(l10n.translate('you_are_offline'),
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                          const SizedBox(height: 4),
+                          Text(l10n.translate('toggle_availability_desc'),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                        ],
+                      ),
+                    )
+                  else if (_availableOrders.isEmpty)
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
