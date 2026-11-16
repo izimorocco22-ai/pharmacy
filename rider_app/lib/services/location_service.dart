@@ -33,22 +33,29 @@ class LocationService {
     }
   }
 
-  /// Send current location to backend and mark rider online.
-  static Future<void> updateLocation({bool isOnline = true}) async {
+  /// Send the current location to the backend.
+  ///
+  /// [isOnline] is intentionally nullable and defaults to null: a plain
+  /// location ping must NOT change the rider's online/offline status. Only the
+  /// explicit availability toggle passes a value here. The backend leaves
+  /// isOnline unchanged when it is not sent.
+  static Future<void> updateLocation({bool? isOnline}) async {
     final pos = await getCurrentPosition();
     if (pos == null) return;
-    await ApiService.put('/rider/update-location', {
+    final body = <String, dynamic>{
       'lat': pos.latitude,
       'lng': pos.longitude,
-      'isOnline': isOnline,
-    });
+    };
+    if (isOnline != null) body['isOnline'] = isOnline;
+    await ApiService.put('/rider/update-location', body);
   }
 
-  /// Start periodic location updates every 30 seconds.
+  /// Start periodic location updates every 30 seconds. These only refresh the
+  /// rider's coordinates — they never change the online/offline status.
   static void startTracking() {
     if (_isTracking) return;
     _isTracking = true;
-    updateLocation(); // send immediately
+    updateLocation(); // send immediately (location only)
     _timer = Timer.periodic(const Duration(seconds: 30), (_) => updateLocation());
   }
 
@@ -60,12 +67,11 @@ class LocationService {
     _isTracking = false;
   }
 
-  /// Mark rider offline on backend.
+  /// Mark the rider offline on the backend. Sends only the status so the
+  /// last known location is preserved.
   static Future<void> markOffline() async {
     stopTracking();
     await ApiService.put('/rider/update-location', {
-      'lat': 0,
-      'lng': 0,
       'isOnline': false,
     });
   }

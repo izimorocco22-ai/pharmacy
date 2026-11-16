@@ -15,20 +15,33 @@ export async function PUT(request: NextRequest) {
 
     const { lat, lng, isOnline } = await request.json();
 
-    if (lat === undefined || lng === undefined) {
-      return errorResponse('lat and lng are required');
+    // Either a location update, an online-status update, or both. A location
+    // ping must not be required to carry a status, and a status toggle must
+    // not be required to carry (and overwrite) the location.
+    if (lat === undefined && lng === undefined && isOnline === undefined) {
+      return errorResponse('Nothing to update');
     }
 
-    const update: any = {
-      currentLocation: {
+    const update: any = {};
+
+    // Only touch the stored location when real coordinates are provided.
+    // Ignore 0,0 which older clients sent when going offline — that would
+    // wipe the last known location.
+    if (lat !== undefined && lng !== undefined && !(lat === 0 && lng === 0)) {
+      update.currentLocation = {
         type: 'Point',
         coordinates: [lng, lat], // GeoJSON: [longitude, latitude]
-      },
-    };
+      };
+    }
 
+    // Only change online status when it is explicitly sent.
     if (isOnline !== undefined) {
       update.isOnline = isOnline;
       update.isAvailable = isOnline;
+    }
+
+    if (Object.keys(update).length === 0) {
+      return successResponse({}, 'Nothing to update');
     }
 
     await Rider.findOneAndUpdate(
