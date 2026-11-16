@@ -112,8 +112,16 @@ class _HomeTab extends StatelessWidget {
     return Consumer<OrderProvider>(
       builder: (context, orderProvider, _) {
         final orders = orderProvider.orders;
-        final active = orders.where((o) => !['delivered', 'cancelled', 'expired', 'rejected'].contains(o.status)).length;
-        final completed = orders.where((o) => o.status == 'delivered').length;
+        // The history feed mixes three kinds of items: prescriptions waiting for
+        // quotes ('searching'), pending quotes awaiting confirmation
+        // ('quote_pending'), and real placed orders. "Active Orders" must count
+        // only actual orders — not the quote/prescription stages (those belong
+        // under "My Quotes"), otherwise a single quote is counted twice.
+        const activeOrderStatuses = [
+          'pending', 'payment_verification', 'confirmed', 'preparing',
+          'ready', 'assigned', 'picked_up', 'in_transit',
+        ];
+        final active = orders.where((o) => activeOrderStatuses.contains(o.status)).length;
         final pending = orders.where((o) => o.status == 'quote_pending').length;
         final recent = orders.take(3).toList();
 
@@ -159,23 +167,6 @@ class _HomeTab extends StatelessWidget {
                             ],
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                        ),
-                        child: Row(
-                          children: [
-                            _headerStat(l10n.translate('active_orders'), '$active', Icons.local_shipping_outlined),
-                            Container(width: 1, height: 40, color: Colors.white30),
-                            _headerStat(l10n.translate('order_delivered'), '$completed', Icons.check_circle_outline),
-                            Container(width: 1, height: 40, color: Colors.white30),
-                            _headerStat(l10n.translate('my_quotes'), '$pending', Icons.receipt_outlined),
-                          ],
-                        ),
                       ),
                     ],
                   ),
@@ -339,19 +330,6 @@ class _HomeTab extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _headerStat(String label, String value, IconData icon) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white70, size: 18),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10)),
-        ],
-      ),
     );
   }
 
