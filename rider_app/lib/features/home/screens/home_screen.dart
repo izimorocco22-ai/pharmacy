@@ -32,9 +32,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     PushNotificationService.registerToken();
+    // Every fresh app session starts OFFLINE. The rider must explicitly flip
+    // the availability toggle to go online — opening the app never does it.
+    // This also syncs the backend in case a previous session left them online.
+    LocationService.markOffline();
     _fetchData();
-    // Orders are visible whenever the account is approved — the availability
-    // toggle is not required — so always keep polling for new orders.
     _pollTimer = Timer.periodic(
         const Duration(seconds: 10), (_) => _fetchAvailableOrders());
   }
@@ -47,16 +49,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchData() async {
     setState(() => _loading = true);
-    // Check rider's current online status from backend
-    final profileRes = await ApiService.get('/rider/profile');
-    if (!mounted) return;
-    if (profileRes.success && profileRes.data != null) {
-      final rider = profileRes.data['rider'];
-      final backendOnline = rider?['isOnline'] == true;
-      if (backendOnline != _isOnline) {
-        setState(() => _isOnline = backendOnline);
-      }
-    }
+    // Note: online/offline status is driven ONLY by the availability toggle.
+    // We intentionally do NOT read it back from the backend here, so a data
+    // refresh (or pull-to-refresh) never flips the toggle on its own.
     final res = await ApiService.get('/rider/orders');
     if (!mounted) return;
     if (res.success && res.data != null) {

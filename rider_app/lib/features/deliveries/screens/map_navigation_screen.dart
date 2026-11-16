@@ -161,11 +161,11 @@ class _MapNavigationScreenState extends State<MapNavigationScreen>
         // Cut off the route the rider has already covered (~every 8m fix).
         _trimTravelledRoute(newPos);
 
-        // Update backend
+        // Update backend with location only — never change online status here.
+        // Online/offline is driven solely by the availability toggle.
         ApiService.put('/rider/update-location', {
           'lat': pos.latitude,
           'lng': pos.longitude,
-          'isOnline': true,
         });
 
         // Only refresh the route after meaningful movement (~60m) so route
