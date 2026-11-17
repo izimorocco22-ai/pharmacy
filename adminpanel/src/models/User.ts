@@ -10,7 +10,10 @@ export interface IUser extends Document {
   isActive: boolean;
   profileImage?: string;
   profileImagePublicId?: string;
+  /** @deprecated single-device field, kept so older app builds keep working */
   fcmToken?: string;
+  /** One FCM token per signed-in device (phone, tablet, iOS + Android). */
+  fcmTokens?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +55,10 @@ const UserSchema = new Schema<IUser>(
     },
     fcmToken: {
       type: String,
+    },
+    fcmTokens: {
+      type: [String],
+      default: [],
     },
     profileImage: {
       type: String,
