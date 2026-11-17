@@ -74,17 +74,31 @@ function buildPushPayload(
 
 /**
  * A token is permanently dead once the app is uninstalled or the token is
- * rotated. Leaving it on the user keeps every later send failing, so drop it.
+ * rotated. Leaving it on the user keeps every later send failing.
  */
-async function pruneTokenIfDead(userId: string, error: any) {
+function isDeadTokenError(error: any): boolean {
   const code = error?.errorInfo?.code || error?.code;
-  if (
+  return (
     code === 'messaging/registration-token-not-registered' ||
     code === 'messaging/invalid-registration-token' ||
     code === 'messaging/invalid-argument'
-  ) {
-    await User.findByIdAndUpdate(userId, { $unset: { fcmToken: '' } });
-  }
+  );
+}
+
+/** Every device token this user is signed in on, newest field first. */
+function tokensOf(user: { fcmTokens?: string[]; fcmToken?: string }): string[] {
+  const all = [...(user.fcmTokens || []), ...(user.fcmToken ? [user.fcmToken] : [])];
+  return Array.from(new Set(all.filter(Boolean)));
+}
+
+/** Removes dead tokens from both the array and the legacy single field. */
+async function pruneTokens(userId: string, dead: string[]) {
+  if (dead.length === 0) return;
+  await User.findByIdAndUpdate(userId, { $pull: { fcmTokens: { $in: dead } } });
+  await User.updateOne(
+    { _id: userId, fcmToken: { $in: dead } },
+    { $unset: { fcmToken: '' } }
+  );
 }
 
 export async function sendNotificationToUser(
@@ -109,20 +123,29 @@ export async function sendNotificationToUser(
       return;
     }
 
-    // Get user FCM token
+    // Send to every device this user is signed in on — e.g. an iPhone and an
+    // Android phone on the same account must both get the notification.
     const user = await User.findById(userId);
-    if (!user || !user.fcmToken) {
-      return;
-    }
+    if (!user) return;
+
+    const tokens = tokensOf(user);
+    if (tokens.length === 0) return;
 
     try {
-      await admin.messaging().send({
-        token: user.fcmToken,
+      const response = await admin.messaging().sendEachForMulticast({
+        tokens,
         ...buildPushPayload(title, body, data),
       });
+
+      const dead: string[] = [];
+      response.responses.forEach((r, i) => {
+        if (r.success) return;
+        console.error(`FCM send error for token ${i}:`, r.error);
+        if (isDeadTokenError(r.error)) dead.push(tokens[i]);
+      });
+      await pruneTokens(userId, dead);
     } catch (sendError) {
       console.error('FCM send error:', sendError);
-      await pruneTokenIfDead(userId, sendError);
     }
   } catch (error) {
     console.error('Send notification error:', error);
@@ -204,14 +227,12 @@ export async function sendNotificationToPharmacies(
       return;
     }
 
-    const users = await User.find({
-      _id: { $in: userIds },
-      fcmToken: { $exists: true, $ne: null },
-    });
+    const users = await User.find({ _id: { $in: userIds } });
 
-    const recipients = users
-      .filter((u) => !!u.fcmToken)
-      .map((u) => ({ userId: u._id.toString(), token: u.fcmToken as string }));
+    // One entry per device, so a user signed in on two phones gets both.
+    const recipients = users.flatMap((u) =>
+      tokensOf(u).map((token) => ({ userId: u._id.toString(), token }))
+    );
     if (recipients.length === 0) return;
 
     const response = await admin.messaging().sendEachForMulticast({
@@ -220,10 +241,16 @@ export async function sendNotificationToPharmacies(
     });
 
     // Drop tokens APNs/FCM reported as dead so they stop failing forever.
+    const deadByUser = new Map<string, string[]>();
+    response.responses.forEach((r, i) => {
+      if (r.success) return;
+      console.error(`FCM multicast error for ${recipients[i].token}:`, r.error);
+      if (!isDeadTokenError(r.error)) return;
+      const { userId, token } = recipients[i];
+      deadByUser.set(userId, [...(deadByUser.get(userId) || []), token]);
+    });
     await Promise.all(
-      response.responses.map((r, i) =>
-        r.success ? null : pruneTokenIfDead(recipients[i].userId, r.error)
-      )
+      [...deadByUser.entries()].map(([userId, dead]) => pruneTokens(userId, dead))
     );
   } catch (error) {
     console.error('Send notifications error:', error);

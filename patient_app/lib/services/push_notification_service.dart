@@ -33,6 +33,11 @@ class PushNotificationService {
   static bool _initialized = false;
   static bool _tokenListenerAttached = false;
 
+  /// The token this device last registered. Remembered so logout can remove
+  /// just this device server-side without calling getToken() again (which can
+  /// hang on iOS when APNs is not ready).
+  static String? _currentToken;
+
   /// Sets up local notifications + FCM listeners. Call once at startup after
   /// Firebase has been initialized.
   static Future<void> initialize() async {
@@ -156,6 +161,7 @@ class PushNotificationService {
       _tokenListenerAttached = true;
       FirebaseMessaging.instance.onTokenRefresh.listen((t) async {
         try {
+          _currentToken = t;
           await ApiService.post('/notifications/token', {'fcmToken': t});
         } catch (e) {
           debugPrint('[push] token refresh upload failed: $e');
@@ -180,6 +186,7 @@ class PushNotificationService {
         debugPrint('[push] FCM returned a null token');
         return;
       }
+      _currentToken = token;
       await ApiService.post('/notifications/token', {'fcmToken': token});
       debugPrint('[push] FCM token registered');
     } catch (e) {
@@ -192,8 +199,14 @@ class PushNotificationService {
     // Each step is time-limited so a slow network or a stuck FCM/APNs state
     // can never hang a caller (e.g. logout).
     try {
-      await ApiService.delete('/notifications/token')
-          .timeout(const Duration(seconds: 5));
+      // Pass this device's token so only this device is unsubscribed —
+      // otherwise logging out on one phone would kill push on every other
+      // device signed into the same account.
+      final path = _currentToken == null
+          ? '/notifications/token'
+          : '/notifications/token?token=${Uri.encodeQueryComponent(_currentToken!)}';
+      await ApiService.delete(path).timeout(const Duration(seconds: 5));
+      _currentToken = null;
     } catch (e) {
       debugPrint('[push] token delete on backend failed: $e');
     }
