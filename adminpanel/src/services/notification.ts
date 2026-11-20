@@ -54,7 +54,14 @@ function buildPushPayload(
       priority: 'high' as const,
       notification: {
         channelId: 'ordogo_default',
-        clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+        // Deliberately NO clickAction. When click_action is set, the FCM SDK
+        // builds the tap PendingIntent as new Intent(click_action) instead of
+        // the launcher intent — and it never checks that anything resolves it.
+        // Since no app declares a matching intent filter, every notification
+        // FCM displayed itself (app backgrounded or closed) was shown but did
+        // nothing when tapped. Leaving it unset makes FCM fall back to
+        // getLaunchIntentForPackage(), which opens the app and lets
+        // getInitialMessage()/onMessageOpenedApp() route the tap.
       },
     },
     apns: {

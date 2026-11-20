@@ -28,6 +28,16 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Taps on notifications that FCM itself displayed (app in the
+                 background or closed). The backend stamps them with
+                 click_action=FLUTTER_NOTIFICATION_CLICK; without a filter that
+                 matches it, the FCM SDK builds a PendingIntent for an intent
+                 no activity resolves and the notification becomes dead to the
+                 touch. Harmless once the backend stops sending click_action. -->
+            <intent-filter>
+                <action android:name="FLUTTER_NOTIFICATION_CLICK"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

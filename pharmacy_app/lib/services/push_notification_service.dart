@@ -14,11 +14,49 @@ import 'api_service.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
+/// Tracks the route currently on top so a notification tap that *launched* the
+/// app can wait for the splash screen to hand over to the real first screen.
+/// The splash screens finish with `pushReplacementNamed`, which replaces the
+/// top-most route — so anything pushed while the splash is still showing is
+/// silently thrown away.
+class _TopRouteObserver extends NavigatorObserver {
+  Route<dynamic>? _top;
+
+  /// Name of the top-most route, or null when it was pushed without one.
+  String? get topRouteName => _top?.settings.name;
+
+  /// True once the app has routed away from the splash (`/`).
+  bool get isPastSplash => _top != null && _top!.settings.name != '/';
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _top = route;
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      _top = newRoute;
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _top = previousRoute;
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (identical(route, _top)) _top = previousRoute;
+  }
+}
+
 class PushNotificationService {
   /// Attached to MaterialApp.navigatorKey so taps on notifications can
   /// navigate even when no BuildContext is at hand.
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
+
+  static final _TopRouteObserver _routeObserver = _TopRouteObserver();
+
+  /// Attach to MaterialApp.navigatorObservers so a tap that launched the app
+  /// can tell when the splash screen has finished routing.
+  static NavigatorObserver get routeObserver => _routeObserver;
 
   static final FlutterLocalNotificationsPlugin _local =
       FlutterLocalNotificationsPlugin();
@@ -62,7 +100,7 @@ class PushNotificationService {
     await _local.initialize(
       settings: initSettings,
       // Tap on a notification shown while the app was in the foreground.
-      onDidReceiveNotificationResponse: (_) => _openNotifications(),
+      onDidReceiveNotificationResponse: (_) => _openNotificationsWhenReady(),
     );
 
     await _local
@@ -116,14 +154,35 @@ class PushNotificationService {
     });
 
     // Tap on the system notification while the app was in the BACKGROUND.
-    FirebaseMessaging.onMessageOpenedApp.listen((_) => _openNotifications());
+    FirebaseMessaging.onMessageOpenedApp
+        .listen((_) => _openNotificationsWhenReady());
 
     // Tap on the system notification while the app was TERMINATED: the tap is
     // what launched the app, so navigate once the splash screen has routed.
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
-      Future.delayed(const Duration(seconds: 4), _openNotifications);
+      _openNotificationsWhenReady();
     }
+  }
+
+  /// Opens the notifications screen as soon as it can survive being pushed.
+  ///
+  /// A fixed delay cannot work here: the splash screen finishes with
+  /// `pushReplacementNamed`, which discards whatever sits on top of it, and how
+  /// long it takes depends on auth checks and network calls that vary per app
+  /// and per device. So wait for the route to actually change instead of
+  /// guessing, and give up rather than navigate somewhere surprising.
+  static Future<void> _openNotificationsWhenReady() async {
+    for (var attempt = 0; attempt < 120; attempt++) {
+      if (navigatorKey.currentState != null && _routeObserver.isPastSplash) {
+        // A signed-out user lands on /login: the notifications list would only
+        // 401 there, so leave the login form alone.
+        if (_routeObserver.topRouteName != '/login') _openNotifications();
+        return;
+      }
+      await Future.delayed(const Duration(milliseconds: 250));
+    }
+    debugPrint('[push] gave up waiting for the navigator to leave the splash');
   }
 
   static void _openNotifications() {
