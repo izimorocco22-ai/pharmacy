@@ -99,8 +99,12 @@ class PushNotificationService {
     );
     await _local.initialize(
       settings: initSettings,
-      // Tap on a notification shown while the app was in the foreground.
-      onDidReceiveNotificationResponse: (_) => _openNotificationsWhenReady(),
+      // Tap on a notification shown while the app was in the foreground. The
+      // local notification carries the FCM data map as its JSON payload, so we
+      // decode it and deep-link to the relevant screen.
+      onDidReceiveNotificationResponse: (response) {
+        _handleTapWhenReady(_decodePayload(response.payload));
+      },
     );
 
     await _local
@@ -155,13 +159,13 @@ class PushNotificationService {
 
     // Tap on the system notification while the app was in the BACKGROUND.
     FirebaseMessaging.onMessageOpenedApp
-        .listen((_) => _openNotificationsWhenReady());
+        .listen((message) => _handleTapWhenReady(message.data));
 
     // Tap on the system notification while the app was TERMINATED: the tap is
     // what launched the app, so navigate once the splash screen has routed.
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
-      _openNotificationsWhenReady();
+      _handleTapWhenReady(initialMessage.data);
     }
   }
 
@@ -172,17 +176,61 @@ class PushNotificationService {
   /// long it takes depends on auth checks and network calls that vary per app
   /// and per device. So wait for the route to actually change instead of
   /// guessing, and give up rather than navigate somewhere surprising.
-  static Future<void> _openNotificationsWhenReady() async {
+  static Future<void> _handleTapWhenReady(Map<String, dynamic> data) async {
     for (var attempt = 0; attempt < 120; attempt++) {
       if (navigatorKey.currentState != null && _routeObserver.isPastSplash) {
-        // A signed-out user lands on /login: the notifications list would only
-        // 401 there, so leave the login form alone.
-        if (_routeObserver.topRouteName != '/login') _openNotifications();
+        // A signed-out user lands on /login: deep targets would only 401 there,
+        // so leave the login form alone.
+        if (_routeObserver.topRouteName != '/login') _navigateForData(data);
         return;
       }
       await Future.delayed(const Duration(milliseconds: 250));
     }
     debugPrint('[push] gave up waiting for the navigator to leave the splash');
+  }
+
+  /// Convert the local-notification JSON payload back into the FCM data map.
+  static Map<String, dynamic> _decodePayload(String? payload) {
+    if (payload == null || payload.isEmpty) return {};
+    try {
+      return Map<String, dynamic>.from(jsonDecode(payload) as Map);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Deep-links a notification tap to the most relevant screen using its
+  /// payload. Patient notifications carry `orderId` (order updates) or `quoteId`
+  /// (new/expired quotes); fall back to the notifications list otherwise.
+  /// Pure routing decision for a notification payload. Returns one of:
+  /// 'order-tracking' (data has orderId), 'my-quotes' (quote/prescription),
+  /// 'notifications' (fallback). Exposed for unit testing.
+  @visibleForTesting
+  static String deepLinkDecision(Map<String, dynamic> data) {
+    final orderId = data['orderId']?.toString();
+    final quoteId = data['quoteId']?.toString();
+    final type = (data['type'] ?? '').toString();
+    if (orderId != null && orderId.isNotEmpty) return 'order-tracking';
+    if (quoteId != null && quoteId.isNotEmpty) return 'my-quotes';
+    if (type.startsWith('prescription') || type.startsWith('quote')) {
+      return 'my-quotes';
+    }
+    return 'notifications';
+  }
+
+  static void _navigateForData(Map<String, dynamic> data) {
+    final nav = navigatorKey.currentState;
+    if (nav == null) return;
+    switch (deepLinkDecision(data)) {
+      case 'order-tracking':
+        nav.pushNamed('/order-tracking', arguments: data['orderId'].toString());
+        break;
+      case 'my-quotes':
+        nav.pushNamed('/my-quotes');
+        break;
+      default:
+        _openNotifications();
+    }
   }
 
   static void _openNotifications() {

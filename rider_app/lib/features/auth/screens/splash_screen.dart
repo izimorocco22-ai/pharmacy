@@ -4,6 +4,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../services/api_service.dart';
+import '../../../services/active_delivery_store.dart';
 import 'pending_approval_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -39,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen> {
       final status = res.data?['approvalStatus'];
       final note = res.data?['adminNote'] ?? '';
       if (status == 'approved') {
-        Navigator.pushReplacementNamed(context, '/home');
+        await _goHomeOrResumeDelivery();
       } else if (status == 'rejected') {
         Navigator.pushReplacementNamed(context, '/rejected', arguments: note);
       } else {
@@ -51,6 +52,47 @@ class _SplashScreenState extends State<SplashScreen> {
     } else {
       Navigator.pushReplacementNamed(context, '/home');
     }
+  }
+
+  /// If the rider has a delivery in progress (persisted locally) and it is
+  /// still active on the backend, resume straight into the navigation screen.
+  /// Otherwise go to home. This stops an in-progress delivery from vanishing
+  /// when the app is closed and reopened.
+  Future<void> _goHomeOrResumeDelivery() async {
+    final saved = await ActiveDeliveryStore.loadDelivery();
+    final orderId = saved?['orderId']?.toString();
+
+    if (saved != null && orderId != null && orderId.isNotEmpty) {
+      final stillActive = await _isDeliveryStillActive(orderId);
+      if (!mounted) return;
+      if (stillActive) {
+        final nav = Navigator.of(context);
+        nav.pushReplacementNamed('/home');
+        nav.pushNamed('/navigation', arguments: saved);
+        return;
+      }
+      // Delivered/cancelled while away — drop the stale record.
+      await ActiveDeliveryStore.clear();
+    }
+
+    if (mounted) Navigator.pushReplacementNamed(context, '/home');
+  }
+
+  /// Confirms the saved delivery is still assigned/picked_up/in_transit on the
+  /// backend. On a network error we keep the delivery (return true) so a
+  /// transient failure never loses an active job.
+  Future<bool> _isDeliveryStillActive(String orderId) async {
+    final res = await ApiService.get('/rider/orders');
+    if (!res.success || res.data == null) return true;
+    final orders = (res.data['orders'] as List? ?? []);
+    for (final o in orders) {
+      final m = Map<String, dynamic>.from(o as Map);
+      if (m['id']?.toString() == orderId &&
+          const ['assigned', 'picked_up', 'in_transit'].contains(m['status'])) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @override

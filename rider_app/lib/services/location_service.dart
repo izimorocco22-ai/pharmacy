@@ -76,5 +76,15 @@ class LocationService {
     });
   }
 
+  /// Mark the rider online on the backend directly, without waiting for a
+  /// location fix. Used for the first-launch auto-online so the status always
+  /// persists even before/without location permission. Location then starts
+  /// flowing separately via [startTracking].
+  static Future<void> markOnline() async {
+    await ApiService.put('/rider/update-location', {
+      'isOnline': true,
+    });
+  }
+
   static bool get isTracking => _isTracking;
 }

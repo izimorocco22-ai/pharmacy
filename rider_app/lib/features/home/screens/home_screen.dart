@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
@@ -32,13 +33,88 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     PushNotificationService.registerToken();
-    // Every fresh app session starts OFFLINE. The rider must explicitly flip
-    // the availability toggle to go online — opening the app never does it.
-    // This also syncs the backend in case a previous session left them online.
-    LocationService.markOffline();
+    // The online/offline status is PERSISTENT: it is the rider's own choice and
+    // must survive the app being closed, backgrounded, or killed. We restore it
+    // from the backend on launch instead of forcing offline — so it only ever
+    // changes when the rider manually taps the availability toggle.
+    _hydrateOnlineStatus();
     _fetchData();
     _pollTimer = Timer.periodic(
         const Duration(seconds: 10), (_) => _fetchAvailableOrders());
+  }
+
+  /// First launch on this device: default the rider ONLINE and tell them.
+  /// Every launch after that: restore their saved choice from the backend, so
+  /// a rider who turned themselves off stays off, and one who is on stays on.
+  /// The status only ever changes via the availability toggle thereafter.
+  Future<void> _hydrateOnlineStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bootstrapped = prefs.getBool('availability_bootstrapped') ?? false;
+
+    if (!bootstrapped) {
+      // Mark it first so this never repeats, then go online on the backend
+      // (works even before location permission), start tracking, and notify.
+      await prefs.setBool('availability_bootstrapped', true);
+      await LocationService.markOnline();
+      LocationService.startTracking();
+      if (!mounted) return;
+      setState(() => _isOnline = true);
+      await _fetchAvailableOrders();
+      _showOnlinePopup();
+      return;
+    }
+
+    final res = await ApiService.get('/rider/profile');
+    if (!mounted) return;
+    if (res.success && res.data != null) {
+      final rider = res.data['rider'];
+      final online = (rider is Map && rider['isOnline'] == true);
+      setState(() => _isOnline = online);
+      if (online) LocationService.startTracking();
+    }
+  }
+
+  /// One-time "You are online" popup shown on the very first launch.
+  void _showOnlinePopup() {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusLarge)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.wifi_tethering,
+                  color: AppTheme.primary, size: 28),
+            ),
+            const SizedBox(height: 16),
+            Text(l10n.translate('online'),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const SizedBox(height: 8),
+            Text(l10n.translate('you_are_online_now'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: AppTheme.textSecondary, fontSize: 13)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.translate('got_it')),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

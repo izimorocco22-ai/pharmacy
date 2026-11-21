@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../services/api_service.dart';
 import '../../../services/location_service.dart';
+import '../../../services/active_delivery_store.dart';
 import 'map_navigation_screen.dart';
 
 class NavigationScreen extends StatefulWidget {
@@ -24,10 +25,28 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   void initState() {
     super.initState();
+    _initPersistence();
     _locationTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       LocationService.updateLocation();
     });
     LocationService.updateLocation();
+  }
+
+  /// Persist this delivery so it survives the app being closed/killed. If this
+  /// is the same delivery that was already in progress, restore the saved phase
+  /// so the rider resumes exactly where they left off (e.g. already picked up).
+  Future<void> _initPersistence() async {
+    final saved = await ActiveDeliveryStore.loadDelivery();
+    final sameOrder = saved != null &&
+        saved['orderId']?.toString() == widget.delivery['orderId']?.toString();
+    if (sameOrder) {
+      final phase = await ActiveDeliveryStore.loadPhase();
+      if (mounted && phase != 'delivered') setState(() => _phase = phase);
+    }
+    await ActiveDeliveryStore.save(
+      Map<String, dynamic>.from(widget.delivery),
+      _phase,
+    );
   }
 
   @override
@@ -98,6 +117,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     setState(() => _isUpdating = false);
     if (res.success) {
       setState(() => _phase = 'to_patient');
+      ActiveDeliveryStore.savePhase('to_patient');
     } else {
       _showError(res.message);
     }
@@ -113,6 +133,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
     setState(() => _isUpdating = false);
     if (res.success) {
       setState(() => _phase = 'delivered');
+      // Delivery finished — remove the persisted active delivery.
+      ActiveDeliveryStore.clear();
     } else {
       _showError(res.message);
     }

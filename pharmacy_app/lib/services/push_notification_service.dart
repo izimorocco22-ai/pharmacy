@@ -99,8 +99,12 @@ class PushNotificationService {
     );
     await _local.initialize(
       settings: initSettings,
-      // Tap on a notification shown while the app was in the foreground.
-      onDidReceiveNotificationResponse: (_) => _openNotificationsWhenReady(),
+      // Tap on a notification shown while the app was in the foreground. The
+      // local notification carries the FCM data map as its JSON payload, so we
+      // decode it and deep-link to the relevant screen.
+      onDidReceiveNotificationResponse: (response) {
+        _handleTapWhenReady(_decodePayload(response.payload));
+      },
     );
 
     await _local
@@ -155,13 +159,13 @@ class PushNotificationService {
 
     // Tap on the system notification while the app was in the BACKGROUND.
     FirebaseMessaging.onMessageOpenedApp
-        .listen((_) => _openNotificationsWhenReady());
+        .listen((message) => _handleTapWhenReady(message.data));
 
     // Tap on the system notification while the app was TERMINATED: the tap is
     // what launched the app, so navigate once the splash screen has routed.
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
-      _openNotificationsWhenReady();
+      _handleTapWhenReady(initialMessage.data);
     }
   }
 
@@ -172,17 +176,66 @@ class PushNotificationService {
   /// long it takes depends on auth checks and network calls that vary per app
   /// and per device. So wait for the route to actually change instead of
   /// guessing, and give up rather than navigate somewhere surprising.
-  static Future<void> _openNotificationsWhenReady() async {
+  static Future<void> _handleTapWhenReady(Map<String, dynamic> data) async {
     for (var attempt = 0; attempt < 120; attempt++) {
       if (navigatorKey.currentState != null && _routeObserver.isPastSplash) {
-        // A signed-out user lands on /login: the notifications list would only
-        // 401 there, so leave the login form alone.
-        if (_routeObserver.topRouteName != '/login') _openNotifications();
+        // A signed-out user lands on /login: deep targets would only 401 there,
+        // so leave the login form alone.
+        if (_routeObserver.topRouteName != '/login') _navigateForData(data);
         return;
       }
       await Future.delayed(const Duration(milliseconds: 250));
     }
     debugPrint('[push] gave up waiting for the navigator to leave the splash');
+  }
+
+  /// Convert the local-notification JSON payload back into the FCM data map.
+  static Map<String, dynamic> _decodePayload(String? payload) {
+    if (payload == null || payload.isEmpty) return {};
+    try {
+      return Map<String, dynamic>.from(jsonDecode(payload) as Map);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Deep-links a notification tap to the order's detail screen. The pharmacy
+  /// order-detail screen needs the full order object and there is no
+  /// fetch-by-id endpoint, so we load the orders list and find the match.
+  /// Falls back to the notifications list when it can't be resolved.
+  /// Pure routing decision for a notification payload. Returns 'order-detail'
+  /// when the payload carries an orderId, else 'notifications'. Exposed for
+  /// unit testing.
+  @visibleForTesting
+  static String deepLinkDecision(Map<String, dynamic> data) {
+    final orderId = data['orderId']?.toString();
+    if (orderId != null && orderId.isNotEmpty) return 'order-detail';
+    return 'notifications';
+  }
+
+  static Future<void> _navigateForData(Map<String, dynamic> data) async {
+    final nav = navigatorKey.currentState;
+    if (nav == null) return;
+    final orderId = data['orderId']?.toString();
+
+    if (deepLinkDecision(data) == 'order-detail') {
+      try {
+        final res = await ApiService.get('/pharmacy/orders');
+        if (res.success && res.data != null) {
+          final orders = (res.data['orders'] as List? ?? []);
+          for (final o in orders) {
+            final m = Map<String, dynamic>.from(o as Map);
+            if (m['id']?.toString() == orderId ||
+                m['_id']?.toString() == orderId) {
+              nav.pushNamed('/order-detail', arguments: m);
+              return;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    // Prescription requests / anything unresolved: show the notifications list.
+    _openNotifications();
   }
 
   static void _openNotifications() {

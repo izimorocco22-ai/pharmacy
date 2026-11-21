@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../features/notifications/notifications_list_screen.dart';
 import 'api_service.dart';
+import 'active_delivery_store.dart';
 
 /// Handles messages received while the app is in the background or terminated.
 /// Must be a top-level function annotated with @pragma('vm:entry-point').
@@ -99,8 +100,12 @@ class PushNotificationService {
     );
     await _local.initialize(
       settings: initSettings,
-      // Tap on a notification shown while the app was in the foreground.
-      onDidReceiveNotificationResponse: (_) => _openNotificationsWhenReady(),
+      // Tap on a notification shown while the app was in the foreground. The
+      // local notification carries the FCM data map as its JSON payload, so we
+      // decode it and deep-link to the relevant screen.
+      onDidReceiveNotificationResponse: (response) {
+        _handleTapWhenReady(_decodePayload(response.payload));
+      },
     );
 
     await _local
@@ -155,13 +160,13 @@ class PushNotificationService {
 
     // Tap on the system notification while the app was in the BACKGROUND.
     FirebaseMessaging.onMessageOpenedApp
-        .listen((_) => _openNotificationsWhenReady());
+        .listen((message) => _handleTapWhenReady(message.data));
 
     // Tap on the system notification while the app was TERMINATED: the tap is
     // what launched the app, so navigate once the splash screen has routed.
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
-      _openNotificationsWhenReady();
+      _handleTapWhenReady(initialMessage.data);
     }
   }
 
@@ -172,17 +177,73 @@ class PushNotificationService {
   /// long it takes depends on auth checks and network calls that vary per app
   /// and per device. So wait for the route to actually change instead of
   /// guessing, and give up rather than navigate somewhere surprising.
-  static Future<void> _openNotificationsWhenReady() async {
+  static Future<void> _handleTapWhenReady(Map<String, dynamic> data) async {
     for (var attempt = 0; attempt < 120; attempt++) {
       if (navigatorKey.currentState != null && _routeObserver.isPastSplash) {
-        // A signed-out user lands on /login: the notifications list would only
-        // 401 there, so leave the login form alone.
-        if (_routeObserver.topRouteName != '/login') _openNotifications();
+        // A signed-out user lands on /login: deep targets would only 401 there,
+        // so leave the login form alone.
+        if (_routeObserver.topRouteName != '/login') _navigateForData(data);
         return;
       }
       await Future.delayed(const Duration(milliseconds: 250));
     }
     debugPrint('[push] gave up waiting for the navigator to leave the splash');
+  }
+
+  /// Convert the local-notification JSON payload back into the FCM data map.
+  static Map<String, dynamic> _decodePayload(String? payload) {
+    if (payload == null || payload.isEmpty) return {};
+    try {
+      return Map<String, dynamic>.from(jsonDecode(payload) as Map);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Deep-links a rider notification tap. Earnings updates open the wallet; a
+  /// tap on the rider's own active delivery resumes the navigation screen;
+  /// everything else (a new delivery available, a cancellation) lands on home,
+  /// where the available-deliveries list lives and orders can be accepted.
+  /// Pure routing decision for a rider notification payload. Returns:
+  /// 'wallet' (earnings), 'order' (has orderId -> active delivery or home),
+  /// 'home' (new delivery / cancellation), 'notifications' (fallback).
+  /// Exposed for unit testing.
+  @visibleForTesting
+  static String deepLinkDecision(Map<String, dynamic> data) {
+    final type = (data['type'] ?? '').toString();
+    final orderId = data['orderId']?.toString();
+    if (type.startsWith('earnings')) return 'wallet';
+    if (orderId != null && orderId.isNotEmpty) return 'order';
+    if (type.startsWith('delivery') || type.startsWith('order')) return 'home';
+    return 'notifications';
+  }
+
+  static Future<void> _navigateForData(Map<String, dynamic> data) async {
+    final nav = navigatorKey.currentState;
+    if (nav == null) return;
+    final orderId = data['orderId']?.toString();
+
+    switch (deepLinkDecision(data)) {
+      case 'wallet':
+        nav.pushNamed('/wallet');
+        return;
+      case 'order':
+        // If the tapped order is the rider's own active delivery, resume the
+        // navigation screen; otherwise land on home (available deliveries).
+        final saved = await ActiveDeliveryStore.loadDelivery();
+        nav.popUntil((r) => r.isFirst);
+        if (saved != null &&
+            orderId != null &&
+            saved['orderId']?.toString() == orderId) {
+          nav.pushNamed('/navigation', arguments: saved);
+        }
+        return;
+      case 'home':
+        nav.popUntil((r) => r.isFirst);
+        return;
+      default:
+        _openNotifications();
+    }
   }
 
   static void _openNotifications() {
