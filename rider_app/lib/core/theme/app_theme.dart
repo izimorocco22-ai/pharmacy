@@ -109,6 +109,9 @@ class AppTheme {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(radiusMedium), borderSide: const BorderSide(color: cardBorder)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(radiusMedium), borderSide: const BorderSide(color: primary, width: 2)),
         contentPadding: const EdgeInsets.symmetric(horizontal: spacing16, vertical: spacing16),
+        // Light-grey placeholder/example text (matches the pharmacy app) so the
+        // example number in the phone field doesn't look like real dark input.
+        hintStyle: GoogleFonts.inter(fontSize: 14, color: textHint),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: surface,
