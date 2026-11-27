@@ -48,14 +48,11 @@ export async function processTimedOutPrescriptions(): Promise<number> {
       rejectionReason: `Auto-reassigned: No quote within ${PHARMACY_RESPONSE_MINUTES} minutes`,
     });
 
-    try {
-      await sendNotificationToPharmacy(
-        timedOutPharmacyId.toString(),
-        'Request Moved',
-        `A prescription request was sent to another pharmacy because no quote was sent within ${PHARMACY_RESPONSE_MINUTES} minutes.`,
-        { prescriptionId: p._id.toString(), type: 'prescription_timeout' }
-      );
-    } catch (_) {}
+    // Deliberately NOT notifying the pharmacy that let the request time out.
+    // Client feedback: telling a pharmacy that a request it ignored has moved
+    // on is noise, and pharmacies were getting too many notifications. The
+    // 'prescription_timeout' translation key is kept in notification-i18n.ts
+    // so this can be switched back on without re-translating it.
 
     // Try the next nearest pharmacy (notifies it and the patient)
     const reassigned = await reassignPrescriptionToNextPharmacy(p);
@@ -71,8 +68,8 @@ export async function processTimedOutPrescriptions(): Promise<number> {
       if (patient) {
         await sendNotificationToUser(
           patient.userId.toString(),
-          'Request Timed Out',
-          'No pharmacy sent a quote for your prescription request. Please try again later.',
+          'prescription_expired',
+          undefined,
           { prescriptionId: p._id.toString(), type: 'prescription_expired' }
         );
       }
@@ -133,8 +130,8 @@ export async function reassignPrescriptionToNextPharmacy(prescription: any): Pro
   try {
     await sendNotificationToPharmacy(
       nextPharmacy._id.toString(),
-      'New Prescription Request',
-      'A new prescription request is waiting for your quote.',
+      'prescription_request',
+      undefined,
       { prescriptionId: prescription._id.toString(), type: 'prescription_request' }
     );
   } catch (_) {}
@@ -145,8 +142,8 @@ export async function reassignPrescriptionToNextPharmacy(prescription: any): Pro
     if (patient) {
       await sendNotificationToUser(
         patient.userId.toString(),
-        'Prescription Reassigned',
-        'Your prescription has been sent to another nearby pharmacy.',
+        'prescription_reassigned',
+        undefined,
         { prescriptionId: prescription._id.toString(), type: 'prescription_reassigned' }
       );
     }

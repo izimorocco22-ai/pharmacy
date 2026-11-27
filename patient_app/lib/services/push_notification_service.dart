@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../features/notifications/notifications_list_screen.dart';
 import 'api_service.dart';
 
@@ -257,6 +258,19 @@ class PushNotificationService {
     return null;
   }
 
+  /// The language the user picked in the app, as LanguageProvider stores it.
+  /// Sent to the backend with the token so push notifications arrive in that
+  /// language — the server has no other way of knowing which one is in use.
+  static Future<String> _currentLanguage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('language_code') ?? 'en';
+    } catch (e) {
+      debugPrint('[push] could not read language: $e');
+      return 'en';
+    }
+  }
+
   /// Sends this device's FCM token to the backend. Call after the user is
   /// authenticated (a valid auth token must already be stored).
   static Future<void> registerToken() async {
@@ -269,7 +283,7 @@ class PushNotificationService {
       FirebaseMessaging.instance.onTokenRefresh.listen((t) async {
         try {
           _currentToken = t;
-          await ApiService.post('/notifications/token', {'fcmToken': t});
+          await ApiService.post('/notifications/token', {'fcmToken': t, 'language': await _currentLanguage()});
         } catch (e) {
           debugPrint('[push] token refresh upload failed: $e');
         }
@@ -294,7 +308,7 @@ class PushNotificationService {
         return;
       }
       _currentToken = token;
-      await ApiService.post('/notifications/token', {'fcmToken': token});
+      await ApiService.post('/notifications/token', {'fcmToken': token, 'language': await _currentLanguage()});
       debugPrint('[push] FCM token registered');
     } catch (e) {
       debugPrint('[push] registerToken failed: $e');

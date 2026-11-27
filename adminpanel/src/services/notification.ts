@@ -4,6 +4,12 @@ import Patient from '@/models/Patient';
 import Pharmacy from '@/models/Pharmacy';
 import Rider from '@/models/Rider';
 import Notification from '@/models/Notification';
+import {
+  translateNotification,
+  normalizeLang,
+  DEFAULT_LANG,
+  type Lang,
+} from '@/services/notification-i18n';
 
 // Initialize Firebase Admin (optional - only if credentials are provided)
 let firebaseInitialized = false;
@@ -108,20 +114,34 @@ async function pruneTokens(userId: string, dead: string[]) {
   );
 }
 
+/**
+ * Sends one notification, rendered in the recipient's own language.
+ *
+ * `key` is a key from notification-i18n; `params` fills its `{placeholders}`.
+ * The key and params are stored alongside the rendered text so the in-app list
+ * can be re-rendered later if the user switches language.
+ */
 export async function sendNotificationToUser(
   userId: string,
-  title: string,
-  body: string,
+  key: string,
+  params?: Record<string, any>,
   data?: Record<string, any>
 ) {
   try {
-    // Save notification to database
+    // The language has to be read before the text is rendered, so the user is
+    // fetched first — previously this ran after the notification was saved.
+    const user = await User.findById(userId);
+    const lang: Lang = user ? normalizeLang(user.language) : DEFAULT_LANG;
+    const { title, body } = translateNotification(key, lang, params);
+
     await Notification.create({
       userId,
       title,
       body,
       type: data?.type || 'general',
       data,
+      key,
+      params,
     });
 
     // Only send FCM notification if Firebase is initialized
@@ -130,11 +150,10 @@ export async function sendNotificationToUser(
       return;
     }
 
-    // Send to every device this user is signed in on — e.g. an iPhone and an
-    // Android phone on the same account must both get the notification.
-    const user = await User.findById(userId);
     if (!user) return;
 
+    // Send to every device this user is signed in on — e.g. an iPhone and an
+    // Android phone on the same account must both get the notification.
     const tokens = tokensOf(user);
     if (tokens.length === 0) return;
 
@@ -167,14 +186,14 @@ export async function sendNotificationToUser(
  */
 export async function sendNotificationToPatient(
   patientId: string,
-  title: string,
-  body: string,
+  key: string,
+  params?: Record<string, any>,
   data?: Record<string, any>
 ) {
   try {
     const patient = await Patient.findById(patientId).select('userId');
     if (!patient) return;
-    await sendNotificationToUser(patient.userId.toString(), title, body, data);
+    await sendNotificationToUser(patient.userId.toString(), key, params, data);
   } catch (error) {
     console.error('sendNotificationToPatient error:', error);
   }
@@ -182,14 +201,14 @@ export async function sendNotificationToPatient(
 
 export async function sendNotificationToPharmacy(
   pharmacyId: string,
-  title: string,
-  body: string,
+  key: string,
+  params?: Record<string, any>,
   data?: Record<string, any>
 ) {
   try {
     const pharmacy = await Pharmacy.findById(pharmacyId).select('userId');
     if (!pharmacy) return;
-    await sendNotificationToUser(pharmacy.userId.toString(), title, body, data);
+    await sendNotificationToUser(pharmacy.userId.toString(), key, params, data);
   } catch (error) {
     console.error('sendNotificationToPharmacy error:', error);
   }
@@ -197,35 +216,48 @@ export async function sendNotificationToPharmacy(
 
 export async function sendNotificationToRider(
   riderId: string,
-  title: string,
-  body: string,
+  key: string,
+  params?: Record<string, any>,
   data?: Record<string, any>
 ) {
   try {
     const rider = await Rider.findById(riderId).select('userId');
     if (!rider) return;
-    await sendNotificationToUser(rider.userId.toString(), title, body, data);
+    await sendNotificationToUser(rider.userId.toString(), key, params, data);
   } catch (error) {
     console.error('sendNotificationToRider error:', error);
   }
 }
 
+/**
+ * Fan-out to several users. Each recipient's text is rendered in their own
+ * language, so one batch can carry three different languages at once — which
+ * is why this groups tokens by rendered text instead of sending one payload.
+ */
 export async function sendNotificationToPharmacies(
   userIds: string[],
-  title: string,
-  body: string,
+  key: string,
+  params?: Record<string, any>,
   data?: Record<string, any>
 ) {
   try {
-    // Save notifications
-    const notifications = userIds.map((userId) => ({
-      userId,
-      title,
-      body,
-      type: data?.type || 'general',
-      data,
-    }));
-    await Notification.insertMany(notifications);
+    const users = await User.find({ _id: { $in: userIds } });
+
+    // Save one notification per user, each in that user's language.
+    await Notification.insertMany(
+      users.map((u) => {
+        const { title, body } = translateNotification(key, normalizeLang(u.language), params);
+        return {
+          userId: u._id,
+          title,
+          body,
+          type: data?.type || 'general',
+          data,
+          key,
+          params,
+        };
+      })
+    );
 
     // Only send FCM notifications if Firebase is initialized — calling
     // admin.messaging() without credentials throws and would lose the batch.
@@ -234,28 +266,40 @@ export async function sendNotificationToPharmacies(
       return;
     }
 
-    const users = await User.find({ _id: { $in: userIds } });
-
     // One entry per device, so a user signed in on two phones gets both.
     const recipients = users.flatMap((u) =>
-      tokensOf(u).map((token) => ({ userId: u._id.toString(), token }))
+      tokensOf(u).map((token) => ({
+        userId: u._id.toString(),
+        token,
+        lang: normalizeLang(u.language),
+      }))
     );
     if (recipients.length === 0) return;
 
-    const response = await admin.messaging().sendEachForMulticast({
-      tokens: recipients.map((r) => r.token),
-      ...buildPushPayload(title, body, data),
-    });
+    // Group by language so each group gets a correctly rendered payload.
+    const byLang = new Map<Lang, typeof recipients>();
+    for (const r of recipients) {
+      byLang.set(r.lang, [...(byLang.get(r.lang) || []), r]);
+    }
 
-    // Drop tokens APNs/FCM reported as dead so they stop failing forever.
     const deadByUser = new Map<string, string[]>();
-    response.responses.forEach((r, i) => {
-      if (r.success) return;
-      console.error(`FCM multicast error for ${recipients[i].token}:`, r.error);
-      if (!isDeadTokenError(r.error)) return;
-      const { userId, token } = recipients[i];
-      deadByUser.set(userId, [...(deadByUser.get(userId) || []), token]);
-    });
+    for (const [lang, group] of byLang) {
+      const { title, body } = translateNotification(key, lang, params);
+      const response = await admin.messaging().sendEachForMulticast({
+        tokens: group.map((r) => r.token),
+        ...buildPushPayload(title, body, data),
+      });
+
+      // Drop tokens APNs/FCM reported as dead so they stop failing forever.
+      response.responses.forEach((r, i) => {
+        if (r.success) return;
+        console.error(`FCM multicast error for ${group[i].token}:`, r.error);
+        if (!isDeadTokenError(r.error)) return;
+        const { userId, token } = group[i];
+        deadByUser.set(userId, [...(deadByUser.get(userId) || []), token]);
+      });
+    }
+
     await Promise.all(
       [...deadByUser.entries()].map(([userId, dead]) => pruneTokens(userId, dead))
     );

@@ -50,16 +50,16 @@ export async function POST(
         if (order.pharmacyId) {
           await sendNotificationToPharmacy(
             order.pharmacyId.toString(),
-            'Order Cancelled',
-            `Order ${order.orderNumber} was cancelled by the patient.`,
+            'order_cancelled_pharmacy',
+            { orderNumber: order.orderNumber },
             { orderId: order._id.toString(), type: 'order_cancelled' }
           );
         }
         if (order.riderId) {
           await sendNotificationToRider(
             order.riderId.toString(),
-            'Delivery Cancelled',
-            `Order ${order.orderNumber} was cancelled by the patient.`,
+            'delivery_cancelled_rider',
+            { orderNumber: order.orderNumber },
             { orderId: order._id.toString(), type: 'order_cancelled' }
           );
         }

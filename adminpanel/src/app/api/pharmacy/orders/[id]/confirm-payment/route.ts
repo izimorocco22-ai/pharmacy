@@ -37,8 +37,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     try {
       await sendNotificationToPatient(
         order.patientId.toString(),
-        'Payment Confirmed! 🎉',
-        `Your payment for order ${order.orderNumber} has been verified. Your order is now confirmed!`,
+        'payment_confirmed',
+        { orderNumber: order.orderNumber },
         { orderId: order._id.toString(), type: 'payment_confirmed' }
       );
     } catch (_) {}

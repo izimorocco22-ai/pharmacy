@@ -82,6 +82,8 @@ export async function POST(request: NextRequest) {
         vehicleNumber: roleData.vehicleNumber || '',
         licenseNumber: roleData.licenseNumber || '',
         licenseImageUrl: roleData.licenseImageUrl || '',
+        permitNumber: roleData.permitNumber || '',
+        permitImageUrl: roleData.permitImageUrl || '',
         approvalStatus: 'pending',
       });
       await User.findByIdAndUpdate(user._id, { isActive: false });

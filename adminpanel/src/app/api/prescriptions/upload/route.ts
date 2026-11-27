@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
     try {
       await sendNotificationToUser(
         auth.userId,
-        'Request Submitted',
-        'Your prescription request was submitted. We are finding a pharmacy for you.',
+        'prescription_submitted',
+        undefined,
         { prescriptionId: prescription._id.toString(), type: 'prescription_submitted' }
       );
     } catch (_) {}

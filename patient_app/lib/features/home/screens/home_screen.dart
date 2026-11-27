@@ -117,11 +117,9 @@ class _HomeTab extends StatelessWidget {
         // ('quote_pending'), and real placed orders. "Active Orders" must count
         // only actual orders — not the quote/prescription stages (those belong
         // under "My Quotes"), otherwise a single quote is counted twice.
-        const activeOrderStatuses = [
-          'pending', 'payment_verification', 'confirmed', 'preparing',
-          'ready', 'assigned', 'picked_up', 'in_transit',
-        ];
-        final active = orders.where((o) => activeOrderStatuses.contains(o.status)).length;
+        // The active-order count that used to be computed here fed a badge on
+        // the removed "Orders" tile; the Active Orders list below shows the
+        // same orders directly, so the count is no longer needed.
         final pending = orders.where((o) => o.status == 'quote_pending').length;
         final recent = orders.take(3).toList();
 
@@ -222,10 +220,11 @@ class _HomeTab extends StatelessWidget {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(child: _actionTile(context, Icons.receipt_long, l10n.translate('orders'), AppTheme.info,
-                            badge: active > 0 ? '$active' : null,
-                            onTap: () => onTabChange(1))),
-                        const SizedBox(width: 12),
+                        // The "Orders" tile that used to sit here was removed:
+                        // it opened the same Orders tab as both the bottom
+                        // navigation bar and the "View all" link a few pixels
+                        // below, and its badge repeated the count already
+                        // visible in the Active Orders list underneath.
                         Expanded(child: _actionTile(context, Icons.local_pharmacy, l10n.translate('my_quotes'), AppTheme.warning,
                             badge: pending > 0 ? '$pending' : null,
                             onTap: () => Navigator.pushNamed(context, '/my-quotes'))),

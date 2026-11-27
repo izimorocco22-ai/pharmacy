@@ -28,10 +28,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _licenseController = TextEditingController();
+  final _permitController = TextEditingController();
   String _completePhone = '';
 
   String _vehicleType = 'bike';
   File? _licenseImage;
+  // Second legal document authorising the rider to carry deliveries.
+  File? _permitImage;
   bool _isLoading = false;
 
   @override
@@ -61,7 +64,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  Future<void> _pickLicenseImage() async {
+  Future<void> _pickImage(void Function(File) onPicked) async {
     final l10n = AppLocalizations.of(context)!;
     final picker = ImagePicker();
     showModalBottomSheet(
@@ -79,7 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               onTap: () async {
                 Navigator.pop(context);
                 final img = await picker.pickImage(source: ImageSource.camera, imageQuality: 80);
-                if (img != null) setState(() => _licenseImage = File(img.path));
+                if (img != null) setState(() => onPicked(File(img.path)));
               },
             ),
             ListTile(
@@ -88,7 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               onTap: () async {
                 Navigator.pop(context);
                 final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-                if (img != null) setState(() => _licenseImage = File(img.path));
+                if (img != null) setState(() => onPicked(File(img.path)));
               },
             ),
           ],
@@ -97,10 +100,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Future<String?> _uploadLicenseImage() async {
-    if (_licenseImage == null) return null;
+  Future<String?> _uploadImage(File? file, String folder) async {
+    if (file == null) return null;
     try {
-      final ext = _licenseImage!.path.toLowerCase().split('.').last;
+      final ext = file.path.toLowerCase().split('.').last;
       final subtype = ext == 'png' ? 'png' : ext == 'webp' ? 'webp' : 'jpeg';
 
       final request = http.MultipartRequest(
@@ -108,10 +111,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Uri.parse('${AppConstants.baseUrl}/upload/media'),
       );
       request.fields['type'] = 'image';
-      request.fields['folder'] = 'rider-licenses';
+      request.fields['folder'] = folder;
       request.files.add(await http.MultipartFile.fromPath(
         'file',
-        _licenseImage!.path,
+        file.path,
         contentType: MediaType('image', subtype),
       ));
 
@@ -149,10 +152,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
 
       // Upload licence image
-      String? licenseImageUrl;
-      if (_licenseImage != null) {
-        licenseImageUrl = await _uploadLicenseImage();
-      }
+      final licenseImageUrl = await _uploadImage(_licenseImage, 'rider-licenses');
+      final permitImageUrl = await _uploadImage(_permitImage, 'rider-permits');
 
       setState(() => _isLoading = false);
 
@@ -171,6 +172,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               'vehicleNumber': '',
               'licenseNumber': _licenseController.text.trim(),
               'licenseImageUrl': licenseImageUrl ?? '',
+              'permitNumber': _permitController.text.trim(),
+              'permitImageUrl': permitImageUrl ?? '',
             },
           ),
         ),
@@ -183,6 +186,72 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
     }
+  }
+
+  /// One document upload tile. Used for both the driving licence and the
+  /// permit, so the two stay visually identical.
+  Widget _buildUploadCard({
+    required File? image,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: image != null ? 180 : 100,
+        decoration: BoxDecoration(
+          color: AppTheme.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: image != null ? AppTheme.primary : AppTheme.divider,
+            width: image != null ? 2 : 1,
+          ),
+        ),
+        child: image != null
+            ? Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(11),
+                    child: Image.file(image,
+                        width: double.infinity, height: double.infinity, fit: BoxFit.cover),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: onTap,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                            color: Colors.white, shape: BoxShape.circle),
+                        child: const Icon(Icons.edit, size: 16, color: AppTheme.primary),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.upload_file, size: 32, color: AppTheme.primary),
+                  const SizedBox(height: 8),
+                  Text('$label (${l10n.translate('optional')})',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: AppTheme.primary)),
+                  Text(l10n.translate('tap_to_upload'),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: AppTheme.textSecondary)),
+                ],
+              ),
+      ),
+    );
   }
 
   @override
@@ -269,56 +338,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: AppTheme.spacing16),
 
               // Licence image upload
-              GestureDetector(
-                onTap: _pickLicenseImage,
-                child: Container(
-                  width: double.infinity,
-                  height: _licenseImage != null ? 180 : 100,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _licenseImage != null ? AppTheme.primary : AppTheme.divider,
-                      width: _licenseImage != null ? 2 : 1,
-                    ),
-                  ),
-                  child: _licenseImage != null
-                      ? Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(11),
-                              child: Image.file(_licenseImage!, width: double.infinity,
-                                  height: double.infinity, fit: BoxFit.cover),
-                            ),
-                            Positioned(
-                              top: 8, right: 8,
-                              child: GestureDetector(
-                                onTap: _pickLicenseImage,
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white, shape: BoxShape.circle),
-                                  child: const Icon(Icons.edit, size: 16, color: AppTheme.primary),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.upload_file, size: 32, color: AppTheme.primary),
-                            const SizedBox(height: 8),
-                            Text(
-                                '${l10n.translate('upload_licence_image')} (${l10n.translate('optional')})',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppTheme.primary)),
-                            Text(l10n.translate('tap_to_upload'),
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.textSecondary)),
-                          ],
-                        ),
+              _buildUploadCard(
+                image: _licenseImage,
+                label: l10n.translate('upload_licence_image'),
+                onTap: () => _pickImage((f) => _licenseImage = f),
+              ),
+              const SizedBox(height: AppTheme.spacing16),
+
+              // Second legal document: the permit allowing the rider to
+              // carry deliveries. Optional at registration, like the licence —
+              // the admin checks it before approving the account.
+              TextField(
+                controller: _permitController,
+                decoration: InputDecoration(
+                  labelText:
+                      '${l10n.translate('permit_number')} (${l10n.translate('optional')})',
+                  prefixIcon: const Icon(Icons.badge_outlined),
                 ),
+              ),
+              const SizedBox(height: AppTheme.spacing16),
+              _buildUploadCard(
+                image: _permitImage,
+                label: l10n.translate('upload_permit_image'),
+                onTap: () => _pickImage((f) => _permitImage = f),
               ),
               const SizedBox(height: AppTheme.spacing32),
 

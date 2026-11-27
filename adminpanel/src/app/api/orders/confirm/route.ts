@@ -8,6 +8,7 @@ import Rider from '@/models/Rider';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
 import { sendNotificationToUser } from '@/services/notification';
+import { findRidersToNotify } from '@/services/rider-dispatch';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,44 +108,23 @@ export async function POST(request: NextRequest) {
     // Notify pharmacy
     await sendNotificationToUser(
       pharmacy!.userId.toString(),
-      'New Order Confirmed',
-      `Order ${orderNumber} has been confirmed. Please prepare the medicines.`,
+      'order_confirmed_pharmacy',
+      { orderNumber },
       {
         orderId: order._id.toString(),
         type: 'order_confirmed',
       }
     );
 
-    // Find nearby online riders. Riders only match the geo-query when their
-    // currentLocation is set, so fall back to every available online rider so
-    // a confirmed order never goes unannounced.
-    let nearbyRiders: any[] = [];
-    try {
-      nearbyRiders = await Rider.find({
-        currentLocation: {
-          $near: {
-            $geometry: pharmacy!.location,
-            $maxDistance: 50000, // 50km
-          },
-        },
-        isAvailable: true,
-        isOnline: true,
-      }).limit(20);
-    } catch (_) {
-      nearbyRiders = [];
-    }
-
-    if (nearbyRiders.length === 0) {
-      nearbyRiders = await Rider.find({ isAvailable: true, isOnline: true }).limit(20);
-    }
+    const nearbyRiders = await findRidersToNotify(pharmacy!.location);
 
     // Notify riders
     for (const rider of nearbyRiders) {
       try {
         await sendNotificationToUser(
           rider.userId.toString(),
-          'New Delivery Available',
-          `Delivery fee: ${order.deliveryFee} MRU`,
+          'delivery_available',
+          { fee: order.deliveryFee },
           {
             orderId: order._id.toString(),
             type: 'delivery_available',

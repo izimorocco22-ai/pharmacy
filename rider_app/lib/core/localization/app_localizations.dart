@@ -11,6 +11,8 @@ class AppLocalizations {
 
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
+      'permit_number': 'Permit / Legal Document Number',
+      'upload_permit_image': 'Upload Permit or Legal Document',
       'open_in_google_maps': 'Navigate with Google Maps',
       // Auth
       'login': 'Login',
@@ -257,6 +259,8 @@ class AppLocalizations {
       'privacy_s6_body': 'If you have any questions about this Privacy Policy, please contact us at support@ordogo.com.',
     },
     'fr': {
+      'permit_number': 'Numéro du permis / document légal',
+      'upload_permit_image': 'Téléverser le permis ou document légal',
       'open_in_google_maps': 'Naviguer avec Google Maps',
       // Auth
       'login': 'Connexion',
@@ -503,6 +507,8 @@ class AppLocalizations {
       'privacy_s6_body': 'Si vous avez des questions concernant cette politique de confidentialité, veuillez nous contacter à support@ordogo.com.',
     },
     'ar': {
+      'permit_number': 'رقم التصريح / الوثيقة القانونية',
+      'upload_permit_image': 'تحميل التصريح أو الوثيقة القانونية',
       'open_in_google_maps': 'التنقل عبر خرائط جوجل',
       // Auth
       'login': 'تسجيل الدخول',

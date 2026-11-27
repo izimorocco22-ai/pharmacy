@@ -150,8 +150,8 @@ export async function POST(request: NextRequest) {
     try {
       await sendNotificationToPatient(
         prescription.patientId.toString(),
-        isEdit ? 'Quote Updated' : 'Quote Received',
-        `${isEdit ? 'Updated quote' : 'New quote'} of ${totalAmount} MRU`,
+        isEdit ? 'quote_updated' : 'quote_received',
+        { amount: totalAmount },
         { quoteId: quote._id.toString(), type: 'quote_received' }
       );
     } catch (_) {}

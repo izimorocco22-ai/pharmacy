@@ -84,6 +84,7 @@ class AppLocalizations {
 
       // Profile
       'profile': 'Profile',
+      'personal_info': 'Personal Information',
       'edit_profile': 'Edit Profile',
       'wallet': 'Wallet',
       'pharmacy_info': 'Pharmacy Info',
@@ -366,6 +367,7 @@ class AppLocalizations {
 
       // Profile
       'profile': 'Profil',
+      'personal_info': 'Informations personnelles',
       'edit_profile': 'Modifier le profil',
       'wallet': 'Portefeuille',
       'pharmacy_info': 'Infos Pharmacie',
@@ -648,6 +650,7 @@ class AppLocalizations {
 
       // Profile
       'profile': 'الملف الشخصي',
+      'personal_info': 'المعلومات الشخصية',
       'edit_profile': 'تعديل الملف الشخصي',
       'wallet': 'المحفظة',
       'pharmacy_info': 'معلومات الصيدلية',

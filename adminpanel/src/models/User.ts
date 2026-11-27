@@ -11,6 +11,10 @@ export interface IUser extends Document {
   profileImage?: string;
   profileImagePublicId?: string;
   /** @deprecated single-device field, kept so older app builds keep working */
+  // UI language the user picked in the app ('en' | 'fr' | 'ar'). Stored here so
+  // the backend can send push notifications in the user's own language; it used
+  // to live only in the device's local storage, invisible to the server.
+  language?: string;
   fcmToken?: string;
   /** One FCM token per signed-in device (phone, tablet, iOS + Android). */
   fcmTokens?: string[];
@@ -52,6 +56,11 @@ const UserSchema = new Schema<IUser>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    language: {
+      type: String,
+      enum: ['en', 'fr', 'ar'],
+      default: 'en',
     },
     fcmToken: {
       type: String,

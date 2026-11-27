@@ -6,6 +6,9 @@ import Prescription from '@/models/Prescription';
 import Quote from '@/models/Quote';
 import { authenticateRequest } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/response';
+import User from '@/models/User';
+import { translateStatusText, normalizeLang } from '@/services/notification-i18n';
+import { translateFreeTextBatch } from '@/services/translate';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +16,11 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await authenticateRequest(request);
     if (!auth || auth.role !== 'pharmacy') return unauthorizedResponse();
+
+    // These rows carry backend-authored status text, so it has to be rendered
+    // in the viewing pharmacy's language rather than always in English.
+    const viewer = await User.findById(auth.userId).select('language').lean() as any;
+    const lang = normalizeLang(viewer?.language);
 
     await connectDB();
 
@@ -56,6 +64,14 @@ export async function GET(request: NextRequest) {
       .populate({ path: 'prescriptionId', model: Prescription, select: 'imageUrl medicines' })
       .lean() as any[];
 
+    // Translate every distinct typed reason up front: the map below is
+    // synchronous, and doing it here means one call per distinct sentence
+    // rather than one per row.
+    const freeText = await translateFreeTextBatch(
+      closedQuotes.map((q: any) => q.rejectionReason),
+      lang
+    );
+
     const seen = new Set<string>();
     const closed = closedQuotes
       .filter((q: any) => {
@@ -69,9 +85,15 @@ export async function GET(request: NextRequest) {
         // A rejection reason means the pharmacy rejected (or timed out);
         // a rejected quote without one was cancelled by the patient
         const status = q.status === 'expired' ? 'expired' : q.rejectionReason ? 'rejected' : 'cancelled';
+        // A reason the pharmacist typed is free text in their own words, so it
+        // is machine-translated for the viewer (no-op unless TRANSLATE_PROVIDER
+        // is configured). Our own fallback sentences use the hand-written
+        // catalogue instead.
         const reason = q.status === 'expired'
-          ? 'Patient did not accept the quote in time'
-          : q.rejectionReason || 'Patient cancelled the quote';
+          ? translateStatusText('quote_not_accepted_in_time', lang)
+          : q.rejectionReason
+            ? freeText.get(q.rejectionReason) || q.rejectionReason
+            : translateStatusText('patient_cancelled_quote', lang);
         return {
           id: q._id,
           isClosedRequest: true,

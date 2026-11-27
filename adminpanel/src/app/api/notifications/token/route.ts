@@ -14,18 +14,35 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    const { fcmToken } = await request.json();
-    if (!fcmToken) return errorResponse('fcmToken is required');
+    const { fcmToken, language } = await request.json();
 
-    // Add to the per-device set rather than overwriting. A user signed in on
-    // both an iPhone and an Android phone previously kept only whichever
-    // registered last, so the other device silently stopped getting push.
-    // `fcmToken` is still written so older app builds keep working.
-    await User.findByIdAndUpdate(auth.userId, {
-      $addToSet: { fcmTokens: fcmToken },
-      $set: { fcmToken },
-    });
-    return successResponse({ ok: true }, 'Token registered');
+    // The app also calls this with only { language } when the user switches
+    // language, so a body carrying either one is valid.
+    if (!fcmToken && !language) {
+      return errorResponse('fcmToken or language is required');
+    }
+
+    const set: Record<string, any> = {};
+    // Persist the UI language so push notifications can be sent in it. Ignore
+    // anything we do not translate rather than storing a junk value the enum
+    // would then reject on save.
+    if (language && ['en', 'fr', 'ar'].includes(language)) set.language = language;
+
+    if (fcmToken) {
+      // Add to the per-device set rather than overwriting. A user signed in on
+      // both an iPhone and an Android phone previously kept only whichever
+      // registered last, so the other device silently stopped getting push.
+      // `fcmToken` is still written so older app builds keep working.
+      set.fcmToken = fcmToken;
+      await User.findByIdAndUpdate(auth.userId, {
+        $addToSet: { fcmTokens: fcmToken },
+        $set: set,
+      });
+    } else {
+      await User.findByIdAndUpdate(auth.userId, { $set: set });
+    }
+
+    return successResponse({ ok: true }, fcmToken ? 'Token registered' : 'Language saved');
   } catch (error) {
     console.error('Register FCM token error:', error);
     return errorResponse('Failed to register token', 500);

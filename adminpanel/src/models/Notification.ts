@@ -8,6 +8,12 @@ export interface INotification extends Document {
   // Kept as a free-form string so new event types don't need a schema change.
   type: string;
   data?: Record<string, any>;
+  // Translation key + params this notification was built from. Stored so the
+  // in-app list can be re-rendered in the user's CURRENT language: title/body
+  // below are only a snapshot of the language they used when it was sent.
+  // Absent on notifications created before localization existed.
+  key?: string;
+  params?: Record<string, any>;
   isRead: boolean;
   createdAt: Date;
 }
@@ -32,6 +38,12 @@ const NotificationSchema = new Schema<INotification>(
       default: 'general',
     },
     data: {
+      type: Schema.Types.Mixed,
+    },
+    key: {
+      type: String,
+    },
+    params: {
       type: Schema.Types.Mixed,
     },
     isRead: {

@@ -36,8 +36,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     try {
       await sendNotificationToPharmacy(
         quote.pharmacyId.toString(),
-        'Quote Cancelled',
-        'The patient cancelled the request for your quote.',
+        'quote_cancelled',
+        undefined,
         { quoteId: quote._id.toString(), type: 'quote_cancelled' }
       );
     } catch (_) {}

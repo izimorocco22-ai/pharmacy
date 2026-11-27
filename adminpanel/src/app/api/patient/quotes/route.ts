@@ -59,8 +59,8 @@ export async function GET(request: NextRequest) {
           if (pharmacy) {
             await sendNotificationToUser(
               pharmacy.userId.toString(),
-              'Quote Expired',
-              'Your quote has expired as the patient did not respond within 1 hour.',
+              'quote_expired',
+              undefined,
               { quoteId: q._id.toString(), type: 'quote_expired' }
             );
           }

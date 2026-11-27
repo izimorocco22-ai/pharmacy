@@ -71,10 +71,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     try {
       await sendNotificationToUser(
         rider.userId.toString(),
-        action === 'deduct' ? 'Earnings Deducted' : 'Earnings Added',
-        action === 'deduct'
-          ? `${amount.toFixed(2)} MRU was deducted from your earnings.${note ? ` Reason: ${note}` : ''}`
-          : `${amount.toFixed(2)} MRU was added to your earnings.${note ? ` Note: ${note}` : ''}`,
+        `earnings_${action === 'deduct' ? 'deducted' : 'added'}${note ? '_note' : ''}`,
+        { amount: amount.toFixed(2), note },
         { type: action === 'deduct' ? 'earnings_deduct' : 'earnings_credit', amount: String(amount) }
       );
     } catch (_) {}

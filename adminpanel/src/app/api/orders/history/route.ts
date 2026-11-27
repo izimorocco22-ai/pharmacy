@@ -8,6 +8,8 @@ import Pharmacy from '@/models/Pharmacy';
 import User from '@/models/User';
 import Rider from '@/models/Rider';
 import { processTimedOutPrescriptions } from '@/services/reassignment';
+import { normalizeLang } from '@/services/notification-i18n';
+import { translateFreeText } from '@/services/translate';
 import { successResponse, errorResponse } from '@/lib/response';
 import jwt from 'jsonwebtoken';
 
@@ -35,6 +37,12 @@ export async function GET(request: NextRequest) {
 
     const patient = await Patient.findOne({ userId }).lean() as any;
     if (!patient) return successResponse([], 'No orders found');
+
+    // A rejection reason is free text a pharmacist typed, so it is machine
+    // translated into the patient's language (no-op unless TRANSLATE_PROVIDER
+    // is set). Results are cached, so a repeated reason costs one call.
+    const viewer = await User.findById(userId).select('language').lean() as any;
+    const lang = normalizeLang(viewer?.language);
 
     // Fetch confirmed orders
     const orders = await Order.find({ patientId: patient._id })
@@ -70,7 +78,7 @@ export async function GET(request: NextRequest) {
             id: q._id?.toString(),
             pharmacyName,
             status: q.status,
-            rejectionReason: q.rejectionReason || '',
+            rejectionReason: await translateFreeText(q.rejectionReason, lang),
             createdAt: q.createdAt,
           };
         }));
@@ -182,7 +190,7 @@ export async function GET(request: NextRequest) {
           id: q._id?.toString(),
           pharmacyName,
           status: q.status,
-          rejectionReason: q.rejectionReason || '',
+          rejectionReason: await translateFreeText(q.rejectionReason, lang),
           createdAt: q.createdAt,
         };
       }));

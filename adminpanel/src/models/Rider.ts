@@ -6,6 +6,13 @@ export interface IRider extends Document {
   vehicleNumber: string;
   licenseNumber: string;
   licenseImageUrl?: string;
+  // A second legal document authorising the rider to carry deliveries
+  // (transport permit, vehicle registration or insurance, depending on what
+  // the rider holds). Optional like the licence fields: these were made
+  // optional to clear App Review 5.1.1, so approval is gated by the admin
+  // reviewing them rather than by the registration form refusing to submit.
+  permitNumber?: string;
+  permitImageUrl?: string;
   approvalStatus: 'pending' | 'approved' | 'rejected';
   adminNote?: string;
   currentLocation?: {
@@ -43,6 +50,14 @@ const RiderSchema = new Schema<IRider>(
     },
     licenseImageUrl: {
       type: String,
+    },
+    permitNumber: {
+      type: String,
+      default: '',
+    },
+    permitImageUrl: {
+      type: String,
+      default: '',
     },
     approvalStatus: {
       type: String,

@@ -46,14 +46,14 @@ export async function PUT(request: NextRequest) {
 
     // Notify patient
     try {
-      const messages: Record<string, { title: string; body: string }> = {
-        picked_up: { title: 'Order Picked Up', body: 'Your order has been picked up and is on the way!' },
-        in_transit: { title: 'Order On The Way', body: 'Your order is on the way to you.' },
-        delivered: { title: 'Order Delivered!', body: 'Your order has been delivered. Enjoy!' },
+      const keys: Record<string, string> = {
+        picked_up: 'order_picked_up',
+        in_transit: 'order_in_transit',
+        delivered: 'order_delivered',
       };
-      const msg = messages[status];
-      if (msg) {
-        await sendNotificationToPatient(order.patientId.toString(), msg.title, msg.body, {
+      const key = keys[status];
+      if (key) {
+        await sendNotificationToPatient(order.patientId.toString(), key, undefined, {
           orderId: order._id.toString(),
           type: `order_${status}`,
         });

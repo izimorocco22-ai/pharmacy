@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
     try {
       await sendNotificationToPatient(
         order.patientId.toString(),
-        'Rider Assigned',
-        'A rider has been assigned to your order and will pick it up soon.',
+        'rider_assigned',
+        undefined,
         { orderId: order._id.toString(), type: 'rider_assigned' }
       );
     } catch (_) {}
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
       if (order.pharmacyId) {
         await sendNotificationToPharmacy(
           order.pharmacyId.toString(),
-          'Rider on the Way',
-          `Rider is coming to pick up order ${order.orderNumber}`,
+          'rider_coming',
+          { orderNumber: order.orderNumber },
           { orderId: order._id.toString(), type: 'rider_coming' }
         );
       }

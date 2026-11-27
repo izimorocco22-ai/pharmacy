@@ -84,10 +84,8 @@ export async function PUT(request: NextRequest) {
         if (count > 0) {
           await sendNotificationToUser(
             auth.userId,
-            count === 1 ? 'A delivery is waiting' : `${count} deliveries waiting`,
-            count === 1
-              ? 'A delivery near you needs a rider. Open the app to accept it.'
-              : `${count} deliveries near you need a rider. Open the app to accept.`,
+            count === 1 ? 'delivery_waiting_one' : 'delivery_waiting_many',
+            { count },
             { type: 'delivery_available' }
           );
         }

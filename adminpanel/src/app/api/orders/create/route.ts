@@ -84,8 +84,8 @@ export async function POST(request: NextRequest) {
       try {
         await sendNotificationToPharmacy(
           nearestPharmacy._id.toString(),
-          'New Prescription Request',
-          'A new prescription request is waiting for your quote.',
+          'prescription_request',
+          undefined,
           { prescriptionId: prescription._id.toString(), type: 'prescription_request' }
         );
       } catch (_) {}
